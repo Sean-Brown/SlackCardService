@@ -405,8 +405,7 @@ export module CribbageRoutes {
             Router.sendDelayedResponse(
                 new CribbageResponseData(
                     SlackResponseType.in_channel,
-                    `${player} played:
-                            You're up, ${this.currentGame.nextPlayerInSequence.name}.`,
+                    `${player} played:`,
                     [new CribbageResponseAttachment("", "", ImageManager.getCardImageUrl(card))]
                 ),
                 responseUrl,
@@ -419,11 +418,18 @@ export module CribbageRoutes {
                         Router.sendDelayedResponse(
                             new CribbageResponseData(
                                 SlackResponseType.in_channel,
-                                `The count is at ${this.currentGame.count}.`,
+                                `The cards in play are:`,
                                 [new CribbageResponseAttachment("", "", Router.makeUrlPath(handPath))]
                             ),
                             responseUrl,
                             1000
+                        );
+                        Router.sendDelayedResponse(
+                            new CribbageResponseData(
+                                SlackResponseType.in_channel,
+                                `The count is at ${this.currentGame.count}. You're up, ${this.currentGame.nextPlayerInSequence.name}.`
+                            ),
+                            responseUrl
                         );
                     });
             }
@@ -451,6 +457,7 @@ export module CribbageRoutes {
         throwCard(req:Request, res:Response) {
             var player = Router.getPlayerName(req);
             var response = Router.makeResponse(200, "...");
+            var responseUrl = Router.getResponseUrl(req);
             var cribRes:CribbageReturn = null;
             var delayed = false;
             if (!Router.verifyRequest(req, Routes.throwCard)) {
@@ -473,7 +480,7 @@ export module CribbageRoutes {
                                 console.log(`throwCard: returning the player's thrown cards at ${urlPath}`);
                                 response.data.text = "The cards you played:";
                                 response.data.attachments = [new CribbageResponseAttachment("", "", urlPath)];
-                                Router.sendResponse(response, res);
+                                Router.sendDelayedResponse(response.data, responseUrl);
                             });
                         // Show the rest of their hand
                         var theirHand = this.currentGame.getPlayerHand(player);
@@ -489,7 +496,7 @@ export module CribbageRoutes {
                                             "Your remaining Cards:",
                                             [new CribbageResponseAttachment("", "", urlPath)]
                                         ),
-                                        Router.getResponseUrl(req)
+                                        responseUrl
                                     );
                                 });
                         }
@@ -518,7 +525,7 @@ export module CribbageRoutes {
                         SlackResponseType.in_channel,
                         `${player} threw to the kitty`
                     ),
-                    Router.getResponseUrl(req),
+                    responseUrl,
                     1000
                 );
                 if (this.currentGame.isReady()) {
@@ -530,7 +537,7 @@ export module CribbageRoutes {
                             Play a card ${this.currentGame.nextPlayerInSequence.name}.`,
                             [new CribbageResponseAttachment("", "", ImageManager.getCardImageUrl(this.currentGame.cut))]
                         ),
-                        Router.getResponseUrl(req),
+                        responseUrl,
                         2000
                     );
                 }
