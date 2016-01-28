@@ -8,23 +8,9 @@
 import fs = require("fs");
 import {BaseCard, Suit, Value} from "../../card_service/base_classes/items/card";
 import {CribbageHand} from "../../card_service/implementations/cribbage_hand";
-import {ImageConvert} from "../../routes/Cribbage/image_convert";
+import {ImageManager} from "../../routes/Cribbage/helpers/image_manager";
 
 "use strict";
-
-// Taken from SharpCoder (http://stackoverflow.com/questions/18052762/remove-directory-which-is-not-empty), just without removing the folder
-var deleteFolderRecursive = function(path) {
-    if( fs.existsSync(path) ) {
-        fs.readdirSync(path).forEach(function(file,index){
-            var curPath = path + "/" + file;
-            if(fs.lstatSync(curPath).isDirectory()) { // recurse
-                deleteFolderRecursive(curPath);
-            } else { // delete file
-                fs.unlinkSync(curPath);
-            }
-        });
-    }
-};
 
 describe("Test a Cribbage game between two players", function() {
     var aceOfSpades = new BaseCard(Suit.Spades, Value.Ace),
@@ -129,27 +115,23 @@ describe("Test a Cribbage game between two players", function() {
             expect(hand.countPoints(tenOfSpades, false)).toEqual(15); // A 15-2 and a run of 3 makes 5
         });
         it("is able to show a player's cards", function(done) {
-            var runTest = false; // By default, don't run the test because it downloads card images
-            if (runTest) {
-                process.env.AWS_S3_STANDARD_DECK_URL = "https://s3.amazonaws.com/slackcardservice/StandardDeck/";
-                var tmpPath = "../public", user = "TestUser";
-                ImageConvert.makeHandImage(new CribbageHand([
-                        aceOfClubs,
-                        twoOfClubs,
-                        threeOfDiamonds,
-                        fourOfSpades,
-                        fiveOfHearts
-                    ]), user, tmpPath)
-                    .done(function (result) {
-                        // clean the temp directory
-                        expect(result.indexOf(`${user}.png`)).not.toEqual(-1);
-                        deleteFolderRecursive(tmpPath);
-                        done();
-                    });
-            }
-            else {
-                done();
-            }
+            // NOTE: if the test fails, create spec/public/cards and spec/public/hands directories
+            // The first time the test runs it will download the cards, all subsequent times they'll be cached
+            process.env.AWS_S3_STANDARD_DECK_URL = "https://s3.amazonaws.com/slackcardservice/StandardDeck/";
+            var user = "TestUser";
+            var imageManager = new ImageManager();
+            imageManager.createPlayerHandImageAsync(user, new CribbageHand([
+                    aceOfClubs,
+                    twoOfClubs,
+                    threeOfDiamonds,
+                    fourOfSpades,
+                    fiveOfHearts
+                ]))
+                .done(function (result) {
+                    expect(result.indexOf(`${user}`)).not.toEqual(-1);
+                    imageManager.clearAllImages();
+                    done();
+                });
         });
     });
 });
