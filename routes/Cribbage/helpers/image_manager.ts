@@ -227,7 +227,7 @@ export class ImageManager {
         var that = this;
         return new Promise(function(resolve, reject) {
             var imagePath = "";
-            var playerImage = this.findPlayerImage(player);
+            var playerImage = that.findPlayerImage(player);
             if (playerImage != null) {
                 // Resolve on the cached image
                 resolve(playerImage.getLatestImage());

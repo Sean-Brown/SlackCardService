@@ -309,7 +309,6 @@ export module CribbageRoutes {
                 // Allow the game to be reset
                 response = Router.makeResponse(200, CribbageStrings.MessageStrings.GAME_RESET, SlackResponseType.ephemeral);
                 this.currentGame = new Cribbage(new Players<CribbagePlayer>([]));
-                this.resetHandImages();
                 reset = true;
             }
             Router.sendResponse(response, res);
