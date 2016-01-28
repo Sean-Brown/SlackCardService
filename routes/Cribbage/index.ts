@@ -366,7 +366,7 @@ export module CribbageRoutes {
 
         playCard(req:Request, res:Response) {
             var player = Router.getPlayerName(req);
-            var response = Router.makeResponse(200, "...", SlackResponseType.in_channel);
+            var response = Router.makeResponse(200, "", SlackResponseType.in_channel);
             var responseUrl = Router.getResponseUrl(req);
             if (!Router.verifyRequest(req, Routes.playCard)) {
                 response = Router.VALIDATION_FAILED_RESPONSE;
@@ -434,7 +434,8 @@ export module CribbageRoutes {
                                 SlackResponseType.in_channel,
                                 `The count is at ${this.currentGame.count}. You're up, ${this.currentGame.nextPlayerInSequence.name}.`
                             ),
-                            responseUrl
+                            responseUrl,
+                            1500
                         );
                     });
             }
@@ -452,7 +453,7 @@ export module CribbageRoutes {
                             Router.sendDelayedResponse(
                                 delayedData,
                                 responseUrl,
-                                1500
+                                2000
                             );
                         });
                 }
@@ -515,7 +516,6 @@ export module CribbageRoutes {
                     }
                 }
                 catch (e) {
-                    delayed = false;
                     response = Router.makeResponse(500, e);
                 }
             }
