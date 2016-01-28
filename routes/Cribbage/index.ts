@@ -495,7 +495,6 @@ export module CribbageRoutes {
                         // Show the rest of their hand
                         var theirHand = this.currentGame.getPlayerHand(player);
                         if (theirHand.size() > 0) {
-                            delayed = true;
                             Router.IMAGE_MANAGER.createPlayerHandImageAsync(player, theirHand)
                                 .done(function(handPath:string) {
                                     let urlPath = Router.makeUrlPath(handPath);
@@ -520,12 +519,10 @@ export module CribbageRoutes {
                     response = Router.makeResponse(500, e);
                 }
             }
-            if (!delayed) {
-                // They have no cards so no need to wait for the image
-                response.data.text = `${player} threw to the kitty`;
-                response.data.response_type = SlackResponseType.in_channel;
-                Router.sendResponse(response, res);
-            }
+            // They have no cards so no need to wait for the image
+            response.data.text = `${player} threw to the kitty`;
+            response.data.response_type = SlackResponseType.in_channel;
+            Router.sendResponse(response, res);
             if (response.status == 200 && !cribRes.gameOver) {
                 response.data.response_type = SlackResponseType.in_channel;
                 if (this.currentGame.isReady()) {
