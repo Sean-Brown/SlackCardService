@@ -63,10 +63,12 @@ module ImageConvert {
         return new Promise(function(resolve, reject) {
             var cardFilePath = `${cardsPath}${card.toUrlString()}`;
             if (fs.existsSync(cardFilePath)) {
+                console.log(`getting the ${card.toString()} from cache`);
                 // Resolve right away, no need to download again
                 resolve(cardFilePath);
             }
             else {
+                console.log(`About to download the ${card.toString()}`);
                 // Download the card
                 download(getCardImageUrl(card), cardFilePath, function () {
                     resolve(cardFilePath);
