@@ -44,7 +44,7 @@ export module ImageConvert {
         });
     }
 
-    export function makeHandImage(hand:CribbageHand, player:string, cardsPath:string):Promise {
+    export function makeHandImage(hand:CribbageHand, player:string, cardsPath:string, sortCards:boolean=true):Promise {
         console.log(`Making the hand image at ${cardsPath}`);
         return new Promise(function(resolve, reject) {
             var playerHandPath = "";
@@ -54,7 +54,8 @@ export module ImageConvert {
                 console.log(`Creating directory ${cardsPath}`);
                 fs.mkdirSync(cardsPath);
             }
-            hand.sortCards();
+            if (sortCards)
+                hand.sortCards();
             var promises:Array<Promise> = [];
             console.log("downloading the cards");
             for (var ix = 0; ix < hand.size(); ix++) {
