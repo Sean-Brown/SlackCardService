@@ -68,7 +68,12 @@ export class CribbageGameDescription {
  * Class that will be the return value for route-responding messages
  */
 export class CribbageReturn {
-    constructor(public gameOver:boolean=false, public message:string="", public roundOver:boolean=false) {
+    constructor(
+        public gameOver:boolean=false,
+        public message:string="",
+        public roundOver:boolean=false,
+        public sequenceOver:boolean=false
+    ) {
     }
 }
 
@@ -329,6 +334,7 @@ export class Cribbage extends CardGame<CribbagePlayer, StandardDeck> {
             }
             else if (is31) {
                 // Reset the sequence
+                response.sequenceOver = true;
                 this.resetSequence(player);
                 this.setNextPlayerInSequence(player);
                 break;
@@ -342,6 +348,7 @@ export class Cribbage extends CardGame<CribbagePlayer, StandardDeck> {
                     break;
                 }
                 // Reset the sequence and set the next player
+                response.sequenceOver = true;
                 this.resetSequence(null);
                 this.setNextPlayerInSequence(player);
                 response.message += `

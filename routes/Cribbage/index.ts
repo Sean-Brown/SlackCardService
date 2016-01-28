@@ -407,7 +407,7 @@ export module CribbageRoutes {
                 }
             }
             Router.sendResponse(response, res);
-            if (!cribRes.roundOver) {
+            if (!cribRes.roundOver && !cribRes.gameOver && !cribRes.sequenceOver) {
                 Router.sendDelayedResponse(
                     new CribbageResponseData(
                         SlackResponseType.in_channel,
@@ -467,7 +467,6 @@ export module CribbageRoutes {
             var response = Router.makeResponse(200, "...");
             var responseUrl = Router.getResponseUrl(req);
             var cribRes:CribbageReturn = null;
-            var delayed = false;
             if (!Router.verifyRequest(req, Routes.throwCard)) {
                 response = Router.VALIDATION_FAILED_RESPONSE;
             }
