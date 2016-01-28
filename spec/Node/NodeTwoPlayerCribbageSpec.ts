@@ -120,7 +120,7 @@ describe("Integration test the Cribbage game between two players", function() {
         var runShowHands = false;
         if (runShowHands) {
             var agent = request(this.app);
-            process.env.TMP_CARDS_PATH = "../../public";
+            process.env.TMP_CARDS_PATH = "../../public/cards";
             var series = joinGameAndBeginSeries(agent).concat(
                 function (cb) {
                     // Show player one's hand

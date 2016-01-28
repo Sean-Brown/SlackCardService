@@ -83,7 +83,7 @@ describe("Integration test the Cribbage game between two players", function () {
         var runShowHands = false;
         if (runShowHands) {
             var agent = request(this.app);
-            process.env.TMP_CARDS_PATH = "../../public";
+            process.env.TMP_CARDS_PATH = "../../public/cards";
             var series = joinGameAndBeginSeries(agent).concat(function (cb) {
                 agent.get(app_1.CribbageRoutePrefix + index_1.CribbageRoutes.Routes.showHand)
                     .query({ token: "" + Tokens.showHand, user_name: PeterGriffin.name })
