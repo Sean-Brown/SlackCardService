@@ -2,8 +2,6 @@ node_modules/
 dist/
 *.idea
 *.d.ts
-*.js.*
-*.js
 *.log
 *.tgz
 *.csv
