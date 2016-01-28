@@ -1,8 +1,6 @@
-/// <reference path="../../typings/tsd.d.ts" />
-/// <reference path="../../card_service/implementations/cribbage.ts" />
-/// <reference path="../../card_service/implementations/cribbage_hand.ts" />
-/// <reference path="../../card_service/implementations/cribbage_player.ts" />
-/// <reference path="../../card_service/base_classes/card_game.ts" />
+/// <reference path="../../../typings/tsd.d.ts" />
+/// <reference path="../../../card_service/base_classes/items/card.ts" />
+/// <reference path="../../../card_service/implementations/cribbage_hand.ts" />
 
 import request = require("request");
 import fs = require("fs");
@@ -12,8 +10,8 @@ import Promise = require("promise");
 // SB TODO: write typescript definition file
 import images = require("images");
 
-import {CribbageHand} from "../../card_service/implementations/cribbage_hand";
-import {BaseCard as Card} from "../../card_service/base_classes/items/card";
+import {CribbageHand} from "../../../card_service/implementations/cribbage_hand";
+import {BaseCard as Card} from "../../../card_service/base_classes/items/card";
 
 
 export module ImageConvert {
@@ -85,7 +83,7 @@ export module ImageConvert {
                     xOffset = width;
                 }
                 console.log("Creating the final image...");
-                try { playerHandImage.size(width, maxHeight).save(playerHandPath); }
+                try { playerHandImage.save(playerHandPath); }
                 catch (e) { reject(e); }
                 resolve(playerHandPath);
             });
