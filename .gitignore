@@ -9,3 +9,4 @@ dist/
 *.csv
 .env
 Procfile
+*.png
