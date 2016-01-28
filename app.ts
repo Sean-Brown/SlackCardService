@@ -24,7 +24,7 @@ export function setup(app: Express):Express {
     app.use(express.static(__dirname + "/public"));
 
     var env = process.env.NODE_ENV || "development";
-    if("development" == env) {
+    if("development" == env.toLowerCase()) {
         app.use(errorHandler({ dumpExceptions: true, showStack: true }));
     }
     else {

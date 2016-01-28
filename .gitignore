@@ -8,10 +8,4 @@ dist/
 *.tgz
 *.csv
 .env
-!body-parser/index.d.ts
-!express/index.d.ts
-!mime/mime.d.ts
-!serve-static/index.d.ts
-!form-data/lib/form-data.d.ts
-!request/request.d.ts
-!node-slack/slack.d.ts
+Procfile
