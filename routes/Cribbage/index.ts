@@ -474,7 +474,7 @@ export module CribbageRoutes {
                     cribRes = this.currentGame.giveToKitty(player, new ItemCollection(cards));
                     if (cribRes.gameOver) {
                         response.data.text = cribRes.message;
-                        this.roundOverResetImages(this.currentGame);
+                        Router.roundOverResetImages(this.currentGame);
                     }
                     else {
                         var that = this;
@@ -523,6 +523,7 @@ export module CribbageRoutes {
             if (!delayed) {
                 // They have no cards so no need to wait for the image
                 response.data.text = `${player} threw to the kitty`;
+                response.data.response_type = SlackResponseType.in_channel;
                 Router.sendResponse(response, res);
             }
             if (response.status == 200 && !cribRes.gameOver) {
