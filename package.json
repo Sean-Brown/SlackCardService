@@ -14,6 +14,8 @@
   "description": "Web service for playing card games",
   "main": "app.js",
   "scripts": {
+    "build": "tsc -p .",
+    "preinstall": "tsd install && npm run build || true",
     "start": "node app.js",
     "test": "npm run test-node && npm run test-service",
     "test-node": "mocha -c -b --reporter spec spec/Node/*.js",
@@ -33,7 +35,9 @@
     "form-data": "^0.2.0",
     "images": "^2.1.10",
     "promise": "^7.1.1",
-    "request": "^2.67.0"
+    "request": "^2.67.0",
+    "typescript": "^1.7.5",
+    "tsd": "^0.6.5"
   },
   "devDependencies": {
     "async": "^1.5.2",
@@ -43,9 +47,7 @@
     "jquery": "^2.1.4",
     "mocha": "^2.3.4",
     "node-inspector": "^0.12.5",
-    "supertest": "^1.1.0",
-    "tsd": "^0.6.5",
-    "typescript": "^1.6.2"
+    "supertest": "^1.1.0"
   },
   "keywords": [
     "slack",
