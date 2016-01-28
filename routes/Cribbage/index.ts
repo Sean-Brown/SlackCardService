@@ -349,6 +349,7 @@ export module CribbageRoutes {
         playCard(req:Request, res:Response) {
             var player = Router.getPlayerName(req);
             var response = Router.makeResponse(200, "...", SlackResponseType.in_channel);
+            var responseUrl = Router.getResponseUrl(req);
             if (!Router.verifyRequest(req, Routes.playCard)) {
                 response = Router.VALIDATION_FAILED_RESPONSE;
             }
@@ -365,17 +366,6 @@ export module CribbageRoutes {
                     }
                     var cribRes = this.currentGame.playCard(player, card);
                     var responseText = cribRes.message;
-                    let justPlayed = `${player} played the ${card.toString()}.`;
-                    let currentCount = `The count is at ${this.currentGame.count}.`;
-                    let cardsInPlay = this.currentGame.sequence.length() > 0 ?
-                        `The cards in play are: ${this.currentGame.sequence.toString()}.` :
-                        `There are no cards currently in play.`;
-                    let nextPlayer = `You're up, ${this.currentGame.nextPlayerInSequence.name}.`;
-                    response.data.text =
-                        `${ justPlayed }
-                        ${ currentCount }
-                        ${ cardsInPlay }
-                        ${ nextPlayer }`;
                     if (cribRes.gameOver) {
                         response.data.text = responseText;
                     }
@@ -396,6 +386,35 @@ export module CribbageRoutes {
                 }
             }
             Router.sendResponse(response, res);
+            Router.sendDelayedResponse(
+                new CribbageResponseData(
+                    SlackResponseType.in_channel,
+                    `${player} played:
+                            You're up, ${this.currentGame.nextPlayerInSequence.name}.`,
+                    [new CribbageResponseAttachment("", "", ImageConvert.getCardImageUrl(card))]
+                ),
+                responseUrl,
+                500
+            );
+            if (this.currentGame.sequence.length() > 0) {
+                // Show the players the current sequence and the count
+                ImageConvert.makeHandImage(
+                    new CribbageHand(this.currentGame.sequence.cards.items),
+                    player,
+                    process.env.TMP_CARDS_PATH,
+                    false
+                ).done(function(handPath:string) {
+                    Router.sendDelayedResponse(
+                        new CribbageResponseData(
+                            SlackResponseType.in_channel,
+                            `The count is at ${this.currentGame.count}.`,
+                            [new CribbageResponseAttachment("", "", handPath)]
+                        ),
+                        responseUrl,
+                        1000
+                    );
+                });
+            }
             if (response.status == 200 && !cribRes.gameOver && !cribRes.roundOver) {
                 // Tell the player what cards they have
                 var theirHand:CribbageHand = this.currentGame.getPlayerHand(Router.getPlayerName(req));
@@ -409,8 +428,8 @@ export module CribbageRoutes {
                             delayedData.attachments = [new CribbageResponseAttachment("", "", handPath)];
                             Router.sendDelayedResponse(
                                 delayedData,
-                                Router.getResponseUrl(req),
-                                1000
+                                responseUrl,
+                                1500
                             );
                         });
                 }
@@ -429,24 +448,31 @@ export module CribbageRoutes {
                 try {
                     var cards:Array<Card> = Router.parseCards(req.body.text);
                     cribRes = this.currentGame.giveToKitty(player, new ItemCollection(cards));
-                    //var cardsPlayed:Array<CribbageResponseAttachment> = [];
-                    //for (var ix = 0; ix < cards.length; ix++) {
-                    //    cardsPlayed.push(new CribbageResponseAttachment("You threw", "", getCardImageUrl(cards[ix])));
-                    //}
                     if (cribRes.gameOver) {
                         response.data.text = cribRes.message;
                     }
                     else {
                         // Show the card they just played
-                        //response.data.attachments = cardsPlayed;
+                        ImageConvert.makeHandImage(new CribbageHand(cards), player, process.env.TMP_CARDS_PATH)
+                            .done(function(handPath:string) {
+                                response.data.text = "The cards you played:";
+                                response.data.attachments = [new CribbageResponseAttachment("", "", handPath)];
+                                Router.sendResponse(response, res);
+                            });
                         // Show the rest of their hand
                         var theirHand = this.currentGame.getPlayerHand(player);
                         if (theirHand.size() > 0) {
                             delayed = true;
                             ImageConvert.makeHandImage(theirHand, player, process.env.TMP_CARDS_PATH)
-                                .done(function (handPath:string) {
-                                    response.data.attachments = [new CribbageResponseAttachment("", "", handPath)];
-                                    Router.sendResponse(response, res);
+                                .done(function(handPath:string) {
+                                    Router.sendDelayedResponse(
+                                        new CribbageResponseData(
+                                            SlackResponseType.ephemeral,
+                                            "Your remaining Cards:",
+                                            [new CribbageResponseAttachment("", "", handPath)]
+                                        ),
+                                        Router.getResponseUrl(req)
+                                    );
                                 });
                         }
                         else {
@@ -455,10 +481,12 @@ export module CribbageRoutes {
                     }
                 }
                 catch (e) {
+                    delayed = false;
                     response = Router.makeResponse(500, e);
                 }
             }
             if (!delayed) {
+                // They have no cards so no need to wait for the image
                 Router.sendResponse(response, res);
             }
             if (response.status == 200 && !cribRes.gameOver) {
@@ -467,7 +495,14 @@ export module CribbageRoutes {
                 response.data.text += `
                 ${player} threw to the kitty`;
                 response.data.response_type = SlackResponseType.in_channel;
-                Router.sendDelayedResponse(response.data, Router.getResponseUrl(req));
+                Router.sendDelayedResponse(
+                    new CribbageResponseData(
+                        SlackResponseType.in_channel,
+                        `${player} threw to the kitty`
+                    ),
+                    Router.getResponseUrl(req),
+                    1000
+                );
                 if (this.currentGame.isReady()) {
                     // Let the players know it's time to begin the game
                     Router.sendDelayedResponse(
@@ -475,10 +510,10 @@ export module CribbageRoutes {
                             SlackResponseType.in_channel,
                             `The game is ready to begin.
                             Play a card ${this.currentGame.nextPlayerInSequence.name}.`,
-                            [new CribbageResponseAttachment("Card Card", "", ImageConvert.getCardImageUrl(this.currentGame.cut))]
+                            [new CribbageResponseAttachment("", "", ImageConvert.getCardImageUrl(this.currentGame.cut))]
                         ),
                         Router.getResponseUrl(req),
-                        1000
+                        2000
                     );
                 }
             }
