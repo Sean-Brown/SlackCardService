@@ -478,7 +478,7 @@ export module CribbageRoutes {
                             .done(function(handPath:string) {
                                 let urlPath = Router.makeUrlPath(handPath);
                                 console.log(`throwCard: returning the player's thrown cards at ${urlPath}`);
-                                response.data.text = "The cards you played:";
+                                response.data.text = "The cards thrown:";
                                 response.data.attachments = [new CribbageResponseAttachment("", "", urlPath)];
                                 Router.sendDelayedResponse(response.data, responseUrl);
                             });
