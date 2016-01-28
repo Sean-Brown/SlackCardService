@@ -407,15 +407,17 @@ export module CribbageRoutes {
                 }
             }
             Router.sendResponse(response, res);
-            Router.sendDelayedResponse(
-                new CribbageResponseData(
-                    SlackResponseType.in_channel,
-                    `${player} played:`,
-                    [new CribbageResponseAttachment("", "", ImageManager.getCardImageUrl(card))]
-                ),
-                responseUrl,
-                500
-            );
+            if (!cribRes.roundOver) {
+                Router.sendDelayedResponse(
+                    new CribbageResponseData(
+                        SlackResponseType.in_channel,
+                        `${player} played:`,
+                        [new CribbageResponseAttachment("", "", ImageManager.getCardImageUrl(card))]
+                    ),
+                    responseUrl,
+                    500
+                );
+            }
             if (this.currentGame.sequence.length() > 0) {
                 // Show the players the current sequence and the count
                 Router.IMAGE_MANAGER.createSequenceImageAsync(this.currentGame.sequence)
