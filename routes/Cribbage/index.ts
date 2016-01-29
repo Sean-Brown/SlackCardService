@@ -525,9 +525,21 @@ export module CribbageRoutes {
                     response = Router.makeResponse(500, e);
                 }
             }
-            response.data.text = `${player} threw to the kitty`;
-            response.data.response_type = SlackResponseType.in_channel;
-            Router.sendDelayedResponse(response.data, responseUrl);
+            if (response.status != 200 || cribRes.gameOver) {
+                // send the response right away
+                Router.sendResponse(response, res);
+            }
+            else {
+                // send a dummy response just to acknowledge the command was received
+                Router.sendResponse(Router.makeResponse(200, "Thanks for throwing!"), res);
+            }
+            Router.sendDelayedResponse(
+                new CribbageResponseData(
+                    SlackResponseType.in_channel,
+                    `${player} threw to the kitty`
+                )
+                , responseUrl
+            );
             if (response.status == 200 && !cribRes.gameOver) {
                 if (this.currentGame.isReady()) {
                     // Let the players know it's time to begin the game
