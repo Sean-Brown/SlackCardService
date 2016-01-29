@@ -92,6 +92,8 @@ export class Cribbage extends CardGame<CribbagePlayer, StandardDeck> {
     numPlayers: number;
     winningTeam: CribbageTeam;
     hasBegun: boolean;
+    static pointEmoji:string = ":chart_with_upwards_trend:";
+    static winnerEmoji:string = ":trollface:";
 
     constructor(players: Players<CribbagePlayer>) {
         super(players, null, "Cribbage", new StandardDeck());
@@ -246,7 +248,7 @@ export class Cribbage extends CardGame<CribbagePlayer, StandardDeck> {
                     response = this.setGameOver(team);
                 }
                 else {
-                    response.message = `2 points to ${this.dealer.name} (${this.dealer.points} :memo:) for "His Heels" (cutting the right jack)`;
+                    response.message = `2 points to ${this.dealer.name} (${this.dealer.points} ${Cribbage.pointEmoji}) for "His Heels" (cutting the right jack)`;
                 }
             }
         }
@@ -307,10 +309,10 @@ export class Cribbage extends CardGame<CribbagePlayer, StandardDeck> {
                 var prevPoints = points;
                 points += 2;
                 if (prevPoints > 0) {
-                    response.message += ` in addition to ${prevPoints} points (${player.points} :memo:) from the run-of-play.`;
+                    response.message += ` in addition to ${prevPoints} points (${player.points} ${Cribbage.pointEmoji}) from the run-of-play.`;
                 }
                 else {
-                    response.message += ` (${player.points} :memo:)`;
+                    response.message += ` (${player.points} ${Cribbage.pointEmoji})`;
                 }
             }
             if (this.roundOver()) {
@@ -326,10 +328,10 @@ export class Cribbage extends CardGame<CribbagePlayer, StandardDeck> {
                     var prevPoints = points;
                     points++;
                     if (prevPoints > 0) {
-                        response.message += ` in addition to ${prevPoints} points (${player.points} :memo:) from the run-of-play`;
+                        response.message += ` in addition to ${prevPoints} points (${player.points} ${Cribbage.pointEmoji}) from the run-of-play`;
                     }
                     else {
-                        response.message += ` (${player.points} :memo:)`;
+                        response.message += ` (${player.points} ${Cribbage.pointEmoji})`;
                     }
                 }
                 var scores = this.roundOverResetState();
@@ -369,7 +371,7 @@ export class Cribbage extends CardGame<CribbagePlayer, StandardDeck> {
             break;
         }
         if (points > 0 && response.message.length == 0) {
-            response.message = `${player.name} scored ${points} points (${player.points} :memo:).\n${response.message}`;
+            response.message = `${player.name} scored ${points} points (${player.points} ${Cribbage.pointEmoji}).\n${response.message}`;
         }
         return response;
     }
@@ -419,7 +421,7 @@ export class Cribbage extends CardGame<CribbagePlayer, StandardDeck> {
                 // Start the sequence over again, with the person after the one that got the go
                 this.resetSequence(player);
                 this.setNextPlayerInSequence(player);
-                response.message += ` (${player.points} :memo:).\nThe count is back at 0.\nYou're up ${this.nextPlayerInSequence.name}`;
+                response.message += ` (${player.points} ${Cribbage.pointEmoji}).\nThe count is back at 0.\nYou're up ${this.nextPlayerInSequence.name}`;
             }
         }
         else {
@@ -503,7 +505,7 @@ export class Cribbage extends CardGame<CribbagePlayer, StandardDeck> {
         this.winningTeam = winningTeam;
         return new CribbageReturn(
             true,
-            `${MessageStrings.GAME_OVER} Winning team: ${this.winningTeam.printTeam()}`
+            `${MessageStrings.GAME_OVER} Winning team: ${this.winningTeam.printTeam()} ${Cribbage.winnerEmoji}`
         );
     }
 
