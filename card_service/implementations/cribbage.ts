@@ -606,8 +606,7 @@ export class Cribbage extends CardGame<CribbagePlayer, StandardDeck> {
                 ret = this.setGameOver(team);
                 break;
             }
-            ret.message += `
-            ${countingPlayer.name} has hand ${this.printHand(<CribbageHand>countingPlayer.hand)} and scored ${points} points.`;
+            ret.message += `\n${countingPlayer.name} has hand ${this.printHand(<CribbageHand>countingPlayer.hand)} and scored ${points} points.`;
             if (this.dealer.equalsOther(countingPlayer)) {
                 // Add the kitty up
                 points = this.kitty.countPoints(this.cut, true);
@@ -617,8 +616,7 @@ export class Cribbage extends CardGame<CribbagePlayer, StandardDeck> {
                     ret = this.setGameOver(team);
                     break;
                 }
-                ret.message += `
-                The kitty is ${this.printHand(this.kitty)} and scores ${points} points.`;
+                ret.message += `\nThe kitty is ${this.printHand(this.kitty)} and scores ${points} points.`;
             }
             countingPlayer = this.nextPlayerInOrder(countingPlayer);
         }
@@ -752,11 +750,14 @@ export class Cribbage extends CardGame<CribbagePlayer, StandardDeck> {
      */
     private dealForTwo():void {
         var player = this.nextPlayerInOrder(this.dealer);
+        console.log("about to deal for 2");
         while (player.numCards() < 6) {
             var card = this.draw();
+            console.log(`dealing the ${card.toString()}`);
             player.hand.takeCard(card);
             player = this.nextPlayerInOrder(player);
         }
+        console.log("done dealing for 2");
     }
     /**
      * Deal the cards for a three player game
