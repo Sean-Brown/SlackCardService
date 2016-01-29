@@ -434,7 +434,8 @@ export module CribbageRoutes {
                         Router.sendDelayedResponse(
                             new CribbageResponseData(
                                 SlackResponseType.in_channel,
-                                `The count is at ${this.currentGame.count}. You're up, ${this.currentGame.nextPlayerInSequence.name}.`
+                                `The count is at ${this.currentGame.count}.\n`+
+                                `You're up, ${this.currentGame.nextPlayerInSequence.name}.`
                             ),
                             responseUrl,
                             1500
@@ -451,6 +452,7 @@ export module CribbageRoutes {
                 else {
                     Router.IMAGE_MANAGER.createPlayerHandImageAsync(player, theirHand)
                         .done(function(handPath:string) {
+                            delayedData.text = "Your cards are:";
                             delayedData.attachments = [new CribbageResponseAttachment("", "", Router.makeUrlPath(handPath))];
                             Router.sendDelayedResponse(
                                 delayedData,
@@ -531,8 +533,8 @@ export module CribbageRoutes {
                     Router.sendDelayedResponse(
                         new CribbageResponseData(
                             SlackResponseType.in_channel,
-                            `The game is ready to begin. Play a card ${this.currentGame.nextPlayerInSequence.name}.
-                            The cut card is:`,
+                            `The game is ready to begin. Play a card ${this.currentGame.nextPlayerInSequence.name}.\n`+
+                            `The cut card is:`,
                             [new CribbageResponseAttachment("", "", ImageManager.getCardImageUrl(this.currentGame.cut))]
                         ),
                         responseUrl,
