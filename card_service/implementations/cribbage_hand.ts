@@ -34,11 +34,13 @@ export class CribbageHand extends BaseHand {
         if (runLength.runLength >= 3) {
             points += (runLength.runLength * runLength.numRuns);
         }
+        console.log("done counting pairs 15s and runs");
         // Count the right jack
         if (cutCard.value != Value.Jack && this.indexOfItem(new Card(cutCard.suit, Value.Jack)) != -1) {
             points++;
         }
         // Count flush
+        console.log("done counting flush");
         var numInFlush = 0;
         if (mustHaveFiveCardFlush) {
             numInFlush = this.countFlush();
@@ -51,6 +53,7 @@ export class CribbageHand extends BaseHand {
         if (numInFlush >= (mustHaveFiveCardFlush ? 5 : 4)) {
             points += numInFlush;
         }
+        console.log(`done counting points, returning ${points}`);
         return points;
     }
     static getCardValue(card: Card) {

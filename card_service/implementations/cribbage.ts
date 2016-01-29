@@ -347,7 +347,7 @@ export class Cribbage extends CardGame<CribbagePlayer, StandardDeck> {
                 response.sequenceOver = true;
                 this.resetSequence(null);
                 this.setNextPlayerInSequence(player);
-                response.message += `\nScores: ${this.printScores()}`;
+                response.message += `\nThe sequence has been reset, the count is at ${this.count}.`;
                 break;
             }
             else {
@@ -564,12 +564,16 @@ export class Cribbage extends CardGame<CribbagePlayer, StandardDeck> {
      * @returns {string} the list of players hands and their scores
      */
     private roundOverResetState():string {
-        var scores = "";
-        scores = this.countPoints().message;
+        console.log("roundOverResetStates counting points");
+        var scores = this.countPoints().message;
+        console.log("resetting the cut and last player to play");
         this.cut = null;
         this.lastPlayerToPlay = null;
+        console.log("roundOverResetStates setting next dealer");
         this.setNextDealer();
+        console.log("roundOverResetStates dealing");
         this.deal();
+        console.log(`roundOverResetStates returning ${scores}`);
         return scores;
     }
 
