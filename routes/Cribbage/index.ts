@@ -413,18 +413,6 @@ export module CribbageRoutes {
             }
             Router.sendResponse(response, res);
             if (response.status == 200) {
-                if (!cribRes.roundOver && !cribRes.gameOver && !cribRes.sequenceOver) {
-                    // Show what card was just played
-                    Router.sendDelayedResponse(
-                        new CribbageResponseData(
-                            SlackResponseType.in_channel,
-                            "",
-                            [new CribbageResponseAttachment(`${player} played:`, "", ImageManager.getCardImageUrl(card))]
-                        ),
-                        responseUrl,
-                        500
-                    );
-                }
                 if (this.currentGame.sequence.length() > 0) {
                     // Show the players the current sequence and the count
                     Router.IMAGE_MANAGER.createSequenceImageAsync(this.currentGame.sequence)
@@ -545,14 +533,14 @@ export module CribbageRoutes {
                 // send a dummy response just to acknowledge the command was received
                 Router.sendResponse(Router.makeResponse(200, "Thanks for throwing!"), res);
             }
-            Router.sendDelayedResponse(
-                new CribbageResponseData(
-                    SlackResponseType.in_channel,
-                    `${player} threw to the kitty`
-                )
-                , responseUrl
-            );
             if (response.status == 200 && !cribRes.gameOver) {
+                Router.sendDelayedResponse(
+                    new CribbageResponseData(
+                        SlackResponseType.in_channel,
+                        `${player} threw to the kitty`
+                    )
+                    , responseUrl
+                );
                 if (this.currentGame.isReady()) {
                     // Let the players know it's time to begin the game
                     var text = `The game is ready to begin. Play a card ${this.currentGame.nextPlayerInSequence.name}.\n`+
