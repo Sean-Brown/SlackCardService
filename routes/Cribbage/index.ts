@@ -43,9 +43,9 @@ export module CribbageRoutes {
             public text: string = "", // This is the main text in a message attachment, and can contain standard message markup
             public fallback: string = "", // Required plain-text summary of the attachment
             public image_url: string = "", // A valid URL to an image file that will be displayed inside a message attachment. We currently support the following formats: GIF, JPEG, PNG, and BMP.
+            public pretext: string = "", // Optional text that appears above the attachment block
             public thumb_url: string = "", // A valid URL to an image file that will be displayed as a thumbnail on the right side of a message attachment. We currently support the following formats: GIF, JPEG, PNG, and BMP.
             public color: string = "", // An optional value that can either be one of good, warning, danger, or any hex color code
-            public pretext: string = "", // Optional text that appears above the attachment block
             public author_name: string = "", // Small text used to display the author's name.
             public author_link: string = "", // A valid URL that will hyperlink the author_name text mentioned above. Will only work if author_name is present.
             public author_icon: string = "", // A valid URL that displays a small 16x16px image to the left of the author_name text. Will only work if author_name is present.
@@ -289,7 +289,7 @@ export module CribbageRoutes {
                     this.currentGame.begin();
                     response.data.text = `${CribbageStrings.MessageStrings.FMT_START_GAME}${this.currentGame.dealer.name}'s crib.`;
                     response.data.attachments.push(
-                        new CribbageResponseAttachment(`Players: ${this.currentGame.printPlayers()}`, "", "", "good")
+                        new CribbageResponseAttachment(`Players: ${this.currentGame.printPlayers()}`)
                     );
                 }
                 catch (e) {
@@ -418,8 +418,8 @@ export module CribbageRoutes {
                     Router.sendDelayedResponse(
                         new CribbageResponseData(
                             SlackResponseType.in_channel,
-                            `${player} played:`,
-                            [new CribbageResponseAttachment("", "", ImageManager.getCardImageUrl(card))]
+                            "",
+                            [new CribbageResponseAttachment(`${player} played:`, "", ImageManager.getCardImageUrl(card))]
                         ),
                         responseUrl,
                         500
@@ -432,8 +432,8 @@ export module CribbageRoutes {
                             Router.sendDelayedResponse(
                                 new CribbageResponseData(
                                     SlackResponseType.in_channel,
-                                    `The cards in play are:`,
-                                    [new CribbageResponseAttachment("", "", Router.makeUrlPath(handPath))]
+                                    "",
+                                    [new CribbageResponseAttachment(`The cards in play are:`, "", Router.makeUrlPath(handPath))]
                                 ),
                                 responseUrl,
                                 1000
@@ -459,8 +459,13 @@ export module CribbageRoutes {
                     else {
                         Router.IMAGE_MANAGER.createPlayerHandImageAsync(player, theirHand)
                             .done(function(handPath:string) {
-                                delayedData.text = `${player}, your remaining cards are:`;
-                                delayedData.attachments = [new CribbageResponseAttachment("Your cards", "cards", Router.makeUrlPath(handPath))];
+                                delayedData.attachments = [
+                                    new CribbageResponseAttachment(
+                                        `${player}, your remaining cards are:`,
+                                        "",
+                                        Router.makeUrlPath(handPath)
+                                    )
+                                ];
                                 Router.sendDelayedResponse(
                                     delayedData,
                                     responseUrl,
@@ -498,8 +503,8 @@ export module CribbageRoutes {
                                 Router.sendDelayedResponse(
                                     new CribbageResponseData(
                                         SlackResponseType.ephemeral,
-                                        "The cards you threw:",
-                                        [new CribbageResponseAttachment("", "", urlPath)]
+                                        "",
+                                        [new CribbageResponseAttachment("The cards you threw:", "", urlPath)]
                                     ),
                                     responseUrl,
                                     500
@@ -515,8 +520,8 @@ export module CribbageRoutes {
                                     Router.sendDelayedResponse(
                                         new CribbageResponseData(
                                             SlackResponseType.ephemeral,
-                                            "Your remaining Cards:",
-                                            [new CribbageResponseAttachment("", "", urlPath)]
+                                            "",
+                                            [new CribbageResponseAttachment("Your remaining Cards:", "", urlPath)]
                                         ),
                                         responseUrl,
                                         1000
@@ -550,12 +555,17 @@ export module CribbageRoutes {
             if (response.status == 200 && !cribRes.gameOver) {
                 if (this.currentGame.isReady()) {
                     // Let the players know it's time to begin the game
+                    var text = `The game is ready to begin. Play a card ${this.currentGame.nextPlayerInSequence.name}.\n`+
+                                `The cut card is ${Cribbage.cutEmoji}:`;
                     Router.sendDelayedResponse(
                         new CribbageResponseData(
                             SlackResponseType.in_channel,
-                            `The game is ready to begin. Play a card ${this.currentGame.nextPlayerInSequence.name}.\n`+
-                            `The cut card is:`,
-                            [new CribbageResponseAttachment("", "", ImageManager.getCardImageUrl(this.currentGame.cut))]
+                            "",
+                            [new CribbageResponseAttachment(
+                                text,
+                                "",
+                                ImageManager.getCardImageUrl(this.currentGame.cut)
+                            )]
                         ),
                         responseUrl,
                         2000
