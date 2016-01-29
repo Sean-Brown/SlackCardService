@@ -297,9 +297,13 @@ export class Cribbage extends CardGame<CribbagePlayer, StandardDeck> {
                     break;
                 }
             }
-            var is31 = (this.count == 31);
-            if (this.count == 15 || is31) {
+            var is31 = (this.count == 31), is15 = (this.count == 15);
+            if (is15 || is31) {
                 points += 2;
+                response.message = `${player.name} gets ${is15 ? 15 : 31} for two points`;
+                if (points > 0) {
+                    response.message += ` in addition to ${points} points from the run-of-play.`;
+                }
                 if (team.addPoints(player, 2)) {
                     response = this.setGameOver(team);
                     break;
@@ -307,20 +311,17 @@ export class Cribbage extends CardGame<CribbagePlayer, StandardDeck> {
             }
             if (this.roundOver()) {
                 response.roundOver = true;
-                if (!is31) {
+                if (!is31 && !is15) {
                     // The last player to play gets a point for a go
                     response.message = `${player.name} gets a point for a go`;
                     if (points > 0) {
-                        response.message += ` in addition to ${points} points`;
+                        response.message += ` in addition to ${points} points from the run-of-play`;
                     }
                     if (team.addPoints(player, 1)) {
                         // Game over
                         response = this.setGameOver(team);
                         break;
                     }
-                }
-                else {
-                    response.message = `${player.name} gets 31 for two points`;
                 }
                 var scores = this.roundOverResetState();
                 response.message += `\n${scores}`;
@@ -333,6 +334,7 @@ export class Cribbage extends CardGame<CribbagePlayer, StandardDeck> {
                 response.sequenceOver = true;
                 this.resetSequence(player);
                 this.setNextPlayerInSequence(player);
+                response.message += `\nThe sequence has been reset, the count is at ${this.count}.`;
                 break;
             }
             else if (this.playersInPlay.countItems() == 0) {
@@ -357,7 +359,7 @@ export class Cribbage extends CardGame<CribbagePlayer, StandardDeck> {
             }
             break;
         }
-        if (points > 0) {
+        if (points > 0 && response.message.length == 0) {
             response.message = `${player.name} scored ${points} points.\n${response.message}`;
         }
         return response;
@@ -402,7 +404,7 @@ export class Cribbage extends CardGame<CribbagePlayer, StandardDeck> {
             else if (this.roundOver()) {
                 response.roundOver = true;
                 this.roundOverResetState();
-                response.message += ` ${this.roundOverStr()}`;
+                response.message += `\n${this.roundOverStr()}`;
             }
             else {
                 // Start the sequence over again, with the person after the one that got the go
