@@ -313,22 +313,20 @@ export class Cribbage extends CardGame<CribbagePlayer, StandardDeck> {
                     if (points > 0) {
                         response.message += ` in addition to ${points} points`;
                     }
+                    if (team.addPoints(player, 1)) {
+                        // Game over
+                        response = this.setGameOver(team);
+                        break;
+                    }
                 }
                 else {
                     response.message = `${player.name} gets 31 for two points`;
                 }
-                if (team.addPoints(player, 1)) {
-                    // Game over
-                    response = this.setGameOver(team);
-                    break;
-                }
-                else {
-                    var scores = this.roundOverResetState();
-                    response.message += `\n${scores}`;
-                    var ros = this.roundOverStr();
-                    response.message += `\n${ros}`;
-                    break;
-                }
+                var scores = this.roundOverResetState();
+                response.message += `\n${scores}`;
+                var ros = this.roundOverStr();
+                response.message += `\n${ros}`;
+                break;
             }
             else if (is31) {
                 // Reset the sequence
@@ -629,8 +627,11 @@ export class Cribbage extends CardGame<CribbagePlayer, StandardDeck> {
      */
     private cutForDealer():void {
         var lowest = null;
+        console.log("Cribbage cutForDealer");
         for (var index = 0; index < this.numPlayers; index++) {
+            console.log("cutForDealer about to random draw");
             var card = this.deck.randomDraw(false);
+            console.log(`cutForDealer drew the ${card.toString()}`);
             if (lowest == null || card.value < lowest.value) {
                 lowest = card;
                 this.dealer = this.players.itemAt(index);

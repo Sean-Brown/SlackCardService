@@ -501,7 +501,8 @@ export module CribbageRoutes {
                                         "The cards you played:",
                                         [new CribbageResponseAttachment("", "", urlPath)]
                                     ),
-                                    responseUrl
+                                    responseUrl,
+                                    500
                                 );
                             });
                         // Show the rest of their hand
@@ -518,7 +519,7 @@ export module CribbageRoutes {
                                             [new CribbageResponseAttachment("", "", urlPath)]
                                         ),
                                         responseUrl,
-                                        500
+                                        1000
                                     );
                                 });
                         }

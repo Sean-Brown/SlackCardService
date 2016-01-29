@@ -7,9 +7,13 @@ describe("Test the Standard Deck's functionality", function () {
     });
     function makeDeckCopy(cards) {
         var copy = [];
-        for (var card in cards) {
+        console.log("making a deck copy");
+        for (var index = 0; index < cards.length; index++) {
+            var card = cards[index];
+            console.log("making a deck copy pushing the " + card.toString());
             copy.push(new card_1.BaseCard(card.suit, card.value));
         }
+        console.log("done making a deck copy");
         return copy;
     }
     it("has the right number of cards", function () {
