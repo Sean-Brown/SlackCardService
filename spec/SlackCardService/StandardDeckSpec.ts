@@ -12,13 +12,10 @@ describe("Test the Standard Deck's functionality", function () {
     });
     function makeDeckCopy(cards: Array<BaseCard>) {
         var copy = [];
-        console.log("making a deck copy");
         for (var index = 0; index < cards.length; index++) {
             var card = cards[index];
-            console.log(`making a deck copy pushing the ${card.toString()}`);
             copy.push(new BaseCard(card.suit, card.value));
         }
-        console.log("done making a deck copy");
         return copy;
     }
     it("has the right number of cards", function() {

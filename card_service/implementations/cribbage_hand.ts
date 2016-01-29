@@ -22,7 +22,6 @@ export class CribbageHand extends BaseHand {
         super(cards);
     }
     countPoints(cutCard: Card, mustHaveFiveCardFlush: boolean) {
-        console.log(`CribbageHand countPoints taking the ${cutCard.toString()}`);
         var points = 0;
         this.takeCard(cutCard);
         // Count pairs
@@ -34,13 +33,11 @@ export class CribbageHand extends BaseHand {
         if (runLength.runLength >= 3) {
             points += (runLength.runLength * runLength.numRuns);
         }
-        console.log("done counting pairs 15s and runs");
         // Count the right jack
         if (cutCard.value != Value.Jack && this.indexOfItem(new Card(cutCard.suit, Value.Jack)) != -1) {
             points++;
         }
         // Count flush
-        console.log("done counting flush");
         var numInFlush = 0;
         if (mustHaveFiveCardFlush) {
             numInFlush = this.countFlush();
@@ -53,7 +50,6 @@ export class CribbageHand extends BaseHand {
         if (numInFlush >= (mustHaveFiveCardFlush ? 5 : 4)) {
             points += numInFlush;
         }
-        console.log(`done counting points, returning ${points}`);
         return points;
     }
     static getCardValue(card: Card) {
@@ -86,16 +82,13 @@ export class CribbageHand extends BaseHand {
      * @returns {number} the number of points gained from the pairs
      */
     private countPairs(): number {
-        console.log("CribbageHand countPoints countPairs making a copy");
         var hand = this.makeCopy();
-        console.log("CribbageHand countPoints countPairs finding duplicates");
         var duplicates = CribbageHand.findDuplicates(hand);
         var points = 0;
         for (var ix = 0; ix < duplicates.length; ix++) {
             var dup = duplicates[ix];
             var matches = 1; // It had to match at least once to be a duplicate
             for (var subIx = ix + 1; subIx < duplicates.length; subIx++) {
-                console.log("CribbageHand countPoints countPairs finding duplicates comparing");
                 if (duplicates[subIx].value == dup.value) {
                     matches++;
                     duplicates.splice(subIx, 1);
@@ -108,19 +101,15 @@ export class CribbageHand extends BaseHand {
     }
     private countRuns(): RunLength {
         // Separate out the duplicates
-        console.log("CribbageHand countPoints countRuns making a copy");
         var hand = this.makeCopy();
-        console.log("CribbageHand countPoints countRuns finding duplicates");
         var duplicates = CribbageHand.findDuplicates(hand);
         // Check for a run - if there is, then see if the duplicates can be used for additional runs
-        console.log("CribbageHand countPoints countRuns sorting the cards");
         hand.sortCards();
         var longestRun:Array<Card> = [];
         (function findLongestRun(aHand: CribbageHand) {
             if (aHand.size() >= 3) {
                 aHand.sortCards();
                 var counter = 0;
-                console.log("CribbageHand countPoints countRuns finding subLongest");
                 var subLongestCards = [aHand.itemAt(counter++), aHand.itemAt(counter++), aHand.itemAt(counter++)];
                 var subLongest = [subLongestCards[0].value, subLongestCards[1].value, subLongestCards[2].value];
                 while (Sequence.isSequentialAscending(subLongest)) {
@@ -154,8 +143,6 @@ export class CribbageHand extends BaseHand {
                 var dup = duplicates[dupIx];
                 for (var runIx = 0; runIx < longestRun.length; runIx++) {
                     var runCard = longestRun[runIx];
-                    console.log("CribbageHand countPoints countRuns finding duplicates for more runs");
-                    console.log(`comparing the ${dup.toString} to the ${runCard.toString()}`);
                     if (runCard.value == dup.value) {
                         if (lastDup && lastDup.value == dup.value)
                             runLength.numRuns++;

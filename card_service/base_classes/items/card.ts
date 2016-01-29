@@ -30,13 +30,11 @@ export class BaseCard implements IItem {
         this.value = value;
     }
     equalsOther(card: BaseCard) {
-        console.log("BaseCard equalsOther");
         if (card == undefined || card == null)
             return false;
         return (this.suit == card.suit && this.value == card.value);
     }
     toString() {
-        console.log("BaseCard toString");
         return (Value[this.value] + ' of ' + Suit[this.suit]);
     }
     toUrlString(extension:string="png") {

@@ -151,7 +151,6 @@ export class Sequence implements IItem {
         var values = [];
         var longest = 0;
         for (var ix = numItems - 1; ix >= 0; ix--) {
-            console.log("Sequence finding longest reverse sequence");
             values.push(this.cards.itemAt(ix).value);
             if (Sequence.isSequentialAscending(values)) {
                 longest = values.length;
@@ -165,7 +164,6 @@ export class Sequence implements IItem {
         var match = this.cards.itemAt(index);
         index--;
         for (; index >= 0; index--) {
-            console.log("sequence counting of-a-kind");
             if (this.cards.itemAt(index).value == match.value) {
                 matches++;
             }
