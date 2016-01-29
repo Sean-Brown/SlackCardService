@@ -311,9 +311,9 @@ export module CribbageRoutes {
             else if (secret != null && secret == (process.env.CRIB_RESET_SECRET || "secret")) {
                 // Allow the game to be reset
                 response = Router.makeResponse(200, CribbageStrings.MessageStrings.GAME_RESET, SlackResponseType.ephemeral);
+                Router.roundOverResetImages(this.currentGame);
                 this.currentGame = new Cribbage(new Players<CribbagePlayer>([]));
                 reset = true;
-                Router.resetHandImages(this.currentGame);
             }
             Router.sendResponse(response, res);
             if (reset) {
@@ -498,7 +498,7 @@ export module CribbageRoutes {
                                 Router.sendDelayedResponse(
                                     new CribbageResponseData(
                                         SlackResponseType.ephemeral,
-                                        "The cards you played:",
+                                        "The cards you threw:",
                                         [new CribbageResponseAttachment("", "", urlPath)]
                                     ),
                                     responseUrl,
