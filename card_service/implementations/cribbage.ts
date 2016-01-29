@@ -324,11 +324,9 @@ export class Cribbage extends CardGame<CribbagePlayer, StandardDeck> {
                 }
                 else {
                     var scores = this.roundOverResetState();
-                    response.message += `
-                ${scores}`;
+                    response.message += `\n${scores}`;
                     var ros = this.roundOverStr();
-                    response.message += `
-                 ${ros}`;
+                    response.message += `\n${ros}`;
                     break;
                 }
             }
@@ -351,8 +349,7 @@ export class Cribbage extends CardGame<CribbagePlayer, StandardDeck> {
                 response.sequenceOver = true;
                 this.resetSequence(null);
                 this.setNextPlayerInSequence(player);
-                response.message += `
-                Scores: ${this.printScores()}`;
+                response.message += `\nScores: ${this.printScores()}`;
                 break;
             }
             else {
@@ -363,8 +360,7 @@ export class Cribbage extends CardGame<CribbagePlayer, StandardDeck> {
             break;
         }
         if (points > 0) {
-            response.message = `${player.name} scored ${points} points.
-                ${response.message}`;
+            response.message = `${player.name} scored ${points} points.\n${response.message}`;
         }
         return response;
     }

@@ -457,7 +457,7 @@ export module CribbageRoutes {
                     else {
                         Router.IMAGE_MANAGER.createPlayerHandImageAsync(player, theirHand)
                             .done(function(handPath:string) {
-                                delayedData.text = "Your cards are:";
+                                delayedData.text = `${player}, your remaining cards are:`;
                                 delayedData.attachments = [new CribbageResponseAttachment("Your cards", "cards", Router.makeUrlPath(handPath))];
                                 Router.sendDelayedResponse(
                                     delayedData,
