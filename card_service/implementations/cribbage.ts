@@ -361,6 +361,8 @@ export class Cribbage extends CardGame<CribbagePlayer, StandardDeck> {
                 response.sequenceOver = true;
                 this.resetSequence(null);
                 this.setNextPlayerInSequence(player);
+                if (points > 0)
+                    response.message += `${player.name} scored ${points} points (${player.points} ${Cribbage.pointEmoji}).`;
                 response.message += `\nThe sequence has been reset, the count is at ${this.count}.`;
                 break;
             }
@@ -422,7 +424,7 @@ export class Cribbage extends CardGame<CribbagePlayer, StandardDeck> {
                 // Start the sequence over again, with the person after the one that got the go
                 this.resetSequence(player);
                 this.setNextPlayerInSequence(player);
-                response.message += ` (${player.points} ${Cribbage.pointEmoji}).\nThe count is back at 0.\nYou're up ${this.nextPlayerInSequence.name}`;
+                response.message += ` (${this.lastPlayerToPlay.points} ${Cribbage.pointEmoji}).\nThe count is back at 0.\nYou're up ${this.nextPlayerInSequence.name}`;
             }
         }
         else {
