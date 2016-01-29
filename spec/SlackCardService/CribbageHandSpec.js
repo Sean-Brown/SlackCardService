@@ -59,6 +59,10 @@ describe("Test a Cribbage game between two players", function () {
             var hand = new cribbage_hand_1.CribbageHand([eightOfClubs, eightOfHearts, eightOfSpades, nineOfClubs]);
             expect(hand.countPoints(tenOfSpades, false)).toEqual(15);
         });
+        it("counts correctly", function () {
+            var hand = new cribbage_hand_1.CribbageHand([twoOfHearts, threeOfDiamonds, fourOfClubs, fiveOfClubs]);
+            expect(hand.countPoints(fourOfDiamonds, false)).toEqual(12);
+        });
         it("is able to show a player's cards", function (done) {
             process.env.AWS_S3_STANDARD_DECK_URL = "https://s3.amazonaws.com/slackcardservice/StandardDeck/";
             var user = "TestUser";

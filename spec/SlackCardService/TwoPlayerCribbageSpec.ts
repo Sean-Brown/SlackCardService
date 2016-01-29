@@ -24,11 +24,12 @@ describe("Test a Cribbage game between two players", function() {
         aceOfHearts = new BaseCard(Suit.Hearts, Value.Ace),
         aceOfDiamonds = new BaseCard(Suit.Diamonds, Value.Ace),
         aceOfClubs = new BaseCard(Suit.Clubs, Value.Ace),
+        twoOfHearts = new BaseCard(Suit.Hearts, Value.Two),
         twoOfDiamonds = new BaseCard(Suit.Diamonds, Value.Two),
         twoOfClubs = new BaseCard(Suit.Clubs, Value.Two),
         threeOfClubs = new BaseCard(Suit.Clubs, Value.Three),
         threeOfSpades = new BaseCard(Suit.Spades, Value.Three),
-        threeOfHearts = new BaseCard(Suit.Hearts, Value.Three),
+        threeOfDiamonds = new BaseCard(Suit.Diamonds, Value.Three),
         fourOfHearts = new BaseCard(Suit.Hearts, Value.Four),
         fourOfSpades = new BaseCard(Suit.Spades, Value.Four),
         fourOfClubs = new BaseCard(Suit.Clubs, Value.Four),
@@ -51,8 +52,10 @@ describe("Test a Cribbage game between two players", function() {
         eightOfDiamonds = new BaseCard(Suit.Diamonds, Value.Eight),
         nineOfHearts = new BaseCard(Suit.Hearts, Value.Nine),
         nineOfDiamonds = new BaseCard(Suit.Diamonds, Value.Nine),
+        tenOfHearts = new BaseCard(Suit.Hearts, Value.Ten),
         tenOfClubs = new BaseCard(Suit.Clubs, Value.Ten),
         tenOfDiamonds = new BaseCard(Suit.Diamonds, Value.Ten),
+        jackOfHearts = new BaseCard(Suit.Hearts, Value.Jack),
         jackOfSpades = new BaseCard(Suit.Spades, Value.Jack),
         jackOfHearts = new BaseCard(Suit.Hearts, Value.Jack),
         queenOfDiamonds = new BaseCard(Suit.Diamonds, Value.Queen),
@@ -60,6 +63,7 @@ describe("Test a Cribbage game between two players", function() {
         queenOfHearts = new BaseCard(Suit.Hearts, Value.Queen),
         queenOfSpades = new BaseCard(Suit.Spades, Value.Queen),
         kingOfClubs = new BaseCard(Suit.Clubs, Value.King),
+        kingOfDiamonds = new BaseCard(Suit.Diamonds, Value.King),
         kingOfHearts = new BaseCard(Suit.Hearts, Value.King),
         kingOfSpades = new BaseCard(Suit.Spades, Value.King);
     beforeEach(function() {
@@ -295,6 +299,32 @@ describe("Test a Cribbage game between two players", function() {
             spyOn(game, "roundOverResetState");
             game.playCard(playerOne.name, aceOfClubs);
             expect(game.roundOverResetState).not.toHaveBeenCalled();
+        });
+        it("knows how to play one round", function () {
+            playerOne.hand =
+                new CribbageHand([fourOfSpades, fiveOfHearts, sixOfDiamonds, sixOfHearts, eightOfHearts, tenOfHearts]);
+            playerTwo.hand =
+                new CribbageHand([twoOfHearts, threeOfDiamonds, fourOfClubs, fiveOfClubs, jackOfHearts, kingOfDiamonds]);
+            game.dealer = playerTwo;
+            game.nextPlayerInSequence = playerOne;
+            game.giveToKitty(playerOne.name, new ItemCollection<BaseCard>([eightOfHearts, tenOfHearts]));
+            game.giveToKitty(playerTwo.name, new ItemCollection<BaseCard>([jackOfHearts, kingOfDiamonds]));
+            game.cut = fourOfDiamonds;
+            game.playersInPlay.addItems(game.players.items);
+            game.playCard(playerOne.name, fourOfSpades);
+            game.playCard(playerTwo.name, fourOfClubs);
+            game.playCard(playerOne.name, sixOfDiamonds);
+            game.playCard(playerTwo.name, fiveOfClubs);
+            expect(game.findTeam(playerTwo).countPoints()).toEqual(3); // run of 3
+            game.playCard(playerOne.name, fiveOfHearts);
+            expect(game.findTeam(playerOne).countPoints()).toEqual(2); // pair of 5s
+            game.playCard(playerTwo.name, threeOfDiamonds);
+            game.go(playerOne.name);
+            game.playCard(playerTwo.name, twoOfHearts);
+            expect(game.findTeam(playerTwo).countPoints()).toEqual(4); // 3 previous +1 for a go
+            game.playCard(playerOne.name, sixOfHearts);
+            spyOn(game, "roundOverResetState");
+            expect(game.roundOverResetState).toHaveBeenCalled();
         });
     });
     describe("Test player playing cards after other player says 'go'", function() {
