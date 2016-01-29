@@ -43,9 +43,9 @@ export module CribbageRoutes {
             public text: string = "", // This is the main text in a message attachment, and can contain standard message markup
             public fallback: string = "", // Required plain-text summary of the attachment
             public image_url: string = "", // A valid URL to an image file that will be displayed inside a message attachment. We currently support the following formats: GIF, JPEG, PNG, and BMP.
+            public pretext: string = "", // Optional text that appears above the attachment block
             public thumb_url: string = "", // A valid URL to an image file that will be displayed as a thumbnail on the right side of a message attachment. We currently support the following formats: GIF, JPEG, PNG, and BMP.
             public color: string = "", // An optional value that can either be one of good, warning, danger, or any hex color code
-            public pretext: string = "", // Optional text that appears above the attachment block
             public author_name: string = "", // Small text used to display the author's name.
             public author_link: string = "", // A valid URL that will hyperlink the author_name text mentioned above. Will only work if author_name is present.
             public author_icon: string = "", // A valid URL that displays a small 16x16px image to the left of the author_name text. Will only work if author_name is present.
@@ -561,7 +561,12 @@ export module CribbageRoutes {
                         new CribbageResponseData(
                             SlackResponseType.in_channel,
                             "",
-                            [new CribbageResponseAttachment(text, "", ImageManager.getCardImageUrl(this.currentGame.cut))]
+                            [new CribbageResponseAttachment(
+                                text,
+                                "",
+                                ImageManager.getCardImageUrl(this.currentGame.cut),
+                                Cribbage.cutEmoji
+                            )]
                         ),
                         responseUrl,
                         2000

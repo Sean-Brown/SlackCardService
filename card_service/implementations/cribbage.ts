@@ -94,6 +94,7 @@ export class Cribbage extends CardGame<CribbagePlayer, StandardDeck> {
     hasBegun: boolean;
     static pointEmoji:string = ":chart_with_upwards_trend:";
     static winnerEmoji:string = ":trollface:";
+    static cutEmoji:string = ":scissors:";
 
     constructor(players: Players<CribbagePlayer>) {
         super(players, null, "Cribbage", new StandardDeck());
