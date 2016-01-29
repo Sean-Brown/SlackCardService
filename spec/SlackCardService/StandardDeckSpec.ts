@@ -12,7 +12,8 @@ describe("Test the Standard Deck's functionality", function () {
     });
     function makeDeckCopy(cards: Array<BaseCard>) {
         var copy = [];
-        for (var card in cards) {
+        for (var index = 0; index < cards.length; index++) {
+            var card = cards[index];
             copy.push(new BaseCard(card.suit, card.value));
         }
         return copy;

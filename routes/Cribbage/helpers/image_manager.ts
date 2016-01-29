@@ -63,10 +63,12 @@ module ImageConvert {
         return new Promise(function(resolve, reject) {
             var cardFilePath = `${cardsPath}${card.toUrlString()}`;
             if (fs.existsSync(cardFilePath)) {
+                console.log(`getting the ${card.toString()} from cache`);
                 // Resolve right away, no need to download again
                 resolve(cardFilePath);
             }
             else {
+                console.log(`About to download the ${card.toString()}`);
                 // Download the card
                 download(getCardImageUrl(card), cardFilePath, function () {
                     resolve(cardFilePath);
@@ -75,18 +77,19 @@ module ImageConvert {
         });
     }
 
-    function generateUniqueName(player:string):string {
+    function generateUniqueName(player:string, type:PlayerImageType):string {
         var date = new Date();
         var year = date.getFullYear(),
             month = date.getMonth(),
             day = date.getDay(),
             hour = date.getHours(),
             minute = date.getMinutes(),
-            second = date.getSeconds();
-        return `${player}-${year}${month}${day}-${hour}${minute}${second}`;
+            second = date.getSeconds(),
+            millisecond = date.getMilliseconds();
+        return `${player}-${type}-${year}${month}${day}-${hour}${minute}${second}${millisecond}`;
     }
 
-    export function makeHandImageAsync(player:string, hand:CribbageHand, imagesPath:string, sortCards:boolean=true):Promise<string> {
+    export function makeHandImageAsync(player:string, hand:CribbageHand, type:PlayerImageType, imagesPath:string, sortCards:boolean=true):Promise<string> {
         console.log(`Making the hand image at ${imagesPath}`);
         return new Promise(function(resolve, reject) {
             var playerHandPath = "";
@@ -106,7 +109,7 @@ module ImageConvert {
             Promise.all(promises).then(function (values) {
                 console.log("Finished downloading the cards, now create the final image");
                 // Merge together all the downloaded images
-                playerHandPath = `${imagesPath}${generateUniqueName(player)}.png`;
+                playerHandPath = `${imagesPath}${generateUniqueName(player, type)}.png`;
                 var width = 0, maxHeight = 0;
                 for (var jx = 0; jx < values.length; jx++) {
                     var cardFilePath = values[jx];
@@ -173,7 +176,10 @@ class PlayerImages implements IItem {
         this.images.push(new PlayerImage(imagePath, type));
     }
     getLatestImage(): string {
-        return (this.images.countItems() > 0 ? this.images.itemAt(0).path : "");
+        return (this.imageCount() > 0 ? this.images.itemAt(0).path : "");
+    }
+    imageCount(): number {
+        return this.images.countItems();
     }
     clearAll():void {
         // Delete all the image files
@@ -227,8 +233,8 @@ export class ImageManager {
         var that = this;
         return new Promise(function(resolve, reject) {
             var imagePath = "";
-            var playerImage = this.findPlayerImage(player);
-            if (playerImage != null) {
+            var playerImage = that.findPlayerImage(player);
+            if (playerImage != null && playerImage.imageCount() > 0) {
                 // Resolve on the cached image
                 resolve(playerImage.getLatestImage());
             }
@@ -266,7 +272,7 @@ export class ImageManager {
     private createHandImageAsync(player:string, hand:CribbageHand, type:PlayerImageType, sortHand:boolean):Promise<string> {
         var that = this;
         return new Promise(function(resolve, reject) {
-            ImageConvert.makeHandImageAsync(player, hand, ImageManager.HANDS_PATH, sortHand)
+            ImageConvert.makeHandImageAsync(player, hand, type, ImageManager.HANDS_PATH, sortHand)
                 .then(function(handPath:string) {
                     // Add the hand's image to the player's collection of hand images
                     var playerImages = that.findPlayerImage(player);

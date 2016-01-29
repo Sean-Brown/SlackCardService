@@ -114,6 +114,10 @@ describe("Test a Cribbage game between two players", function() {
             var hand = new CribbageHand([eightOfClubs, eightOfHearts, eightOfSpades, nineOfClubs]);
             expect(hand.countPoints(tenOfSpades, false)).toEqual(15); // A 15-2 and a run of 3 makes 5
         });
+        it("counts correctly", function() {
+            var hand = new CribbageHand([twoOfHearts, threeOfDiamonds, fourOfClubs, fiveOfClubs]);
+            expect(hand.countPoints(fourOfDiamonds, false)).toEqual(12); // A 15-2 and a double run of of 3 makes 12
+        });
         it("is able to show a player's cards", function(done) {
             // NOTE: if the test fails, create spec/public/cards and spec/public/hands directories
             // The first time the test runs it will download the cards, all subsequent times they'll be cached

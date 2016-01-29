@@ -114,9 +114,10 @@ export class CribbageHand extends BaseHand {
                 var subLongest = [subLongestCards[0].value, subLongestCards[1].value, subLongestCards[2].value];
                 while (Sequence.isSequentialAscending(subLongest)) {
                     if (counter < aHand.size()) {
-                        subLongest.push(aHand.itemAt(counter++).value);
+                        subLongest.push(aHand.itemAt(counter).value);
                         if (Sequence.isSequentialAscending(subLongest))
                             subLongestCards.push(aHand.itemAt(counter));
+                        counter++;
                     }
                     else {
                         if (subLongestCards.length > longestRun.length) {
