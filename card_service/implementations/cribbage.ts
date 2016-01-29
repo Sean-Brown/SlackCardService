@@ -520,7 +520,7 @@ export class Cribbage extends CardGame<CribbagePlayer, StandardDeck> {
                     scores += (team.itemAt(jx).name + ", ");
                 }
                 scores = removeLastTwoChars(scores);
-                scores += (" = " + team.countPoints() + " }, ");
+                scores += (` = ${team.countPoints()} ${Cribbage.pointEmoji}}, `);
             }
             scores = removeLastTwoChars(scores);
         }
