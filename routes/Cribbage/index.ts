@@ -406,6 +406,9 @@ export module CribbageRoutes {
                     response = Router.makeResponse(500, `Error! ${e}! Current player: ${this.currentGame.nextPlayerInSequence.name}`);
                 }
             }
+            if (cribRes.sequenceOver) {
+                response.data.text += `\nYou're up ${this.currentGame.nextPlayerInSequence.name}`;
+            }
             Router.sendResponse(response, res);
             if (!cribRes.roundOver && !cribRes.gameOver && !cribRes.sequenceOver) {
                 Router.sendDelayedResponse(
@@ -453,7 +456,7 @@ export module CribbageRoutes {
                     Router.IMAGE_MANAGER.createPlayerHandImageAsync(player, theirHand)
                         .done(function(handPath:string) {
                             delayedData.text = "Your cards are:";
-                            delayedData.attachments = [new CribbageResponseAttachment("", "", Router.makeUrlPath(handPath))];
+                            delayedData.attachments = [new CribbageResponseAttachment("Your cards", "cards", Router.makeUrlPath(handPath))];
                             Router.sendDelayedResponse(
                                 delayedData,
                                 responseUrl,
@@ -522,12 +525,10 @@ export module CribbageRoutes {
                     response = Router.makeResponse(500, e);
                 }
             }
-            // They have no cards so no need to wait for the image
             response.data.text = `${player} threw to the kitty`;
             response.data.response_type = SlackResponseType.in_channel;
-            Router.sendResponse(response, res);
+            Router.sendDelayedResponse(response.data, responseUrl);
             if (response.status == 200 && !cribRes.gameOver) {
-                response.data.response_type = SlackResponseType.in_channel;
                 if (this.currentGame.isReady()) {
                     // Let the players know it's time to begin the game
                     Router.sendDelayedResponse(
