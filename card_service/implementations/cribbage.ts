@@ -310,7 +310,7 @@ export class Cribbage extends CardGame<CribbagePlayer, StandardDeck> {
                 var prevPoints = points;
                 points += 2;
                 if (prevPoints > 0) {
-                    response.message += ` in addition to ${prevPoints} points (${player.points} ${Cribbage.pointEmoji}) from the run-of-play.`;
+                    response.message += ` in addition to ${prevPoints} points from the run-of-play (${player.points} ${Cribbage.pointEmoji}).`;
                 }
                 else {
                     response.message += ` (${player.points} ${Cribbage.pointEmoji})`;
@@ -329,7 +329,7 @@ export class Cribbage extends CardGame<CribbagePlayer, StandardDeck> {
                     var prevPoints = points;
                     points++;
                     if (prevPoints > 0) {
-                        response.message += ` in addition to ${prevPoints} points (${player.points} ${Cribbage.pointEmoji}) from the run-of-play`;
+                        response.message += ` in addition to ${prevPoints} points from the run-of-play (${player.points} ${Cribbage.pointEmoji})`;
                     }
                     else {
                         response.message += ` (${player.points} ${Cribbage.pointEmoji})`;
