@@ -233,7 +233,8 @@ export module CribbageRoutes {
         }
 
         private static resetHandImages(game:Cribbage):void {
-            Router.IMAGE_MANAGER.clearHands(game.players.items);
+            if (game)
+                Router.IMAGE_MANAGER.clearHands(game.players.items);
         }
 
         private static resetSequenceImages():void {
