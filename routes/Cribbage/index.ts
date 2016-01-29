@@ -254,15 +254,17 @@ export module CribbageRoutes {
             var player = Router.getPlayerName(req);
             var newPlayer = new CribbagePlayer(player, new CribbageHand([]));
             var response = Router.makeResponse(200, `${player} has joined the game`, SlackResponseType.in_channel);
-            if (this.currentGame == null) {
-                this.currentGame = new Cribbage(new Players([newPlayer]))
-            }
             if (!Router.verifyRequest(req, Routes.joinGame)) {
                 response = Router.VALIDATION_FAILED_RESPONSE;
             }
             else {
                 try {
-                    this.currentGame.addPlayer(newPlayer);
+                    if (this.currentGame == null) {
+                        this.currentGame = new Cribbage(new Players([newPlayer]))
+                    }
+                    else {
+                        this.currentGame.addPlayer(newPlayer);
+                    }
                 }
                 catch (e) {
                     response = Router.makeResponse(500, e);

@@ -750,14 +750,11 @@ export class Cribbage extends CardGame<CribbagePlayer, StandardDeck> {
      */
     private dealForTwo():void {
         var player = this.nextPlayerInOrder(this.dealer);
-        console.log("about to deal for 2");
         while (player.numCards() < 6) {
             var card = this.draw();
-            console.log(`dealing the ${card.toString()}`);
             player.hand.takeCard(card);
             player = this.nextPlayerInOrder(player);
         }
-        console.log("done dealing for 2");
     }
     /**
      * Deal the cards for a three player game
