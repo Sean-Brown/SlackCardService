@@ -176,7 +176,10 @@ class PlayerImages implements IItem {
         this.images.push(new PlayerImage(imagePath, type));
     }
     getLatestImage(): string {
-        return (this.images.countItems() > 0 ? this.images.itemAt(0).path : "");
+        return (this.imageCount() > 0 ? this.images.itemAt(0).path : "");
+    }
+    imageCount(): number {
+        return this.images.countItems();
     }
     clearAll():void {
         // Delete all the image files
@@ -231,7 +234,7 @@ export class ImageManager {
         return new Promise(function(resolve, reject) {
             var imagePath = "";
             var playerImage = that.findPlayerImage(player);
-            if (playerImage != null) {
+            if (playerImage != null && playerImage.imageCount() > 0) {
                 // Resolve on the cached image
                 resolve(playerImage.getLatestImage());
             }
