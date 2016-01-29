@@ -313,17 +313,18 @@ describe("Test a Cribbage game between two players", function() {
             game.playersInPlay.addItems(game.players.items);
             game.playCard(playerOne.name, fourOfSpades);
             game.playCard(playerTwo.name, fourOfClubs);
+            expect(game.findTeam(playerTwo).countPoints()).toEqual(2); // pair for 2 points
             game.playCard(playerOne.name, sixOfDiamonds);
             game.playCard(playerTwo.name, fiveOfClubs);
-            expect(game.findTeam(playerTwo).countPoints()).toEqual(3); // run of 3
+            expect(game.findTeam(playerTwo).countPoints()).toEqual(5); // previous 2 + run of 3 makes 5 points
             game.playCard(playerOne.name, fiveOfHearts);
             expect(game.findTeam(playerOne).countPoints()).toEqual(2); // pair of 5s
             game.playCard(playerTwo.name, threeOfDiamonds);
             game.go(playerOne.name);
             game.playCard(playerTwo.name, twoOfHearts);
-            expect(game.findTeam(playerTwo).countPoints()).toEqual(4); // 3 previous +1 for a go
-            game.playCard(playerOne.name, sixOfHearts);
+            expect(game.findTeam(playerTwo).countPoints()).toEqual(6); // 5 previous +1 for a go
             spyOn(game, "roundOverResetState");
+            game.playCard(playerOne.name, sixOfHearts);
             expect(game.roundOverResetState).toHaveBeenCalled();
         });
     });
