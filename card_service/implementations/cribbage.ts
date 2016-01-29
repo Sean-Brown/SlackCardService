@@ -246,7 +246,7 @@ export class Cribbage extends CardGame<CribbagePlayer, StandardDeck> {
                     response = this.setGameOver(team);
                 }
                 else {
-                    response.message = `2 points to ${this.dealer.name} for "His Heels" (cutting the right jack)`;
+                    response.message = `2 points to ${this.dealer.name} (${this.dealer.points}) for "His Heels" (cutting the right jack)`;
                 }
             }
         }
@@ -302,7 +302,10 @@ export class Cribbage extends CardGame<CribbagePlayer, StandardDeck> {
                 points += 2;
                 response.message = `${player.name} gets ${is15 ? 15 : 31} for two points`;
                 if (points > 0) {
-                    response.message += ` in addition to ${points} points from the run-of-play.`;
+                    response.message += ` in addition to ${points} points (${player.points}) from the run-of-play.`;
+                }
+                else {
+                    response.message += ` (${player.points})`;
                 }
                 if (team.addPoints(player, 2)) {
                     response = this.setGameOver(team);
@@ -315,7 +318,10 @@ export class Cribbage extends CardGame<CribbagePlayer, StandardDeck> {
                     // The last player to play gets a point for a go
                     response.message = `${player.name} gets a point for a go`;
                     if (points > 0) {
-                        response.message += ` in addition to ${points} points from the run-of-play`;
+                        response.message += ` in addition to ${points} points (${player.points}) from the run-of-play`;
+                    }
+                    else {
+                        response.message += ` (${player.points})`;
                     }
                     if (team.addPoints(player, 1)) {
                         // Game over
@@ -360,7 +366,7 @@ export class Cribbage extends CardGame<CribbagePlayer, StandardDeck> {
             break;
         }
         if (points > 0 && response.message.length == 0) {
-            response.message = `${player.name} scored ${points} points.\n${response.message}`;
+            response.message = `${player.name} scored ${points} points (${player.points}).\n${response.message}`;
         }
         return response;
     }
@@ -396,7 +402,7 @@ export class Cribbage extends CardGame<CribbagePlayer, StandardDeck> {
         if (this.playersInPlay.countItems() == 0) {
             // No more players in play, the last player to play a point for a go
             var team = this.findTeam(this.lastPlayerToPlay);
-            response.message = `${this.lastPlayerToPlay.name} gets a point for a go.`;
+            response.message = `${this.lastPlayerToPlay.name} gets a point for a go (${player.points}).`;
             if (team.addPoints(this.lastPlayerToPlay, 1)) {
                 // Game over
                 response = this.setGameOver(team);
