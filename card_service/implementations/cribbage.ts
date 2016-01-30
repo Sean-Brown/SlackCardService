@@ -614,7 +614,7 @@ export class Cribbage extends CardGame<CribbagePlayer, StandardDeck> {
      * @returns {CribbageReturn}
      */
     private countPoints():CribbageReturn {
-        var ret = new CribbageReturn(false, `The cut card is the ${this.cut} ${Cribbage.cutEmoji}`);
+        var ret = new CribbageReturn(false, `${Cribbage.cutEmoji}  The cut card is the ${this.cut}`);
         var firstPlayer = this.nextPlayerInOrder(this.dealer);
         var countingPlayer = firstPlayer;
         do {
