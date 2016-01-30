@@ -100,6 +100,7 @@ export module CribbageRoutes {
     export class Router {
 
         currentGame:Cribbage;
+        static PLAYER_HAND_EMOJI:string = ":flower_playing_cards:";
         static IMAGE_MANAGER:ImageManager = new ImageManager();
         static VALIDATION_FAILED_RESPONSE: CribbageResponse =
             new CribbageResponse(500,
@@ -350,7 +351,7 @@ export module CribbageRoutes {
                         Router.IMAGE_MANAGER.getLatestPlayerHand(player, hand)
                             .done(function (handUrl:string) {
                                 console.log(`adding attachment with url ${handUrl}`);
-                                response.data.attachments = [new CribbageResponseAttachment("", "", handUrl)];
+                                response.data.attachments = [new CribbageResponseAttachment(`${Router.PLAYER_HAND_EMOJI}`, "", handUrl)];
                                 response.data.text = "";
                                 console.log(`Returning ${JSON.stringify(response)}`);
                                 Router.sendDelayedResponse(response.data, Router.getResponseUrl(req));
@@ -448,7 +449,7 @@ export module CribbageRoutes {
                             .done(function(handUrl:string) {
                                 delayedData.attachments = [
                                     new CribbageResponseAttachment(
-                                        `${player}, your remaining cards are:`,
+                                        `${Router.PLAYER_HAND_EMOJI}  ${player}, your remaining cards are:`,
                                         "",
                                         handUrl
                                     )
@@ -506,7 +507,7 @@ export module CribbageRoutes {
                                         new CribbageResponseData(
                                             SlackResponseType.ephemeral,
                                             "",
-                                            [new CribbageResponseAttachment("Your remaining Cards:", "", handUrl)]
+                                            [new CribbageResponseAttachment(`${Router.PLAYER_HAND_EMOJI}  Your remaining Cards:`, "", handUrl)]
                                         ),
                                         responseUrl,
                                         1000
