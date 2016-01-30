@@ -110,6 +110,14 @@ module ImageConvert {
         return `${player}-${type}-${year}${month}${day}-${hour}${minute}${second}${millisecond}`;
     }
 
+    /***
+     * @param player
+     * @param hand
+     * @param type
+     * @param imagesPath
+     * @param sortCards
+     * @returns {string} the local path to the image
+     */
     export function makeHandImageAsync(player:string, hand:CribbageHand, type:PlayerImageType, imagesPath:string, sortCards:boolean=true):Promise<string> {
         console.log(`Making the hand image at ${imagesPath}`);
         return new Promise(function(resolve, reject) {
@@ -156,7 +164,7 @@ module ImageConvert {
                 catch (e) {
                     reject(e);
                 }
-                resolve(makeLocalUrlPath(playerHandPath));
+                resolve(playerHandPath);
             });
         });
     }
@@ -261,8 +269,8 @@ export class ImageManager {
             else {
                 // Create a new image and resolve on that
                 that.createPlayerHandImageAsync(player, hand)
-                    .done(function(handUrl:string){
-                        resolve(handUrl);
+                    .done(function(handPath:string){
+                        resolve(ImageConvert.makeLocalUrlPath(handPath));
                     });
             }
         });
