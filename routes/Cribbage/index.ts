@@ -542,7 +542,7 @@ export module CribbageRoutes {
                 if (this.currentGame.isReady()) {
                     // Let the players know it's time to begin the game
                     var text = `The game is ready to begin. Play a card ${this.currentGame.nextPlayerInSequence.name}.\n`+
-                                `The cut card is ${Cribbage.cutEmoji}:`;
+                                `${Cribbage.cutEmoji}  The cut card is:`;
                     Router.sendDelayedResponse(
                         new CribbageResponseData(
                             SlackResponseType.in_channel,
