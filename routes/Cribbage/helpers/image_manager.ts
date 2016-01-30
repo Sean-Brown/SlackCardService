@@ -49,7 +49,9 @@ module ImageConvert {
     cardsPath = endWithSlash(cardsPath);
 
     export function makeLocalUrlPath(imagePath:string):string {
-        return `${process.env.APP_HOST_URL}/${imagePath}`;
+        var path = `${process.env.APP_HOST_URL}/${imagePath}`;
+        console.log(`returning local url path ${path}`);
+        return path;
     }
 
     /**
