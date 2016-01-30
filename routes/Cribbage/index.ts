@@ -349,6 +349,7 @@ export module CribbageRoutes {
                     else {
                         Router.IMAGE_MANAGER.getLatestPlayerHand(player, hand)
                             .done(function (handUrl:string) {
+                                console.log(`adding attachment with url ${handUrl}`);
                                 response.data.attachments = [new CribbageResponseAttachment("", "", handUrl)];
                                 response.data.text = "";
                                 console.log(`Returning ${JSON.stringify(response)}`);
