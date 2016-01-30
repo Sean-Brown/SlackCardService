@@ -368,6 +368,7 @@ export module CribbageRoutes {
             var player = Router.getPlayerName(req);
             var response = Router.makeResponse(200, "", SlackResponseType.in_channel);
             var responseUrl = Router.getResponseUrl(req);
+            var card:Card = null;
             if (!Router.verifyRequest(req, Routes.playCard)) {
                 response = Router.VALIDATION_FAILED_RESPONSE;
             }
@@ -378,7 +379,7 @@ export module CribbageRoutes {
                         throw CribbageStrings.ErrorStrings.INVALID_CARD_SYNTAX;
                     else if (cards.length > 1)
                         throw CribbageStrings.ErrorStrings.TOO_MANY_CARDS;
-                    var card = cards[0];
+                    card = cards[0];
                     if (card == undefined || card.suit == undefined || card.value == undefined) {
                         throw "Parsing the card failed without throwing, so I'm doing it now!";
                     }
@@ -419,7 +420,7 @@ export module CribbageRoutes {
                                 new CribbageResponseData(
                                     SlackResponseType.in_channel,
                                     "",
-                                    [new CribbageResponseAttachment(`The cards in play are:`, "", handUrl)]
+                                    [new CribbageResponseAttachment(`${player} played the ${card.toString()}. The cards in play are:`, "", handUrl)]
                                 ),
                                 responseUrl,
                                 1000
