@@ -5,8 +5,10 @@
 /// <reference path="../../card_service/implementations/cribbage.ts" />
 /// <reference path="../../card_service/base_classes/card_game.ts" />
 
+import fs = require("fs");
 import {BaseCard, Suit, Value} from "../../card_service/base_classes/items/card";
 import {CribbageHand} from "../../card_service/implementations/cribbage_hand";
+import {ImageManager} from "../../routes/Cribbage/helpers/image_manager";
 
 "use strict";
 
@@ -44,7 +46,9 @@ describe("Test a Cribbage game between two players", function() {
         eightOfDiamonds = new BaseCard(Suit.Diamonds, Value.Eight),
         nineOfHearts = new BaseCard(Suit.Hearts, Value.Nine),
         nineOfDiamonds = new BaseCard(Suit.Diamonds, Value.Nine),
+        nineOfClubs = new BaseCard(Suit.Clubs, Value.Nine),
         tenOfClubs = new BaseCard(Suit.Clubs, Value.Ten),
+        tenOfSpades = new BaseCard(Suit.Spades, Value.Ten),
         tenOfDiamonds = new BaseCard(Suit.Diamonds, Value.Ten),
         jackOfSpades = new BaseCard(Suit.Spades, Value.Jack),
         jackOfClubs = new BaseCard(Suit.Clubs, Value.Jack),
@@ -86,7 +90,7 @@ describe("Test a Cribbage game between two players", function() {
             var hand = new CribbageHand([twoOfClubs, threeOfSpades, threeOfHearts, jackOfSpades]);
             expect(hand.countPoints(jackOfHearts, false)).toEqual(12); // 15 for eight points and a two pair makes 12 points
         });
-        it("counts correctly", function() {
+        it("counts with the right-jack correctly", function() {
             var hand = new CribbageHand([twoOfClubs, threeOfSpades, threeOfHearts, jackOfSpades]);
             expect(hand.countPoints(queenOfSpades, false)).toEqual(11); // 15 for eight points + a pair + right jack makes 11 points
         });
@@ -94,13 +98,44 @@ describe("Test a Cribbage game between two players", function() {
             var hand = new CribbageHand([eightOfDiamonds, jackOfClubs, queenOfSpades, kingOfHearts]);
             expect(hand.countPoints(eightOfClubs, true)).toEqual(6); // A pair + a run of 3 + right jack makes 6 points
         });
-        it("counts correctly", function() {
+        it("counts four-of-a-kinds correctly", function() {
             var hand = new CribbageHand([twoOfClubs, twoOfDiamonds, twoOfHearts, twoOfSpades]);
             expect(hand.countPoints(fourOfHearts, true)).toEqual(12); // A pair + a run of 3 + right jack makes 6 points
         });
         it("counts correctly", function() {
             var hand = new CribbageHand([threeOfDiamonds, fourOfDiamonds, fiveOfDiamonds, sevenOfSpades]);
             expect(hand.countPoints(nineOfDiamonds, false)).toEqual(5); // A 15-2 and a run of 3 makes 5
+        });
+        it("counts double-doubles correctly", function() {
+            var hand = new CribbageHand([eightOfClubs, eightOfHearts, nineOfDiamonds, nineOfClubs]);
+            expect(hand.countPoints(tenOfSpades, false)).toEqual(16); // A double-double is 16 points
+        });
+        it("counts triple runs of 3 correctly", function() {
+            var hand = new CribbageHand([eightOfClubs, eightOfHearts, eightOfSpades, nineOfClubs]);
+            expect(hand.countPoints(tenOfSpades, false)).toEqual(15); // A 15-2 and a run of 3 makes 5
+        });
+        it("counts correctly", function() {
+            var hand = new CribbageHand([twoOfHearts, threeOfDiamonds, fourOfClubs, fiveOfClubs]);
+            expect(hand.countPoints(fourOfDiamonds, false)).toEqual(12); // A 15-2 and a double run of of 3 makes 12
+        });
+        it("is able to show a player's cards", function(done) {
+            // NOTE: if the test fails, create spec/public/cards and spec/public/hands directories
+            // The first time the test runs it will download the cards, all subsequent times they'll be cached
+            process.env.AWS_S3_STANDARD_DECK_URL = "https://s3.amazonaws.com/slackcardservice/StandardDeck/";
+            var user = "TestUser";
+            var imageManager = new ImageManager();
+            imageManager.createPlayerHandImageAsync(user, new CribbageHand([
+                    aceOfClubs,
+                    twoOfClubs,
+                    threeOfDiamonds,
+                    fourOfSpades,
+                    fiveOfHearts
+                ]))
+                .done(function (result) {
+                    expect(result.indexOf(`${user}`)).not.toEqual(-1);
+                    imageManager.clearAllImages();
+                    done();
+                });
         });
     });
 });

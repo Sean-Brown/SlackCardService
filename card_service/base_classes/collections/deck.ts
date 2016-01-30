@@ -12,14 +12,14 @@ export class BaseDeck<SomeCardClass extends Card> extends ItemCollection<SomeCar
     removed: Array<SomeCardClass>;
     constructor(cards: Array<SomeCardClass>) {
         super(cards);
-        this.removed = new Array<SomeCardClass>();
+        this.removed = [];
     }
     shuffle() {
         // Put back any removed cards
         for (var index = 0; index < this.removed.length; index++) {
             this.items.push(this.removed[index]);
         }
-        this.removed = new Array<SomeCardClass>();
+        this.removed = [];
         // Shuffle using the Fisher-Yates array-sorting algorithm
         var numCards = this.countItems();
         while ( --numCards > 0 ) {

@@ -63,7 +63,7 @@ export class CribbagePlayer extends Player {
     countPoints(cutCard: Card) {
         this.hand.addItems(this.played.items);
         this.played.removeAll();
-        var cribHand = new CribbageHand(this.hand.items);
+        var cribHand = new CribbageHand(this.hand.items.slice(0));
         return cribHand.countPoints(cutCard, false);
     }
 }

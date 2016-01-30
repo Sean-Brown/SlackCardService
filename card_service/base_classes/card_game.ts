@@ -92,6 +92,9 @@ export class Sequence implements IItem {
             this.addCard(cards[index]);
         }
     }
+    length() {
+        return this.cards.countItems();
+    }
     countPoints() {
         return this.findLongestReverseSequence() + this.countOfAKind();
     }
@@ -160,7 +163,7 @@ export class Sequence implements IItem {
         var index = (this.cards.countItems() - 1);
         var match = this.cards.itemAt(index);
         index--;
-        for (index; index >= 0; index--) {
+        for (; index >= 0; index--) {
             if (this.cards.itemAt(index).value == match.value) {
                 matches++;
             }

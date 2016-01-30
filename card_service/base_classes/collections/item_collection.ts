@@ -11,7 +11,7 @@ export class ItemCollection<ItemType extends IItem> implements IItem {
         this.items = items;
     }
     deepCopy(): ItemCollection<ItemType> {
-        return new ItemCollection<ItemType>(this.items.slice());
+        return new ItemCollection<ItemType>(this.items.slice(0));
     }
     indexOfItem(item: ItemType) {
         var index = -1;

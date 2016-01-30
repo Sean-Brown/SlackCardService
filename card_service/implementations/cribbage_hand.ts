@@ -114,9 +114,10 @@ export class CribbageHand extends BaseHand {
                 var subLongest = [subLongestCards[0].value, subLongestCards[1].value, subLongestCards[2].value];
                 while (Sequence.isSequentialAscending(subLongest)) {
                     if (counter < aHand.size()) {
-                        subLongest.push(aHand.itemAt(counter++).value);
+                        subLongest.push(aHand.itemAt(counter).value);
                         if (Sequence.isSequentialAscending(subLongest))
                             subLongestCards.push(aHand.itemAt(counter));
+                        counter++;
                     }
                     else {
                         if (subLongestCards.length > longestRun.length) {
@@ -137,14 +138,19 @@ export class CribbageHand extends BaseHand {
             // Check for how many runs there are
             runLength.runLength = longestRun.length;
             runLength.numRuns = 1;
+            var lastDup:Card = null;
             for (var dupIx = 0; dupIx < duplicates.length; dupIx++) {
                 var dup = duplicates[dupIx];
                 for (var runIx = 0; runIx < longestRun.length; runIx++) {
                     var runCard = longestRun[runIx];
                     if (runCard.value == dup.value) {
-                        runLength.numRuns++;
+                        if (lastDup && lastDup.value == dup.value)
+                            runLength.numRuns++;
+                        else
+                            runLength.numRuns *= 2;
                     }
                 }
+                lastDup = dup;
             }
         }
         return runLength;

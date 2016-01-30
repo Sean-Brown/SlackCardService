@@ -37,4 +37,7 @@ export class BaseCard implements IItem {
     toString() {
         return (Value[this.value] + ' of ' + Suit[this.suit]);
     }
+    toUrlString(extension:string="png") {
+        return `${Value[this.value]}Of${Suit[this.suit]}.${extension}`;
+    }
 }
