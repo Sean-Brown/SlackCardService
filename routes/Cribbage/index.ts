@@ -223,10 +223,6 @@ export module CribbageRoutes {
             return cards;
         }
 
-        private static makeUrlPath(imagePath:string):string {
-            return `${process.env.APP_HOST_URL}/${imagePath}`;
-        }
-
         private static roundOverResetImages(game:Cribbage):void {
             Router.resetHandImages(game);
             Router.resetSequenceImages();
@@ -352,8 +348,8 @@ export module CribbageRoutes {
                     }
                     else {
                         Router.IMAGE_MANAGER.getLatestPlayerHand(player, hand)
-                            .done(function (handPath:string) {
-                                response.data.attachments = [new CribbageResponseAttachment("", "", Router.makeUrlPath(handPath))];
+                            .done(function (handUrl:string) {
+                                response.data.attachments = [new CribbageResponseAttachment("", "", handUrl)];
                                 response.data.text = "";
                                 console.log(`Returning ${JSON.stringify(response)}`);
                                 Router.sendDelayedResponse(response.data, Router.getResponseUrl(req));
@@ -429,12 +425,12 @@ export module CribbageRoutes {
                 if (this.currentGame.sequence.length() > 0) {
                     // Show the players the current sequence and the count
                     Router.IMAGE_MANAGER.createSequenceImageAsync(this.currentGame.sequence)
-                        .done(function(handPath) {
+                        .done(function(handUrl:string) {
                             Router.sendDelayedResponse(
                                 new CribbageResponseData(
                                     SlackResponseType.in_channel,
                                     "",
-                                    [new CribbageResponseAttachment(`The cards in play are:`, "", Router.makeUrlPath(handPath))]
+                                    [new CribbageResponseAttachment(`The cards in play are:`, "", handUrl)]
                                 ),
                                 responseUrl,
                                 1000
@@ -459,12 +455,12 @@ export module CribbageRoutes {
                         delayedData.text = "You have no more cards!";
                     else {
                         Router.IMAGE_MANAGER.createPlayerHandImageAsync(player, theirHand)
-                            .done(function(handPath:string) {
+                            .done(function(handUrl:string) {
                                 delayedData.attachments = [
                                     new CribbageResponseAttachment(
                                         `${player}, your remaining cards are:`,
                                         "",
-                                        Router.makeUrlPath(handPath)
+                                        handUrl
                                     )
                                 ];
                                 Router.sendDelayedResponse(
@@ -498,14 +494,13 @@ export module CribbageRoutes {
                         var that = this;
                         // Show the card they just played
                         Router.IMAGE_MANAGER.createDiscardImageAsync(player, cards)
-                            .done(function(handPath:string) {
-                                let urlPath = Router.makeUrlPath(handPath);
-                                console.log(`throwCard: returning the player's thrown cards at ${urlPath}`);
+                            .done(function(handUrl:string) {
+                                console.log(`throwCard: returning the player's thrown cards at ${handUrl}`);
                                 Router.sendDelayedResponse(
                                     new CribbageResponseData(
                                         SlackResponseType.ephemeral,
                                         "",
-                                        [new CribbageResponseAttachment("The cards you threw:", "", urlPath)]
+                                        [new CribbageResponseAttachment("The cards you threw:", "", handUrl)]
                                     ),
                                     responseUrl,
                                     500
@@ -515,14 +510,13 @@ export module CribbageRoutes {
                         var theirHand = this.currentGame.getPlayerHand(player);
                         if (theirHand.size() > 0) {
                             Router.IMAGE_MANAGER.createPlayerHandImageAsync(player, theirHand)
-                                .done(function(handPath:string) {
-                                    let urlPath = Router.makeUrlPath(handPath);
-                                    console.log(`throwCard: return player hand at ${urlPath}`);
+                                .done(function(handUrl:string) {
+                                    console.log(`throwCard: return player hand at ${handUrl}`);
                                     Router.sendDelayedResponse(
                                         new CribbageResponseData(
                                             SlackResponseType.ephemeral,
                                             "",
-                                            [new CribbageResponseAttachment("Your remaining Cards:", "", urlPath)]
+                                            [new CribbageResponseAttachment("Your remaining Cards:", "", handUrl)]
                                         ),
                                         responseUrl,
                                         1000

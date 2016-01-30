@@ -48,9 +48,28 @@ module ImageConvert {
     var cardsPath = process.env.TMP_CARDS_PATH || "public/cards/";
     cardsPath = endWithSlash(cardsPath);
 
+    export function makeLocalUrlPath(imagePath:string):string {
+        return `${process.env.APP_HOST_URL}/${imagePath}`;
+    }
+
+    /**
+     * Get a url to the card's image. The image either exists locally (in which case return
+     * the url string for the local card
+     * @param card
+     * @param deckType
+     * @returns {*}
+     */
     export function getCardImageUrl(card:Card, deckType:string="Default"): string {
-        var cardUrlStr = card.toUrlString();
-        return `${process.env.AWS_S3_STANDARD_DECK_URL}${deckType}/${cardUrlStr}`;
+        var cardUrlStr = card.toUrlString(), cardFilePath = `${cardsPath}${cardUrlStr}`;
+        if (fs.existsSync(cardFilePath)) {
+            // Give the url to the card on the heroku server
+            cardFilePath = makeLocalUrlPath(cardFilePath);
+        }
+        else {
+            // Give the S3 url
+            cardFilePath = `${process.env.AWS_S3_STANDARD_DECK_URL}${deckType}/${cardUrlStr}`;
+        }
+        return cardFilePath;
     }
 
     var download = function(uri:string, filename:string, callback:any){
@@ -135,7 +154,7 @@ module ImageConvert {
                 catch (e) {
                     reject(e);
                 }
-                resolve(playerHandPath);
+                resolve(makeLocalUrlPath(playerHandPath));
             });
         });
     }
@@ -232,17 +251,16 @@ export class ImageManager {
     getLatestPlayerHand(player:string, hand:CribbageHand):Promise<string> {
         var that = this;
         return new Promise(function(resolve, reject) {
-            var imagePath = "";
             var playerImage = that.findPlayerImage(player);
             if (playerImage != null && playerImage.imageCount() > 0) {
                 // Resolve on the cached image
-                resolve(playerImage.getLatestImage());
+                resolve(ImageConvert.makeLocalUrlPath(playerImage.getLatestImage()));
             }
             else {
                 // Create a new image and resolve on that
                 that.createPlayerHandImageAsync(player, hand)
-                    .done(function(handPath:string){
-                        resolve(handPath);
+                    .done(function(handUrl:string){
+                        resolve(handUrl);
                     });
             }
         });
@@ -252,21 +270,7 @@ export class ImageManager {
      * Get the path to the last sequence image
      */
     getLatestSequence(sequence:Sequence):Promise<string> {
-        var that = this;
-        return new Promise(function(resolve, reject) {
-            var sequenceImage = this.findPlayerImage(ImageManager.SEQUENCE_NAME);
-            if (sequenceImage != null) {
-                // Resolve on the cached image
-                resolve(sequenceImage.getLatestImage());
-            }
-            else {
-                // Create a new image and resolve on that
-                that.createSequenceImageAsync(sequence)
-                    .done(function(handPath:string){
-                        resolve(handPath);
-                    });
-            }
-        });
+        return this.getLatestPlayerHand(ImageManager.SEQUENCE_NAME, new CribbageHand(sequence.cards.items));
     }
 
     private createHandImageAsync(player:string, hand:CribbageHand, type:PlayerImageType, sortHand:boolean):Promise<string> {
@@ -281,7 +285,7 @@ export class ImageManager {
                     }
                     playerImages.pushImage(handPath, type);
                     that.playerImages.addItem(playerImages);
-                    resolve(handPath);
+                    resolve(ImageConvert.makeLocalUrlPath(handPath));
                 });
         });
     }
