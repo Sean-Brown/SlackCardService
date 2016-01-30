@@ -269,8 +269,8 @@ export class ImageManager {
             else {
                 // Create a new image and resolve on that
                 that.createPlayerHandImageAsync(player, hand)
-                    .done(function(handPath:string){
-                        resolve(ImageConvert.makeLocalUrlPath(handPath));
+                    .done(function(handUrl:string){
+                        resolve(handUrl);
                     });
             }
         });
