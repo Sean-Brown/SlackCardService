@@ -573,8 +573,7 @@ export class Cribbage extends CardGame<CribbagePlayer, StandardDeck> {
     private roundOverStr():string {
         return `Round over.\n`+
         `The cards have been shuffled and dealt.\n`+
-        `Throw to ${this.dealer.name}'s kitty!\n`+
-        `Scores: ${this.printScores()}`;
+        `Throw to ${this.dealer.name}'s kitty!`;
     }
 
     /**
@@ -635,7 +634,7 @@ export class Cribbage extends CardGame<CribbagePlayer, StandardDeck> {
                     ret = this.setGameOver(team);
                     break;
                 }
-                ret.message += `\nThe kitty is ${this.printHand(this.kitty)} and scores ${points} points ${Cribbage.pointEmoji} for ${countingPlayer} ${Cribbage.playerPointsString(countingPlayer)}.`;
+                ret.message += `\nThe kitty is ${this.printHand(this.kitty)} and scores ${points} points ${Cribbage.pointEmoji} for ${countingPlayer.name} ${Cribbage.playerPointsString(countingPlayer)}.`;
             }
             countingPlayer = this.nextPlayerInOrder(countingPlayer);
         }
