@@ -261,7 +261,7 @@ export class Cribbage extends CardGame<CribbagePlayer, StandardDeck> {
      * any points the player may have gotten from playing the card.
      * @param playerName
      * @param card
-     * @returns {boolean} true if it's game over
+     * @returns {CribbageReturn} an object {gameOver:boolean, message:string, roundOver:boolean, sequenceOver:boolean}
      * @throws ErrorStrings.KITTY_NOT_READY if there are not enough cards in the kitty to begin play
      * @throws ErrorStrings.FMT_NOT_NEXT_PLAYER if the next player to play is not the one trying to play a card
      * @throws ErrorStrings.EXCEEDS_31 if the player plays a card that makes the count exceed 31
