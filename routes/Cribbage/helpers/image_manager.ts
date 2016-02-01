@@ -80,8 +80,8 @@ module ImageConvert {
         });
     };
 
-    function downloadCard(card:Card): Promise {
-        return new Promise(function(resolve, reject) {
+    function downloadCard(card:Card): Promise<string> {
+        return new Promise<string>(function(resolve, reject) {
             var cardFilePath = `${cardsPath}${card.toUrlString()}`;
             if (fs.existsSync(cardFilePath)) {
                 console.log(`getting the ${card.toString()} from cache`);
@@ -129,7 +129,7 @@ module ImageConvert {
             }
             if (sortCards)
                 hand.sortCards();
-            var promises:Array<Promise> = [];
+            var promises:Array<Promise<string>> = [];
             console.log("downloading the cards");
             for (var ix = 0; ix < hand.size(); ix++) {
                 // Download all the cards asynchronously
