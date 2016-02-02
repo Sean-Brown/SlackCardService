@@ -198,7 +198,7 @@ class PlayerImages implements IItem {
     }
     /**
      * Add the image to the head of the list
-     * @param {string} imageUrl the url of the image
+     * @param {string} imagePath the local path to the image
      * @param {PlayerImageType} type the type of image
      */
     pushImage(imagePath:string, type:PlayerImageType): void {
