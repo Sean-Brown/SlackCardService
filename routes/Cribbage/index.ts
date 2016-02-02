@@ -482,7 +482,6 @@ export module CribbageRoutes {
                         Router.roundOverResetImages(this.currentGame);
                     }
                     else {
-                        var that = this;
                         // Show the card they just played
                         Router.IMAGE_MANAGER.createDiscardImageAsync(player, cards)
                             .done(function(handUrl:string) {
@@ -543,6 +542,9 @@ export module CribbageRoutes {
                     // Let the players know it's time to begin the game
                     var text = `The game is ready to begin. Play a card ${this.currentGame.nextPlayerInSequence.name}.\n`+
                                 `${Cribbage.cutEmoji}  The cut card is:`;
+                    if (cribRes.message.length > 0) {
+                        text = `${cribRes.message}\n${text}`;
+                    }
                     Router.sendDelayedResponse(
                         new CribbageResponseData(
                             SlackResponseType.in_channel,
