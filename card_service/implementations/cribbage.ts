@@ -643,7 +643,7 @@ export class Cribbage extends CardGame<CribbagePlayer, StandardDeck> {
                     ret = this.setGameOver(team);
                     break;
                 }
-                ret.message += `\nThe kitty is ${this.printHand(this.kitty)} and scores ${points} points ${Cribbage.pointEmoji} for ${countingPlayer.name} ${Cribbage.teamPointsString(team)}.`;
+                ret.message += `\nThe kitty is ${this.printHand(this.kitty)} and scores ${points} points for ${countingPlayer.name} ${Cribbage.teamPointsString(team)}.`;
             }
             countingPlayer = this.nextPlayerInOrder(countingPlayer);
         }
