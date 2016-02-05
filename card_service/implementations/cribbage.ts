@@ -94,6 +94,7 @@ export class Cribbage extends CardGame<CribbagePlayer, StandardDeck> {
     hasBegun: boolean;
     static pointEmoji:string = ":chart_with_upwards_trend:";
     static winnerEmoji:string = ":trollface:";
+    static loserEmoji:string = ":hankey:";
     static cutEmoji:string = ":scissors:";
 
     constructor(players: Players<CribbagePlayer>) {
@@ -509,9 +510,16 @@ export class Cribbage extends CardGame<CribbagePlayer, StandardDeck> {
 
     private setGameOver(winningTeam: CribbageTeam):CribbageReturn {
         this.winningTeam = winningTeam;
+        var otherScores = "";
+        for (var ix = 0; ix < this.teams.numTeams(); ix++) {
+            var team = <CribbageTeam>this.teams.teams.itemAt(ix);
+            if (!team.equalsOther(winningTeam)) {
+                otherScores += `Losing team: ${team.printTeam()} ${Cribbage.teamPointsString(team)} ${Cribbage.loserEmoji}\n`;
+            }
+        }
         return new CribbageReturn(
             true,
-            `${MessageStrings.GAME_OVER} Winning team: ${this.winningTeam.printTeam()} ${Cribbage.teamPointsString(winningTeam)} ${Cribbage.winnerEmoji}`
+            `${MessageStrings.GAME_OVER} Winning team: ${this.winningTeam.printTeam()} ${Cribbage.teamPointsString(winningTeam)} ${Cribbage.winnerEmoji}\n${otherScores}`
         );
     }
 
