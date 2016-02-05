@@ -519,7 +519,7 @@ export class Cribbage extends CardGame<CribbagePlayer, StandardDeck> {
         }
         return new CribbageReturn(
             true,
-            `${MessageStrings.GAME_OVER} Winning team: ${this.winningTeam.printTeam()} ${Cribbage.teamPointsString(winningTeam)} ${Cribbage.winnerEmoji}\n${otherScores}`
+            `${MessageStrings.GAME_OVER}\nWinning team: ${this.winningTeam.printTeam()} ${Cribbage.teamPointsString(winningTeam)} ${Cribbage.winnerEmoji}\n${otherScores}`
         );
     }
 
