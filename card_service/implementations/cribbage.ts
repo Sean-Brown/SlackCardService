@@ -339,8 +339,11 @@ export class Cribbage extends CardGame<CribbagePlayer, StandardDeck> {
                 }
                 var scores = this.roundOverResetState();
                 response.message += `\n${scores}`;
-                var ros = this.roundOverStr();
-                response.message += `\n${ros}`;
+                if (this.winningTeam == null) {
+                    // Report that the round is over only if the game is still in progress
+                    var ros = this.roundOverStr();
+                    response.message += `\n${ros}`;
+                }
                 break;
             }
             else if (is31) {
