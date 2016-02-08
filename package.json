@@ -15,8 +15,7 @@
   "main": "app.js",
   "scripts": {
     "build": "tsc -p .",
-    "preinstall": "npm run build || true",
-    "postinstall": "typings install",
+    "postinstall": "typings install && npm run build || true",
     "start": "node app.js",
     "test": "npm run test-node && npm run test-service",
     "test-node": "mocha -c -b --reporter spec spec/Node/*.js",
