@@ -15,14 +15,14 @@
   "main": "app.js",
   "scripts": {
     "build": "tsc -p .",
-    "preinstall": "tsd install && npm run build || true",
+    "preinstall": "typings install && npm run build || true",
     "start": "node app.js",
     "test": "npm run test-node && npm run test-service",
     "test-node": "mocha -c -b --reporter spec spec/Node/*.js",
     "test-service": "jasmine-node --color --test-dir ./spec/SlackCardService/"
   },
   "typescript": {
-    "definition": "typings/tsd.d.ts"
+    "definition": "typings/main.d.ts"
   },
   "repository": {
     "type": "git",
