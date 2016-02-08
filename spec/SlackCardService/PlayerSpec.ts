@@ -1,4 +1,4 @@
-/// <reference path="../../typings/jasmine/jasmine.d.ts" />
+/// <reference path="../../typings/main/ambient/jasmine/jasmine.d.ts" />
 /// <reference path="../../card_service/base_classes/collections/hand.ts" />
 /// <reference path="../../card_service/base_classes/items/card.ts" />
 /// <reference path="../../card_service/base_classes/items/player.ts" />

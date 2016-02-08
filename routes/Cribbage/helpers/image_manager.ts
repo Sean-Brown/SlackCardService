@@ -1,4 +1,4 @@
-/// <reference path="../../../typings/tsd.d.ts" />
+/// <reference path="../../../typings/main.d.ts" />
 /// <reference path="../../../card_service/interfaces/iitem" />
 /// <reference path="../../../card_service/base_classes/collections/item_collection" />
 /// <reference path="../../../card_service/implementations/cribbage.ts" />

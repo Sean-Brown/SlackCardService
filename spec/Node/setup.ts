@@ -1,5 +1,4 @@
-/// <reference path="../../typings/tsd.d.ts" />
-/// <reference path="../../typings/mocha/mocha.d.ts" />
+/// <reference path="../../typings/main.d.ts" />
 
 import {setup} from "../../app";
 import {Express} from "express";

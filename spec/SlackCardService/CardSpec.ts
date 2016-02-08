@@ -1,4 +1,4 @@
-/// <reference path="../../typings/jasmine/jasmine.d.ts" />
+/// <reference path="../../typings/main/ambient/jasmine/jasmine.d.ts" />
 /// <reference path="../../card_service/base_classes/items/card.ts" />
 
 import {BaseCard, Suit, Value} from "../../card_service/base_classes/items/card";
