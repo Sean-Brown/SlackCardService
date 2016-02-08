@@ -1,4 +1,5 @@
 /// <reference path="../../typings/main.d.ts" />
+/// <reference path="../../typings/main/ambient/mocha/mocha.d.ts" />
 
 import {setup} from "../../app";
 import {Express} from "express";
