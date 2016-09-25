@@ -10,3 +10,9 @@ Getting started:
 That should be enough to get started, but it's also good to setup the test runners:
 - Mocha: configure Mocha to run the tests in the ./spec/Node directory
 - Node.js: configure a Node.js test runner to run the tests in the ./spec/SlackCardService directory
+
+To run the tests:
+  * open a command pompt
+  * cd to the root of the SlackCardService project
+  * run "npm test"
+This should run all the tests under the "spec" directory
