@@ -16,3 +16,7 @@ To run the tests:
   * cd to the root of the SlackCardService project
   * run "npm test"
 This should run all the tests under the "spec" directory
+
+If you get errors, check the test output and make sure that the version of node and npm specified 
+that were used when running the tests are the same version as node and npm in package.json under the 
+'engines' section
