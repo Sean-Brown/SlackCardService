@@ -15,9 +15,9 @@
   "main": "app.js",
   "scripts": {
     "build": "tsc -p .",
-    "postinstall": "typings install && npm run build || true",
+    "postinstall": "typings install && (npm run build || true)",
     "start": "node app.js",
-    "test": "npm run test-node && npm run test-service",
+    "test": "node -v && npm -v && npm run test-node && npm run test-service",
     "test-node": "mocha -c -b --reporter spec spec/Node/*.js",
     "test-service": "jasmine-node --color --test-dir ./spec/SlackCardService/"
   },
@@ -36,8 +36,8 @@
     "images": "~2.2.0",
     "promise": "^7.1.1",
     "request": "^2.67.0",
-    "typescript": "~1.7.5",
-    "typings": "^0.6.6"
+    "typescript": "2.0.3",
+    "typings": "1.4"
   },
   "devDependencies": {
     "async": "^1.5.2",
