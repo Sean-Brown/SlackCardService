@@ -33,24 +33,24 @@ export function setup(app: Express):Express {
 
     // Routes
     var routes = new CribbageRoutes.Router();
-    app.locals.cribbageRoutes = routes;
     // Respond to the base route with "Hello world"
     app.get("/", function(req: Request, res: Response) {
         res.status(200).send("Hello world!");
     });
     // Cribbage Routes
-    app.get(CribbageRoutePrefix + CribbageRoutes.Routes.beginGame, routes.beginGame.bind(this));
-    app.get(CribbageRoutePrefix + CribbageRoutes.Routes.describe, routes.describe.bind(this));
-    app.get(CribbageRoutePrefix + CribbageRoutes.Routes.showHand, routes.showHand.bind(this));
-    app.post(CribbageRoutePrefix + CribbageRoutes.Routes.go, routes.go.bind(this));
-    app.post(CribbageRoutePrefix + CribbageRoutes.Routes.playCard, routes.playCard.bind(this));
-    app.post(CribbageRoutePrefix + CribbageRoutes.Routes.joinGame, routes.joinGame.bind(this));
-    app.post(CribbageRoutePrefix + CribbageRoutes.Routes.resetGame, routes.resetGame.bind(this));
-    app.post(CribbageRoutePrefix + CribbageRoutes.Routes.throwCard, routes.throwCard.bind(this));
+    app.get(CribbageRoutePrefix + CribbageRoutes.Routes.beginGame, routes.beginGame.bind(routes));
+    app.get(CribbageRoutePrefix + CribbageRoutes.Routes.describe, routes.describe.bind(routes));
+    app.get(CribbageRoutePrefix + CribbageRoutes.Routes.showHand, routes.showHand.bind(routes));
+    app.post(CribbageRoutePrefix + CribbageRoutes.Routes.go, routes.go.bind(routes));
+    app.post(CribbageRoutePrefix + CribbageRoutes.Routes.playCard, routes.playCard.bind(routes));
+    app.post(CribbageRoutePrefix + CribbageRoutes.Routes.joinGame, routes.joinGame.bind(routes));
+    app.post(CribbageRoutePrefix + CribbageRoutes.Routes.resetGame, routes.resetGame.bind(routes));
+    app.post(CribbageRoutePrefix + CribbageRoutes.Routes.throwCard, routes.throwCard.bind(routes));
     // All other routes send back a "request not found"
     app.get("*", function(req: Request, res: Response) {
         res.status(404).send("Unknown request");
     });
+    app.locals.cribbageRoutes = routes;
     return app;
 }
 
