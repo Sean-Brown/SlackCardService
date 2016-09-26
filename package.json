@@ -14,9 +14,8 @@
   "description": "Web service for playing card games",
   "main": "app.js",
   "scripts": {
-    "build": "tsc -p .",
-    "preinstall": "npm uninstall typings -g",
-    "postinstall": "typings install && npm run build || true",
+    "build": "typings install && tsc -p .",
+    "postinstall": "npm run build || true",
     "start": "node app.js",
     "test": "node -v && npm -v && npm run test-node && npm run test-service",
     "test-node": "mocha -c -b --reporter spec spec/Node/*.js",
