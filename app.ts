@@ -32,20 +32,21 @@ export function setup(app: Express):Express {
     }
 
     // Routes
-    app.locals.cribbageRoutes = new CribbageRoutes.Router();
+    var routes = new CribbageRoutes.Router();
+    app.locals.cribbageRoutes = routes;
     // Respond to the base route with "Hello world"
     app.get("/", function(req: Request, res: Response) {
         res.status(200).send("Hello world!");
     });
     // Cribbage Routes
-    app.get(CribbageRoutePrefix + CribbageRoutes.Routes.beginGame, app.locals.cribbageRoutes.beginGame.bind(app.locals.cribbageRoutes));
-    app.get(CribbageRoutePrefix + CribbageRoutes.Routes.describe, app.locals.cribbageRoutes.describe.bind(app.locals.cribbageRoutes));
-    app.get(CribbageRoutePrefix + CribbageRoutes.Routes.showHand, app.locals.cribbageRoutes.showHand.bind(app.locals.cribbageRoutes));
-    app.post(CribbageRoutePrefix + CribbageRoutes.Routes.go, app.locals.cribbageRoutes.go.bind(app.locals.cribbageRoutes));
-    app.post(CribbageRoutePrefix + CribbageRoutes.Routes.playCard, app.locals.cribbageRoutes.playCard.bind(app.locals.cribbageRoutes));
-    app.post(CribbageRoutePrefix + CribbageRoutes.Routes.joinGame, app.locals.cribbageRoutes.joinGame.bind(app.locals.cribbageRoutes));
-    app.post(CribbageRoutePrefix + CribbageRoutes.Routes.resetGame, app.locals.cribbageRoutes.resetGame.bind(app.locals.cribbageRoutes));
-    app.post(CribbageRoutePrefix + CribbageRoutes.Routes.throwCard, app.locals.cribbageRoutes.throwCard.bind(app.locals.cribbageRoutes));
+    app.get(CribbageRoutePrefix + CribbageRoutes.Routes.beginGame, routes.beginGame);
+    app.get(CribbageRoutePrefix + CribbageRoutes.Routes.describe, routes.describe);
+    app.get(CribbageRoutePrefix + CribbageRoutes.Routes.showHand, routes.showHand);
+    app.post(CribbageRoutePrefix + CribbageRoutes.Routes.go, routes.go);
+    app.post(CribbageRoutePrefix + CribbageRoutes.Routes.playCard, routes.playCard);
+    app.post(CribbageRoutePrefix + CribbageRoutes.Routes.joinGame, routes.joinGame);
+    app.post(CribbageRoutePrefix + CribbageRoutes.Routes.resetGame, routes.resetGame);
+    app.post(CribbageRoutePrefix + CribbageRoutes.Routes.throwCard, routes.throwCard);
     // All other routes send back a "request not found"
     app.get("*", function(req: Request, res: Response) {
         res.status(404).send("Unknown request");
