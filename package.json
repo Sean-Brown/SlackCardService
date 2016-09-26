@@ -32,22 +32,22 @@
     "body-parser": "^1.14.1",
     "errorhandler": "^1.4.2",
     "express": "^4.13.3",
-    "form-data": "^0.2.0",
-    "images": "~2.2.0",
+    "form-data": "^2.1.0",
+    "images": "3.0.0",
     "promise": "^7.1.1",
     "request": "^2.67.0",
     "typescript": "2.0.3",
     "typings": "1.4"
   },
   "devDependencies": {
-    "async": "^1.5.2",
+    "async": "^2.0.1",
     "expect": "^1.13.4",
     "jasmine": "^2.3.2",
     "jasmine-node": "^1.14.5",
-    "jquery": "^2.1.4",
-    "mocha": "^2.3.4",
+    "jquery": "^3.1.1",
+    "mocha": "^3.0.2",
     "node-inspector": "^0.12.5",
-    "supertest": "^1.1.0"
+    "supertest": "^2.0.0"
   },
   "keywords": [
     "slack",
