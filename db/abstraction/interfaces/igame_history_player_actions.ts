@@ -1,0 +1,10 @@
+import {GameHistoryPlayerReturn} from "../return/db_return";
+export interface IGameHistoryPlayerPivot {
+    /**
+     * Create an association between a Player record and a GameHistory record
+     * @param player_id the ID of the Player
+     * @param game_history_id the ID of the GameHistory
+     * @return {GameHistoryPlayerReturn} the newly created row
+     */
+    createAssociation(player_id:number, game_history_id:number): GameHistoryPlayerReturn;
+}
