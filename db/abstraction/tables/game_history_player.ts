@@ -15,8 +15,8 @@ export class GameHistoryPlayerPivot extends BaseTable {
      */
     player_id:number;
 
-    constructor(player_id:number, game_history_id:number) {
-        super();
+    constructor(id:number, player_id:number, game_history_id:number) {
+        super(id);
         this.player_id = player_id;
         this.game_history_id = game_history_id;
     }

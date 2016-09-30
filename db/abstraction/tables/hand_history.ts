@@ -24,14 +24,13 @@ export class HandHistory extends BaseTable {
      * Date this hand was received, in the form of a number
      * Automatic
      */
-    received:number;
+    //received:number;
 
-    constructor(player_id:number, game_history_id:number, hand:string="") {
-        super();
+    constructor(id:number, player_id:number, game_history_id:number, hand:string="") {
+        super(id);
         this.player_id = player_id;
         this.game_history_id = game_history_id;
         this.hand = hand;
-        this.received = Date.now();
     }
 
     getTable():DBTables {

@@ -1,4 +1,3 @@
-import {DBColumnDef, eDBColumn, eDBColumnAttr, DBColumnAttr} from "../columns/columns";
 export enum DBTables {
     Game,
     GameHistory,
@@ -6,6 +5,24 @@ export enum DBTables {
     HandHistory,
     Player,
     WinLossHistory
+}
+export function getTableName(table:DBTables):string {
+    switch (table) {
+        case DBTables.Game:
+            return "game";
+        case DBTables.GameHistory:
+            return "game_history";
+        case DBTables.GameHistoryPlayer:
+            return "game_history_player_pivot";
+        case DBTables.HandHistory:
+            return "hand_history";
+        case DBTables.Player:
+            return "player";
+        case DBTables.WinLossHistory:
+            return "win_loss_history";
+        default:
+            throw `Unknown table ${table}`;
+    }
 }
 
 export abstract class BaseTable {
@@ -15,45 +32,9 @@ export abstract class BaseTable {
      */
     id:number;
 
-    constructor() {
-        this.id = this.getNextID();
-    }
-
-    /**
-     * Get the next ID for a row in the table
-     * @returns {number} the next ID in this table
-     * TODO implement getNextID()!!
-     */
-    private getNextID():number {
-        var id:number = 0;
-        switch (this.getTable()) {
-            case DBTables.Game:
-                break;
-            case DBTables.GameHistory:
-                break;
-            case DBTables.GameHistoryPlayer:
-                break;
-            case DBTables.HandHistory:
-                break;
-            case DBTables.Player:
-                break;
-            case DBTables.WinLossHistory:
-                break;
-        }
-        return id;
+    constructor(id:number) {
+        this.id = id;
     }
 
     abstract getTable():DBTables;
-}
-
-export class BaseTableDef {
-    static ID_DEF:DBColumnDef = new DBColumnDef(
-        BaseTableDef.ID_COL,
-        eDBColumn.Integer,
-        [
-            new DBColumnAttr(eDBColumnAttr.AutoIncrement),
-            new DBColumnAttr(eDBColumnAttr.PrimaryKey)
-        ]
-    );
-    public static get ID_COL() { return "id" };
 }

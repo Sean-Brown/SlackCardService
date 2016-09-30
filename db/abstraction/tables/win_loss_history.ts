@@ -17,8 +17,8 @@ export class WinLossHistory extends BaseTable {
      */
     won:boolean;
 
-    constructor(player_id:number, game_history_id:number, won:boolean=false) {
-        super();
+    constructor(id:number, player_id:number, game_history_id:number, won:boolean=false) {
+        super(id);
         this.player_id = player_id;
         this.game_history_id = game_history_id;
         this.won = won;

@@ -1,5 +1,5 @@
 import {WinLossHistoryReturn} from "../return/db_return";
-export interface IWinLossHistory {
+export interface IWinLossHistoryActions {
     /**
      * Create a new win-loss history record
      * @param player_id the ID of the player who won/lost

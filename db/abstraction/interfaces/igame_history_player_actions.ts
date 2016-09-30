@@ -1,5 +1,5 @@
 import {GameHistoryPlayerReturn} from "../return/db_return";
-export interface IGameHistoryPlayerPivot {
+export interface IGameHistoryPlayerPivotActions {
     /**
      * Create an association between a Player record and a GameHistory record
      * @param player_id the ID of the Player

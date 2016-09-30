@@ -3,7 +3,7 @@ import {IGameHistoryPlayerPivotActions} from "../../abstraction/interfaces/igame
 import {GameHistoryPlayerPivot} from "../../abstraction/tables/game_history_player";
 import {QueryResult} from "pg";
 import {pg_mgr} from "./manager";
-import Promise = require("Promise")
+import Promise = require("Promise");
 import {DBTables, getTableName} from "../../abstraction/tables/base_table";
 
 export module PostgresImpl {
@@ -20,8 +20,8 @@ export module PostgresImpl {
                         ret.result.push(new GameHistoryPlayerPivot(
                             result.rows[0][0],
                             result.rows[0][1],
-                            result.rows[0][2])
-                        )
+                            result.rows[0][2]
+                        ))
                     }
                     resolve(ret);
                 });

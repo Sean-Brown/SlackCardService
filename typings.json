@@ -1,10 +1,11 @@
 {
   "dependencies": {},
   "globalDependencies": {
+    "async": "registry:dt/async#2.0.1+20160804113311",
     "body-parser": "github:DefinitelyTyped/DefinitelyTyped/body-parser/body-parser.d.ts#fb2b3b1e068c9ff7d8f9b0851c08d37d96c95c38",
     "express": "github:DefinitelyTyped/DefinitelyTyped/express/express.d.ts#fb2b3b1e068c9ff7d8f9b0851c08d37d96c95c38",
     "form-data": "github:DefinitelyTyped/DefinitelyTyped/form-data/form-data.d.ts#fb2b3b1e068c9ff7d8f9b0851c08d37d96c95c38",
-    "jasmine": "github:DefinitelyTyped/DefinitelyTyped/jasmine/jasmine.d.ts#923c5431d9447db9d5cf41adc5914e3c94c1ff10",
+    "jasmine": "registry:dt/jasmine#2.2.0+20160621224255",
     "mime": "github:DefinitelyTyped/DefinitelyTyped/mime/mime.d.ts#fb2b3b1e068c9ff7d8f9b0851c08d37d96c95c38",
     "mocha": "github:DefinitelyTyped/DefinitelyTyped/mocha/mocha.d.ts#70bf7e2bfeb0d5b1b651ef3219bcc65c8eec117e",
     "node": "github:DefinitelyTyped/DefinitelyTyped/node/node.d.ts#46719185c564694c5583c4b7ad94dbb786ecad46",

@@ -15,7 +15,7 @@ export interface IPlayerActions {
      * Find a player by name
      * @param name
      */
-    find(name:string):PlayerReturn;
+    findByName(name:string):PlayerReturn;
 
     /**
      * Find a player by ID

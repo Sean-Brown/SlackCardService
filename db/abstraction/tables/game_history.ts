@@ -1,6 +1,4 @@
-import {BaseTable, DBTables, BaseTableDef} from "./base_table";
-import {DBColumnDef, eDBColumn, eDBColumnAttr, DBColumnAttr} from "../columns/columns";
-import {GameDef} from "./game";
+import {BaseTable, DBTables} from "./base_table";
 export class GameHistory extends BaseTable {
     /**
      * The ID of the game
@@ -12,7 +10,7 @@ export class GameHistory extends BaseTable {
      * When the game began
      * Automatic
      */
-    began:number;
+    //began:number;
 
     /**
      * When the game ended
@@ -20,37 +18,14 @@ export class GameHistory extends BaseTable {
      */
     ended:number;
 
-    constructor(game_id:number) {
-        super();
+    constructor(id:number, game_id:number) {
+        super(id);
         this.game_id = game_id;
-        this.began = Date.now();
+        //this.began = Date.now();
         this.ended = 0;
     }
 
     getTable():DBTables {
         return DBTables.GameHistory;
     }
-}
-
-export class GameHistoryDef extends BaseTableDef  {
-    game_idDef:DBColumnDef = new DBColumnDef(
-        GameHistoryDef.GAME_ID_COL,
-        eDBColumn.Integer,
-        // Foreign key on the Game table
-        [new DBColumnAttr(eDBColumnAttr.References, [typeof(GameDef)])]
-    );
-    public static get GAME_ID_COL() { return "game_id"; }
-
-    beganDef:DBColumnDef = new DBColumnDef(
-        GameHistoryDef.BEGAN_COL,
-        eDBColumn.TimeStamp
-    );
-    public static get BEGAN_COL() { return "began"; }
-
-    endedDef:DBColumnDef = new DBColumnDef(
-        GameHistoryDef.ENDED_COL,
-        eDBColumn.TimeStamp
-    );
-    public static get ENDED_COL() { return "ended"; }
-
 }

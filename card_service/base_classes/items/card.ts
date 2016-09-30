@@ -20,6 +20,9 @@ export class EnumExt {
     static getNames(e: any) {
         return Object.keys(e).filter(v => isNaN(parseInt(v, 10)));
     }
+    static getValues<T extends number>(e: any) {
+        return EnumEx.getObjValues(e).filter(v => typeof v === "number") as T[];
+    }
 }
 
 export class BaseCard implements IItem {

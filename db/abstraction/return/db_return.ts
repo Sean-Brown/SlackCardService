@@ -22,19 +22,10 @@ export class BaseDBReturn {
      * The return status code
      */
     status:DBReturnStatus;
-    constructor(status:DBReturnStatus=DBReturnStatus.ok) {
+    message:string;
+    constructor(status:DBReturnStatus=DBReturnStatus.ok, message:string="") {
         this.status = status;
-    }
-    public getStatusMessage():string {
-        var msg:string = "";
-        switch (this.status) {
-            case DBReturnStatus.error:
-                break;
-            default:
-            case DBReturnStatus.ok:
-                break;
-        }
-        return msg;
+        this.message = message;
     }
 }
 
@@ -48,7 +39,7 @@ class DBReturn<TableClass> extends BaseDBReturn {
      * The return object
      */
     result:Array<TableClass>;
-    constructor(status:DBReturnStatus, objs:Array<TableClass>) {
+    constructor(status:DBReturnStatus=DBReturnStatus.ok, objs:Array<TableClass>=[]) {
         super(status);
         if (objs != null) {
             this.result = objs;

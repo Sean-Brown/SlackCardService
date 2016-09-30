@@ -11,7 +11,7 @@ export interface IGameActions {
      * Find a game by name
      * @param name
      */
-    find(name:string):GameReturn;
+    findByName(name:string):GameReturn;
 
     /**
      * Find a game by ID
