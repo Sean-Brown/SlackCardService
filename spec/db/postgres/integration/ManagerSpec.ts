@@ -30,11 +30,10 @@ describe("Test the Postgres Database manager", function() {
             done.fail(`Expected the test to succeed, instead got: ${result.error}`);
         });
     });
-    it("reads the configuration before performing a query if the configuration has not been read", function(done) {
+    it("reads the configuration before connecting if the configuration has not been read", function(done) {
         pgManager.config = null;
         spyOn(pgManager, "readConfig").and.callThrough();
-        var promise = pgManager.runQuery("SELECT * FROM Player");
-        promise.then((result: PGQueryReturn) => {
+        pgManager.connect().then((result: PGQueryReturn) => {
             expect(result.value).not.toBeNull();
             expect(pgManager.readConfig).toHaveBeenCalled();
             done();
