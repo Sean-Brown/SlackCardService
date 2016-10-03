@@ -128,7 +128,6 @@ export class PGManager {
                 }
                 else {
                     // Succeeded, resolve the promise with the connection
-                    console.log("Successfully connected to Postgres");
                     resolve(connection);
                 }
             });
