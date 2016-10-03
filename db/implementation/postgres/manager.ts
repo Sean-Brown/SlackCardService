@@ -41,10 +41,17 @@ export class PGQueryReturn extends PGReturnBase<QueryResult> { }
 /** Postgres return object returning a Client that's connected to Postgres */
 export class PGConnectionReturn extends PGReturnBase<Client> { }
 
+export class PGManagerStrings {
+    public static get HostError():string { return "Invalid Postgres host, specify the host as the PG_HOST environment variable"; }
+    public static get PortError():string { return "Invalid Postgres port, specify the port as the PG_PORT environment variable"; }
+    public static get DatabaseError():string { return "Invalid Postgres database, specify the database as the PG_DB environment variable"; }
+    public static get UserError():string { return "Invalid Postgres user, specify the user as the PG_USER environment variable"; }
+    public static get PasswordError():string { return "Invalid Postgres password, specify the password as the PG_PASS environment variable"; }
+}
 /**
  * Manages Postgres connections and queries
  */
-export class PGManager {
+class PGManager {
     config: PGConfig;
     constructor() {}
 
@@ -56,12 +63,6 @@ export class PGManager {
         var client = new Client(this.config);
         return client.query(query, values, callback);
     }
-
-    public static get HostError():string { return "Invalid Postgres host, specify the host as the PG_HOST environment variable"; }
-    public static get PortError():string { return "Invalid Postgres port, specify the port as the PG_PORT environment variable"; }
-    public static get DatabaseError():string { return "Invalid Postgres database, specify the database as the PG_DB environment variable"; }
-    public static get UserError():string { return "Invalid Postgres user, specify the user as the PG_USER environment variable"; }
-    public static get PasswordError():string { return "Invalid Postgres password, specify the password as the PG_PASS environment variable"; }
 
     /**
      * Run the given query and throw an error if the query fails
@@ -82,7 +83,7 @@ export class PGManager {
                         pgResult.value = result;
                         if (err != null) {
                             // There was an error, set an error message
-                            console.log(err.message.toString());
+                            console.log(`Query <${query}> returned ${err.message.toString()}`);
                             pgResult.setError(err.message.toString());
                             // Reject with the value
                             reject(pgResult);
@@ -108,7 +109,7 @@ export class PGManager {
      * Connect to the Postgres database
      * @returns {Promise<PGConnectionReturn} a client connected to the Postgres database or null with an error message if a failure occurs
      */
-    protected connect(): Promise<PGConnectionReturn> {
+    public connect(): Promise<PGConnectionReturn> {
         if (this.config == null) {
             this.readConfig();
         }
@@ -138,26 +139,26 @@ export class PGManager {
     /**
      * Read the Postgres configuration from the environment variables
      */
-    protected readConfig() {
+    public readConfig() {
         var host:string = process.env.PG_HOST;
         if (host == null || host.length == 0) {
-            throw PGManager.HostError;
+            throw PGManagerStrings.HostError;
         }
         var port:number = process.env.PG_PORT;
         if (port == null || port == 0) {
-            throw PGManager.PortError;
+            throw PGManagerStrings.PortError;
         }
         var database:string = process.env.PG_DB;
         if (database == null || database.length == 0) {
-            throw PGManager.DatabaseError;
+            throw PGManagerStrings.DatabaseError;
         }
         var user:string = process.env.PG_USER;
         if (user == null || user.length == 0) {
-            throw PGManager.UserError;
+            throw PGManagerStrings.UserError;
         }
         var password:string = process.env.PG_PASS;
         if (password == null || password.length == 0) {
-            throw PGManager.PasswordError;
+            throw PGManagerStrings.PasswordError;
         }
         this.config = new PGConfig(host, port, database, user, password);
     }
