@@ -87,6 +87,10 @@ describe("Test creating the database tables", function() {
         // Asynchronously drop the schema
         deleteTables(pgManager).then(done());
     });
+    afterEach(function(done) {
+        // Drop the tables
+        deleteTables(pgManager).then(done());
+    });
     it("can create the database tables", function(done) {
         PostgresTables.createTables()
             .then((message:string) => {
