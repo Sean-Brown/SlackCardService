@@ -27,7 +27,7 @@ export module PostgresTables {
                     name varchar(128) ${notNullUniqueLengthCheck("name")}
                 );
             `.trim();
-            pg_mgr.runQuery(query).always((result:PGQueryReturn) => { resolve(result); });
+            pg_mgr.runQuery(query).then((result:PGQueryReturn) => { resolve(result); });
         });
     }
     function createGameHistoryTable(): Promise<PGQueryReturn> {
@@ -41,7 +41,7 @@ export module PostgresTables {
                     ended timestamp
                 );
             `.trim();
-            pg_mgr.runQuery(query).always((result:PGQueryReturn) => { resolve(result); });
+            pg_mgr.runQuery(query).then((result:PGQueryReturn) => { resolve(result); });
         });
     }
     function createGameHistoryPlayerPivotTable(): Promise<PGQueryReturn> {
@@ -54,7 +54,7 @@ export module PostgresTables {
                     player_id integer REFERENCES ${getTableName(DBTables.Player)}
                 );
             `.trim();
-            pg_mgr.runQuery(query).always((result:PGQueryReturn) => { resolve(result); });
+            pg_mgr.runQuery(query).then((result:PGQueryReturn) => { resolve(result); });
         });
     }
     function createHandHistoryTable(): Promise<PGQueryReturn> {
@@ -69,7 +69,7 @@ export module PostgresTables {
                     received timestamp ${defaultTimestamp()}
                 );
             `.trim();
-            pg_mgr.runQuery(query).always((result:PGQueryReturn) => { resolve(result); });
+            pg_mgr.runQuery(query).then((result:PGQueryReturn) => { resolve(result); });
         });
     }
     function createPlayerTable(): Promise<PGQueryReturn> {
@@ -82,7 +82,7 @@ export module PostgresTables {
                     joined timestamp ${defaultTimestamp()}
                 );
             `.trim();
-            pg_mgr.runQuery(query).always((result:PGQueryReturn) => { resolve(result); });
+            pg_mgr.runQuery(query).then((result:PGQueryReturn) => { resolve(result); });
         });
     }
     function createWinLossHistoryTable(): Promise<PGQueryReturn> {
@@ -96,7 +96,7 @@ export module PostgresTables {
                     won boolean DEFAULT FALSE
                 );
             `.trim();
-            pg_mgr.runQuery(query).always((result:PGQueryReturn) => { resolve(result); });
+            pg_mgr.runQuery(query).then((result:PGQueryReturn) => { resolve(result); });
         });
     }
 
