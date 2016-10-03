@@ -1,5 +1,5 @@
 /// <reference path="../../../../typings/index.d.ts" />
-import {PGManager, PGConnectionReturn, PGQueryReturn} from "../../../../db/implementation/postgres/manager";
+import {pg_mgr, PGConnectionReturn, PGQueryReturn} from "../../../../db/implementation/postgres/manager";
 
 /**
  * Set the environment variables to point to an existing installation of Postgres
@@ -14,14 +14,12 @@ function setAllConfig() {
 }
 
 describe("Test the Postgres Database manager", function() {
-    var pgManager;
     beforeEach(function() {
         setAllConfig();
-        pgManager = new PGManager();
+        pg_mgr.config = null;
     });
     it("can connect to Postgres", function(done) {
-        var promise = pgManager.connect();
-        promise.then((result: PGConnectionReturn) => {
+        pg_mgr.connect().then((result: PGConnectionReturn) => {
             // connected successfully, now terminate the connection
             expect(result.value).not.toBeNull();
             result.value.end();
@@ -31,11 +29,12 @@ describe("Test the Postgres Database manager", function() {
         });
     });
     it("reads the configuration before connecting if the configuration has not been read", function(done) {
-        pgManager.config = null;
-        spyOn(pgManager, "readConfig").and.callThrough();
-        pgManager.connect().then((result: PGQueryReturn) => {
+        pg_mgr.config = null;
+        spyOn(pg_mgr, "readConfig").and.callThrough();
+        pg_mgr.connect().then((result: PGConnectionReturn) => {
             expect(result.value).not.toBeNull();
-            expect(pgManager.readConfig).toHaveBeenCalled();
+            result.value.end(); // End the connection to Postgres
+            expect(pg_mgr.readConfig).toHaveBeenCalled();
             done();
         }).catch((result: PGQueryReturn) => {
             // We should have an error message
