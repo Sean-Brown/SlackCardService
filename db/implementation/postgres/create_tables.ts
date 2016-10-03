@@ -1,4 +1,4 @@
-/// <reference path="../../../../typings/index.d.ts" />
+/// <reference path="../../../typings/index.d.ts" />
 
 import {DBTables, getTableName} from "../../abstraction/tables/base_table";
 import {pg_mgr, PGQueryReturn} from "./manager";
@@ -20,7 +20,7 @@ export module PostgresTables {
     }
     function createGameTable(): Promise<PGQueryReturn> {
         return new Promise((resolve) => {
-                var query = `
+            var query = `
                 CREATE TABLE IF NOT EXISTS ${getTableName(DBTables.Game)} 
                 (
                     ${primaryKey()},
@@ -33,7 +33,7 @@ export module PostgresTables {
     function createGameHistoryTable(): Promise<PGQueryReturn> {
         return new Promise((resolve) => {
             var query = `
-            CREATE TABLE IF NOT EXISTS ${getTableName(DBTables.GameHistory)} 
+                CREATE TABLE IF NOT EXISTS ${getTableName(DBTables.GameHistory)} 
                 (
                     ${primaryKey()},
                     game_id integer REFERENCES ${getTableName(DBTables.Game)},
@@ -60,8 +60,8 @@ export module PostgresTables {
     function createHandHistoryTable(): Promise<PGQueryReturn> {
         return new Promise((resolve) => {
             var query = `
-            CREATE TABLE IF NOT EXISTS ${getTableName(DBTables.HandHistory)} 
-            (
+                CREATE TABLE IF NOT EXISTS ${getTableName(DBTables.HandHistory)} 
+                (
                     ${primaryKey()},
                     game_history_id integer REFERENCES ${getTableName(DBTables.GameHistory)},
                     player_id integer REFERENCES ${getTableName(DBTables.Player)},
@@ -88,7 +88,7 @@ export module PostgresTables {
     function createWinLossHistoryTable(): Promise<PGQueryReturn> {
         return new Promise((resolve) => {
             var query = `
-            CREATE TABLE IF NOT EXISTS ${getTableName(DBTables.WinLossHistory)} 
+                CREATE TABLE IF NOT EXISTS ${getTableName(DBTables.WinLossHistory)} 
                 (
                     ${primaryKey()},
                     game_history_id integer REFERENCES ${getTableName(DBTables.GameHistory)},
