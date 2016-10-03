@@ -1,7 +1,7 @@
 /// <reference path="../../../../typings/index.d.ts" />
 
 import {PostgresTables} from "../../../../db/implementation/postgres/create_tables";
-import {PGManager, PGQueryReturn} from "../../../../db/implementation/postgres/manager";
+import {PGQueryReturn, pg_mgr} from "../../../../db/implementation/postgres/manager";
 import Promise = require("promise");
 import {DBTables, getTableName} from "../../../../db/abstraction/tables/base_table";
 import {EnumExt} from "../../../../card_service/base_classes/items/card";
@@ -22,14 +22,14 @@ function setAllConfig() {
  * Delete the database tables
  * @param {PGManager} the Postgres database connection manager
  */
-function deleteTables(pgManager: PGManager): Promise<PGQueryReturn> {
+function deleteTables(): Promise<PGQueryReturn> {
     return new Promise((resolve, reject) => {
         // Delete the tables by dropping the schema then re-creating it
         var query = `
             DROP SCHEMA public CASCADE;
             CREATE SCHEMA public;
         `.trim();
-        pgManager.runQuery(query)
+        pg_mgr.runQuery(query)
             .then((result: PGQueryReturn) => { resolve(result); })
             .catch((result: PGQueryReturn) => { reject(result); });
     });
@@ -41,12 +41,12 @@ function deleteTables(pgManager: PGManager): Promise<PGQueryReturn> {
  * @returns {Promise<string>} resolve with an empty message, reject with an error message indicating which tables do not exist
  * @note this method always resolves, never rejects
  */
-function checkTablesExist(pgManager: PGManager): Promise<string> {
+function checkTablesExist(): Promise<string> {
     return new Promise((resolve) => {
         var promises:Array<Promise<PGQueryReturn>> = [];
         var message = [];
         for (var table of EnumExt.getValues(DBTables)) {
-            promises.push(checkTableExistsHelper(pgManager, table));
+            promises.push(checkTableExistsHelper(table));
         }
         Promise.all(promises).then((values:Array<PGQueryReturn>) => {
             for (let ix = 0; ix < values.length; ix++) {
@@ -70,26 +70,25 @@ function checkTablesExist(pgManager: PGManager): Promise<string> {
  * @param table {DBTables} the database table to check
  * @note this table always resolves, never rejects
  */
-function checkTableExistsHelper(pgManager:PGManager, table:DBTables): Promise<PGQueryReturn> {
+function checkTableExistsHelper(table:DBTables): Promise<PGQueryReturn> {
     return new Promise((resolve) => {
         // Check if a table exists by selecting it
         var query = `SELECT to_regclass('public.${getTableName(table)}')`;
-        pgManager.runQuery(query)
+        pg_mgr.runQuery(query)
             .then((result: PGQueryReturn) => { resolve(result); });
     });
 }
 
 describe("Test creating the database tables", function() {
-    var pgManager;
     beforeEach(function(done) {
         setAllConfig();
-        pgManager = new PGManager();
+        pg_mgr.config = null;
         // Asynchronously drop the schema
-        deleteTables(pgManager).then(done());
+        deleteTables().then(done());
     });
     afterEach(function(done) {
         // Drop the tables
-        deleteTables(pgManager).then(done());
+        deleteTables().then(done());
     });
     it("can create the database tables", function(done) {
         PostgresTables.createTables()
@@ -99,7 +98,7 @@ describe("Test creating the database tables", function() {
                 }
                 else {
                     // We claim to have created the tables, now check for sure
-                    checkTablesExist(pgManager)
+                    checkTablesExist()
                         .then((message:string) => {
                             if (message.length > 0) {
                                 done.fail(message);
