@@ -73,9 +73,9 @@ function checkTablesExist(pgManager: PGManager): Promise<string> {
 function checkTableExistsHelper(pgManager:PGManager, table:DBTables): Promise<PGQueryReturn> {
     return new Promise((resolve) => {
         // Check if a table exists by selecting it
-        var query = `SELECT to_regclass('public.${getTableName(table)}`.trim();
+        var query = `SELECT to_regclass('public.${getTableName(table)}')`;
         pgManager.runQuery(query)
-            .always((result: PGQueryReturn) => { resolve(result); });
+            .then((result: PGQueryReturn) => { resolve(result); });
     });
 }
 
@@ -85,7 +85,7 @@ describe("Test creating the database tables", function() {
         setAllConfig();
         pgManager = new PGManager();
         // Asynchronously drop the schema
-        deleteTables(pgManager).always(done());
+        deleteTables(pgManager).then(done());
     });
     it("can create the database tables", function(done) {
         PostgresTables.createTables()
