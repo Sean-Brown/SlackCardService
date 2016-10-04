@@ -3,7 +3,7 @@ import {ConnectionConfig} from "pg";
 import {Client} from "pg";
 import {QueryResult} from "pg";
 import {Query} from "pg";
-import Promise = require("promise");
+var Q = require("q");
 
 class PGConfig implements ConnectionConfig {
     host: string;
@@ -21,7 +21,7 @@ class PGConfig implements ConnectionConfig {
 }
 
 /** Base Postgres query return object */
-class PGReturnBase<ValueType> {
+export class PGReturnBase<ValueType> {
     // The value object
     value: ValueType;
     // An error message, if an error occurred
@@ -67,11 +67,11 @@ class PGManager {
     /**
      * Run the given query and throw an error if the query fails
      * @param query the query to run
-     * @returns {Promise<QueryResult>} a promise that will resolve on a QueryResult or reject with null if the query fails
+     * @returns {JQueryPromise<QueryResult>} a promise that will resolve on a QueryResult or reject with null if the query fails
      */
-    public runQuery(query:string): Promise<PGQueryReturn> {
+    public runQuery(query:string): Q.Promise<PGQueryReturn> {
         var that = this;
-        return new Promise<PGQueryReturn>(function(resolve, reject) {
+        return new Q.Promise((resolve, reject) => {
             // Connect to Postgres asynchronously: wait for the connection to resolve
             var pgResult = new PGQueryReturn();
             that.connect()
@@ -94,7 +94,7 @@ class PGManager {
                         }
                     })
                 })
-                .catch((pgConn: PGConnectionReturn) => {
+                .fail((pgConn: PGConnectionReturn) => {
                     if (pgConn.error.length > 0) {
                         // There was an error, set the error message
                         pgResult.setError(pgConn.error);
@@ -109,12 +109,12 @@ class PGManager {
      * Connect to the Postgres database
      * @returns {Promise<PGConnectionReturn} a client connected to the Postgres database or null with an error message if a failure occurs
      */
-    public connect(): Promise<PGConnectionReturn> {
+    public connect(): Q.Promise<PGConnectionReturn> {
         if (this.config == null) {
             this.readConfig();
         }
         var that = this;
-        var promise = new Promise((resolve, reject) => {
+        return new Q.Promise((resolve, reject) => {
             var client = new Client(that.config);
             var connection = new PGConnectionReturn(client);
             client.connect((err:Error) => {
@@ -133,7 +133,6 @@ class PGManager {
                 }
             });
         });
-        return promise;
     }
 
     /**
