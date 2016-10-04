@@ -4,7 +4,7 @@ export class Player extends BaseTable {
      * The name of the player.
      * Unique
      */
-    username:string;
+    name:string;
 
     /**
      * The date the player joined.
@@ -12,9 +12,9 @@ export class Player extends BaseTable {
      */
     //joined:number;
 
-    constructor(id:number, username:string) {
+    constructor(id:number, name:string) {
         super(id);
-        this.username = username;
+        this.name = name;
         //this.joined = Date.now();
     }
 
