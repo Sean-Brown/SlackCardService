@@ -2,8 +2,8 @@
 
 import {DBTables, getTableName} from "../../abstraction/tables/base_table";
 import {pg_mgr, PGQueryReturn} from "./manager";
-import Promise = require("promise");
 import async   = require("async");
+var Q = require("q");
 
 export module PostgresTables {
     function primaryKey():string {
@@ -18,8 +18,8 @@ export module PostgresTables {
     function notNullLengthCheck(column:string): string {
         return `NOT NULL CHECK (char_length(${column}) > 0)`;
     }
-    function createGameTable(): Promise<PGQueryReturn> {
-        return new Promise((resolve) => {
+    function createGameTable(): Q.Promise<PGQueryReturn> {
+        return new Q.Promise((resolve) => {
             var query = `
                 CREATE TABLE IF NOT EXISTS ${getTableName(DBTables.Game)} 
                 (
@@ -30,8 +30,8 @@ export module PostgresTables {
             pg_mgr.runQuery(query).then((result:PGQueryReturn) => { resolve(result); });
         });
     }
-    function createGameHistoryTable(): Promise<PGQueryReturn> {
-        return new Promise((resolve) => {
+    function createGameHistoryTable(): Q.Promise<PGQueryReturn> {
+        return new Q.Promise((resolve) => {
             var query = `
                 CREATE TABLE IF NOT EXISTS ${getTableName(DBTables.GameHistory)} 
                 (
@@ -44,8 +44,8 @@ export module PostgresTables {
             pg_mgr.runQuery(query).then((result:PGQueryReturn) => { resolve(result); });
         });
     }
-    function createGameHistoryPlayerPivotTable(): Promise<PGQueryReturn> {
-        return new Promise((resolve) => {
+    function createGameHistoryPlayerPivotTable(): Q.Promise<PGQueryReturn> {
+        return new Q.Promise((resolve) => {
             var query = `
                 CREATE TABLE IF NOT EXISTS ${getTableName(DBTables.GameHistoryPlayer)} 
                 (
@@ -57,8 +57,8 @@ export module PostgresTables {
             pg_mgr.runQuery(query).then((result:PGQueryReturn) => { resolve(result); });
         });
     }
-    function createHandHistoryTable(): Promise<PGQueryReturn> {
-        return new Promise((resolve) => {
+    function createHandHistoryTable(): Q.Promise<PGQueryReturn> {
+        return new Q.Promise((resolve) => {
             var query = `
                 CREATE TABLE IF NOT EXISTS ${getTableName(DBTables.HandHistory)} 
                 (
@@ -72,8 +72,8 @@ export module PostgresTables {
             pg_mgr.runQuery(query).then((result:PGQueryReturn) => { resolve(result); });
         });
     }
-    function createPlayerTable(): Promise<PGQueryReturn> {
-        return new Promise((resolve) => {
+    function createPlayerTable(): Q.Promise<PGQueryReturn> {
+        return new Q.Promise((resolve) => {
             var query = `
                 CREATE TABLE IF NOT EXISTS ${getTableName(DBTables.Player)} 
                 (
@@ -85,8 +85,8 @@ export module PostgresTables {
             pg_mgr.runQuery(query).then((result:PGQueryReturn) => { resolve(result); });
         });
     }
-    function createWinLossHistoryTable(): Promise<PGQueryReturn> {
-        return new Promise((resolve) => {
+    function createWinLossHistoryTable(): Q.Promise<PGQueryReturn> {
+        return new Q.Promise((resolve) => {
             var query = `
                 CREATE TABLE IF NOT EXISTS ${getTableName(DBTables.WinLossHistory)} 
                 (
@@ -104,8 +104,8 @@ export module PostgresTables {
      * Create the tables in the database, return a promise that will return a
      * string containing any error messages.
      */
-    export function createTables(): Promise<string> {
-        return new Promise((resolve) => {
+    export function createTables(): Q.Promise<string> {
+        return new Q.Promise((resolve) => {
             var message = [];
             // Make this asynchronous list of tasks run in sequence so the tables get created correctly
             var series = [
