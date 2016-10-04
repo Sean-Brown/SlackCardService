@@ -8,7 +8,6 @@
 
 import request = require("request");
 import fs = require("fs");
-import Promise = require("promise");
 //if (process.env.NODE_ENV != "Production")
 //require('promise/lib/rejection-tracking').enable();
 import images = require("images");
@@ -19,6 +18,7 @@ import {ItemCollection} from "../../../card_service/base_classes/collections/ite
 import {Sequence} from "../../../card_service/base_classes/card_game";
 import {sep} from "path";
 import {CribbagePlayer} from "../../../card_service/implementations/cribbage_player";
+var Q = require("q");
 
 
 function mkdirSync(path:string):void {
@@ -80,8 +80,8 @@ module ImageConvert {
         });
     };
 
-    function downloadCard(card:Card): Promise<string> {
-        return new Promise<string>(function(resolve, reject) {
+    function downloadCard(card:Card): Q.Promise<string> {
+        return new Q.Promise((resolve) => {
             var cardFilePath = `${cardsPath}${card.toUrlString()}`;
             if (fs.existsSync(cardFilePath)) {
                 console.log(`getting the ${card.toString()} from cache`);
@@ -118,9 +118,9 @@ module ImageConvert {
      * @param sortCards
      * @returns {string} the local path to the image
      */
-    export function makeHandImageAsync(player:string, hand:CribbageHand, type:PlayerImageType, imagesPath:string, sortCards:boolean=true):Promise<string> {
+    export function makeHandImageAsync(player:string, hand:CribbageHand, type:PlayerImageType, imagesPath:string, sortCards:boolean=true):Q.Promise<string> {
         console.log(`Making the hand image at ${imagesPath}`);
-        return new Promise(function(resolve, reject) {
+        return new Q.Promise(function(resolve, reject) {
             var playerHandPath = "";
             imagesPath = endWithSlash(imagesPath);
             if (!fs.existsSync(imagesPath)) {
@@ -129,13 +129,13 @@ module ImageConvert {
             }
             if (sortCards)
                 hand.sortCards();
-            var promises:Array<Promise<string>> = [];
+            var promises:Array<Q.Promise<string>> = [];
             console.log("downloading the cards");
             for (var ix = 0; ix < hand.size(); ix++) {
                 // Download all the cards asynchronously
                 promises.push(downloadCard(hand.itemAt(ix)));
             }
-            Promise.all(promises).then(function (values) {
+            Q.Promise.all(promises).then(function (values) {
                 console.log("Finished downloading the cards, now create the final image");
                 // Merge together all the downloaded images
                 playerHandPath = `${imagesPath}${generateUniqueName(player, type)}.png`;
@@ -258,9 +258,9 @@ export class ImageManager {
      * @param {CribbageHand} hand the hand to create an image for if the player does not have a latest hand
      * @returns the path to the image of the player's latest hand
      */
-    getLatestPlayerHand(player:string, hand:CribbageHand):Promise<string> {
+    getLatestPlayerHand(player:string, hand:CribbageHand):Q.Promise<string> {
         var that = this;
-        return new Promise(function(resolve, reject) {
+        return new Q.Promise(function(resolve, reject) {
             var playerImage = that.findPlayerImage(player);
             if (playerImage != null && playerImage.imageCount() > 0) {
                 // Resolve on the cached image
@@ -279,13 +279,13 @@ export class ImageManager {
     /**
      * Get the path to the last sequence image
      */
-    getLatestSequence(sequence:Sequence):Promise<string> {
+    getLatestSequence(sequence:Sequence):Q.Promise<string> {
         return this.getLatestPlayerHand(ImageManager.SEQUENCE_NAME, new CribbageHand(sequence.cards.items));
     }
 
-    private createHandImageAsync(player:string, hand:CribbageHand, type:PlayerImageType, sortHand:boolean):Promise<string> {
+    private createHandImageAsync(player:string, hand:CribbageHand, type:PlayerImageType, sortHand:boolean):Q.Promise<string> {
         var that = this;
-        return new Promise(function(resolve, reject) {
+        return new Q.Promise(function(resolve, reject) {
             ImageConvert.makeHandImageAsync(player, hand, type, ImageManager.HANDS_PATH, sortHand)
                 .then(function(handPath:string) {
                     // Add the hand's image to the player's collection of hand images
@@ -326,11 +326,11 @@ export class ImageManager {
         return this.createHandImageAsync(player, new CribbageHand(discards), PlayerImageType.discard, true);
     }
 
-    createSequenceImageAsync(sequence:Sequence):Promise<string> {
+    createSequenceImageAsync(sequence:Sequence):Q.Promise<string> {
         return this.createHandImageAsync(ImageManager.SEQUENCE_NAME, new CribbageHand(sequence.cards.items), PlayerImageType.sequence, false);
     }
 
-    createPlayerHandImageAsync(player:string, hand:CribbageHand):Promise<string> {
+    createPlayerHandImageAsync(player:string, hand:CribbageHand):Q.Promise<string> {
         return this.createHandImageAsync(player, hand, PlayerImageType.hand, true);
     }
 }
