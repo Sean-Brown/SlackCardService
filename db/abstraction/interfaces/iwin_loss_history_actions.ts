@@ -7,5 +7,5 @@ export interface IWinLossHistoryActions {
      * @param won boolean indicating if this player won the game
      * @return {WinLossHistoryReturn} the newly created row
      */
-    create(player_id:number, game_history_id:number, won:boolean):WinLossHistoryReturn;
+    create(player_id:number, game_history_id:number, won:boolean):JQueryPromise<WinLossHistoryReturn>;
 }

@@ -7,5 +7,5 @@ export interface IHandHistoryActions {
      * @param hand the hand itself in the form "2s-kd-10c-8h"
      * @return {HandHistoryReturn} the newly created row
      */
-    create(player_id:number, game_history_id:number, hand:string):HandHistoryReturn;
+    create(player_id:number, game_history_id:number, hand:string):JQueryPromise<HandHistoryReturn>;
 }

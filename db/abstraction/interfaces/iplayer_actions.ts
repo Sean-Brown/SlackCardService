@@ -9,17 +9,17 @@ export interface IPlayerActions {
      * @param name of the player
      * @return {PlayerReturn} the newly created row
      */
-    create(name:string):PlayerReturn;
+    create(name:string):JQueryPromise<PlayerReturn>;
 
     /**
      * Find a player by name
      * @param name
      */
-    findByName(name:string):PlayerReturn;
+    findByName(name:string):JQueryPromise<PlayerReturn>;
 
     /**
      * Find a player by ID
      * @param id
      */
-    find(id:number):PlayerReturn;
+    find(id:number):JQueryPromise<PlayerReturn>;
 }

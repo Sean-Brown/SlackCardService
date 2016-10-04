@@ -5,11 +5,11 @@ export interface IGameHistoryActions {
      * @param game_id
      * @return {GameHistoryReturn} the newly created row
      */
-    create(game_id:number):GameHistoryReturn;
+    create(game_id:number):JQueryPromise<GameHistoryReturn>;
 
     /**
      * Find the most recent game history
      * @param game_id the ID of the game
      */
-    findMostRecent(game_id:number):GameHistoryReturn;
+    findMostRecent(game_id:number):JQueryPromise<GameHistoryReturn>;
 }

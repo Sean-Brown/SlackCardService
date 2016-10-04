@@ -6,5 +6,5 @@ export interface IGameHistoryPlayerPivotActions {
      * @param game_history_id the ID of the GameHistory
      * @return {GameHistoryPlayerReturn} the newly created row
      */
-    createAssociation(player_id:number, game_history_id:number): GameHistoryPlayerReturn;
+    createAssociation(player_id:number, game_history_id:number): JQueryPromise<GameHistoryPlayerReturn>;
 }
