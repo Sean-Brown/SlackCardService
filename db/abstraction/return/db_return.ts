@@ -35,7 +35,7 @@ export class BaseDBReturn {
  * <TableClass> is the Typescript class of
  * the database table (under ../tables)
  */
-class DBReturn<TableClass> extends BaseDBReturn {
+export class DBReturn<TableClass> extends BaseDBReturn {
     /**
      * The return object
      */
