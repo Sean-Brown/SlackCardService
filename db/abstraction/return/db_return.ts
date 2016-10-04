@@ -4,6 +4,7 @@ import {GameHistoryPlayerPivot} from "../tables/game_history_player";
 import {HandHistory} from "../tables/hand_history";
 import {Player} from "../tables/player";
 import {WinLossHistory} from "../tables/win_loss_history";
+import {PGQueryReturn} from "../../implementation/postgres/manager";
 
 /**
  * The Database Return Status codes
@@ -54,6 +55,19 @@ class DBReturn<TableClass> extends BaseDBReturn {
             ret = this.result[0];
         }
         return ret;
+    }
+    public initFromResult(result:PGQueryReturn) {
+        this.message = result.error;
+        if (this.message.length == 0) {
+            // Success
+            this.result = result.value.rows;
+            this.status = DBReturnStatus.ok;
+        }
+        else {
+            // Failure
+            this.result = [];
+            this.status = DBReturnStatus.error;
+        }
     }
 }
 
