@@ -10,7 +10,7 @@ export class GameHistory extends BaseTable {
      * When the game began
      * Automatic
      */
-    //began:number;
+    began:number;
 
     /**
      * When the game ended
