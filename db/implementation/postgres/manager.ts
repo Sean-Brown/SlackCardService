@@ -55,7 +55,7 @@ class PGManager {
     config: PGConfig;
     constructor() {}
 
-    public query(query:string, values: any[], callback?: (err: Error, result: QueryResult) => void): Query {
+    protected query(query:string, values: any[], callback?: (err: Error, result: QueryResult) => void): Query {
         if (this.config == null) {
             // Haven't read the configuration yet, so read it now
             this.readConfig();
