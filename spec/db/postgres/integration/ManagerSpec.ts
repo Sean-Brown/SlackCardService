@@ -1,21 +1,10 @@
 /// <reference path="../../../../typings/index.d.ts" />
 import {pg_mgr, PGConnectionReturn, PGQueryReturn} from "../../../../db/implementation/postgres/manager";
-
-/**
- * Set the environment variables to point to an existing installation of Postgres
- * TODO refactor into a .env file
- */
-function setAllConfig() {
-    process.env.PG_HOST = "localhost";
-    process.env.PG_PORT = 5432;
-    process.env.PG_DB = "slackcardservice";
-    process.env.PG_USER = "postgres";
-    process.env.PG_PASS = "pghello5";
-}
+import {readConfigFromEnv} from "./setEnv";
 
 describe("Test the Postgres Database manager", function() {
     beforeEach(function() {
-        setAllConfig();
+        readConfigFromEnv();
         pg_mgr.config = null;
     });
     it("can connect to Postgres", function(done) {
