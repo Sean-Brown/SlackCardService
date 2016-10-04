@@ -2,28 +2,17 @@
 
 import {PostgresTables} from "../../../../db/implementation/postgres/create_tables";
 import {PGQueryReturn, pg_mgr} from "../../../../db/implementation/postgres/manager";
-import Promise = require("promise");
 import {DBTables, getTableName} from "../../../../db/abstraction/tables/base_table";
 import {EnumExt} from "../../../../card_service/base_classes/items/card";
-
-/**
- * Set the environment variables to point to an existing installation of Postgres
- * TODO refactor into a .env file
- */
-function setAllConfig() {
-    process.env.PG_HOST = "localhost";
-    process.env.PG_PORT = 5432;
-    process.env.PG_DB = "slackcardservice";
-    process.env.PG_USER = "postgres";
-    process.env.PG_PASS = "pghello5";
-}
+import {readConfigFromEnv} from "./setEnv";
+var Q = require("q");
 
 /**
  * Delete the database tables
  * @param {PGManager} the Postgres database connection manager
  */
-function deleteTables(): Promise<PGQueryReturn> {
-    return new Promise((resolve, reject) => {
+export function deleteTables(): Q.Promise<PGQueryReturn> {
+    return new Q.Promise((resolve, reject) => {
         // Delete the tables by dropping the schema then re-creating it
         var query = `
             DROP SCHEMA public CASCADE;
@@ -41,14 +30,14 @@ function deleteTables(): Promise<PGQueryReturn> {
  * @returns {Promise<string>} resolve with an empty message, reject with an error message indicating which tables do not exist
  * @note this method always resolves, never rejects
  */
-function checkTablesExist(): Promise<string> {
-    return new Promise((resolve) => {
-        var promises:Array<Promise<PGQueryReturn>> = [];
+function checkTablesExist(): Q.Promise<string> {
+    return new Q.Promise((resolve) => {
+        var promises:Array<Q.Promise<PGQueryReturn>> = [];
         var message = [];
         for (var table of EnumExt.getValues(DBTables)) {
             promises.push(checkTableExistsHelper(table));
         }
-        Promise.all(promises).then((values:Array<PGQueryReturn>) => {
+        Q.Promise.all(promises).then((values:Array<PGQueryReturn>) => {
             for (let ix = 0; ix < values.length; ix++) {
                 let result:PGQueryReturn = values[ix];
                 if (result.value.rowCount != 1) {
@@ -70,8 +59,8 @@ function checkTablesExist(): Promise<string> {
  * @param table {DBTables} the database table to check
  * @note this table always resolves, never rejects
  */
-function checkTableExistsHelper(table:DBTables): Promise<PGQueryReturn> {
-    return new Promise((resolve) => {
+function checkTableExistsHelper(table:DBTables): Q.Promise<PGQueryReturn> {
+    return new Q.Promise((resolve) => {
         // Check if a table exists by selecting it
         var query = `SELECT to_regclass('public.${getTableName(table)}')`;
         pg_mgr.runQuery(query)
@@ -81,14 +70,14 @@ function checkTableExistsHelper(table:DBTables): Promise<PGQueryReturn> {
 
 describe("Test creating the database tables", function() {
     beforeEach(function(done) {
-        setAllConfig();
+        readConfigFromEnv();
         pg_mgr.config = null;
         // Asynchronously drop the schema
-        deleteTables().then(done());
+        deleteTables().then(() => { done(); });
     });
     afterEach(function(done) {
         // Drop the tables
-        deleteTables().then(done());
+        deleteTables().then(() => { done(); });
     });
     it("can create the database tables", function(done) {
         PostgresTables.createTables()
