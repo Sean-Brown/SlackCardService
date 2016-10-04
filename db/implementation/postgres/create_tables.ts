@@ -9,8 +9,11 @@ export module PostgresTables {
     function primaryKey():string {
         return "id SERIAL PRIMARY KEY";
     }
+    export function utcTimestamp():string {
+        return "(CURRENT_TIMESTAMP at time zone 'UTC')";
+    }
     function defaultTimestamp():string {
-        return "without time zone DEFAULT (now() at time zone 'utc')";
+        return `without time zone DEFAULT ${utcTimestamp()}`;
     }
     function notNullUniqueLengthCheck(column:string): string {
         return `UNIQUE NOT NULL CHECK (char_length(${column}) > 0)`;
@@ -66,6 +69,7 @@ export module PostgresTables {
                     game_history_id integer REFERENCES ${getTableName(DBTables.GameHistory)},
                     player_id integer REFERENCES ${getTableName(DBTables.Player)},
                     hand varchar(128) ${notNullLengthCheck("hand")},
+                    cut varchar(4) ${notNullLengthCheck("cut")},
                     received timestamp ${defaultTimestamp()}
                 );
             `.trim();
