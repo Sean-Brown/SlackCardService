@@ -1,5 +1,7 @@
 /// <reference path="../../../../typings/index.d.ts" />
 import {pg_mgr, PGManagerStrings} from "../../../../db/implementation/postgres/manager";
+import {PostgresTables} from "../../../../db/implementation/postgres/create_tables";
+var Q = require("q");
 
 /**
  * Set dummy environment variables that the PG manager expects
@@ -37,6 +39,26 @@ describe("Test the Postgres Database manager", function() {
         it("throws an exception if the password is not set", function() {
             process.env.PG_PASS = "";
             expect(pg_mgr.readConfig.bind(pg_mgr)).toThrow(PGManagerStrings.PasswordError);
+        });
+        it("initializes the database tables during init()", function(done) {
+            spyOn(PostgresTables, "createTables").and.callFake(() => {
+                return new Q.Promise((resolve) => { resolve(""); });
+            });
+            pg_mgr.init()
+                .then(() => {
+                    expect(PostgresTables.createTables).toHaveBeenCalled();
+                })
+                .finally(() => { done(); });
+        });
+        it("returns errors that occur during initialization", function(done) {
+            pg_mgr.init()
+                .then(() => {
+                    expect(false).toBe(true, "Initialization should have failed");
+                })
+                .catch((err:string) => {
+                    expect(err.length).toBeGreaterThan(0, "Initialization should've failed with an error string");
+                })
+                .finally(() => { done(); });
         });
     });
 });
