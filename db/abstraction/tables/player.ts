@@ -10,12 +10,11 @@ export class Player extends BaseTable {
      * The date the player joined.
      * Automatic
      */
-    //joined:number;
+    joined:number;
 
     constructor(id:number, name:string) {
         super(id);
         this.name = name;
-        //this.joined = Date.now();
     }
 
     getTable():DBTables {
