@@ -10,22 +10,17 @@ import {Request, Response} from "express";
 import {CribbagePlayer} from "../../card_service/implementations/cribbage_player";
 import {Cribbage, CribbageStrings, CribbageReturn} from "../../card_service/implementations/cribbage";
 import {CribbageHand} from "../../card_service/implementations/cribbage_hand";
-import {Players, Teams} from "../../card_service/base_classes/card_game";
+import {Players} from "../../card_service/base_classes/card_game";
 import {BaseCard as Card, Value, Suit} from "../../card_service/base_classes/items/card";
 import {ItemCollection} from "../../card_service/base_classes/collections/item_collection";
-import {removeLastTwoChars} from "../../card_service/base_classes/card_game";
 import {ImageManager} from "./helpers/image_manager";
+import {SlackResponseType} from "../slack";
+
+// TODO: write tests for this module, possibly decompose into smaller pieces
 
 export module CribbageRoutes {
 
     import MessageStrings = CribbageStrings.MessageStrings;
-    enum SlackResponseType {
-        /* message sent to the user */
-        ephemeral = <any>"ephemeral",
-
-        /* message sent to the channel */
-        in_channel = <any>"in_channel"
-    }
 
     class CribbageAttachmentField {
         constructor(
@@ -230,8 +225,9 @@ export module CribbageRoutes {
         }
 
         private static resetHandImages(game:Cribbage):void {
-            if (game)
+            if (game) {
                 Router.IMAGE_MANAGER.clearHands(game.players.items);
+            }
         }
 
         private static resetSequenceImages():void {
