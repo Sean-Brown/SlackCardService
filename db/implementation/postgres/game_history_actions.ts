@@ -4,8 +4,8 @@ import {PostgresTables} from "../../../db/implementation/postgres/create_tables"
 import {DBTables, getTableName} from "../../abstraction/tables/base_table";
 import {pg_mgr, PGQueryReturn} from "./manager";
 var Q = require("q");
-
 import utcTimestamp = PostgresTables.utcTimestamp;
+
 class GameHistoryActions implements IGameHistoryActions {
     private runQueryReturning(query:string):Q.Promise<GameHistoryReturn> {
         return Q.Promise((resolve) => {
