@@ -21,6 +21,11 @@ export module PostgresTables {
     function notNullLengthCheck(column:string): string {
         return `NOT NULL CHECK (char_length(${column}) > 0)`;
     }
+    function runPostgresQuery(query:string, resolve:Function) {
+        pg_mgr.runQuery(query)
+            .then((result:PGQueryReturn) => { resolve(result); })
+            .catch((result:PGQueryReturn) => { resolve(result); });
+    }
     function createGameTable(): Q.Promise<PGQueryReturn> {
         return new Q.Promise((resolve) => {
             var query = `
@@ -30,7 +35,7 @@ export module PostgresTables {
                     name varchar(128) ${notNullUniqueLengthCheck("name")}
                 );
             `.trim();
-            pg_mgr.runQuery(query).then((result:PGQueryReturn) => { resolve(result); });
+            runPostgresQuery(query, resolve);
         });
     }
     function createGameHistoryTable(): Q.Promise<PGQueryReturn> {
@@ -44,7 +49,7 @@ export module PostgresTables {
                     ended timestamp
                 );
             `.trim();
-            pg_mgr.runQuery(query).then((result:PGQueryReturn) => { resolve(result); });
+            runPostgresQuery(query, resolve);
         });
     }
     function createGameHistoryPlayerPivotTable(): Q.Promise<PGQueryReturn> {
@@ -57,7 +62,7 @@ export module PostgresTables {
                     player_id integer REFERENCES ${getTableName(DBTables.Player)}
                 );
             `.trim();
-            pg_mgr.runQuery(query).then((result:PGQueryReturn) => { resolve(result); });
+            runPostgresQuery(query, resolve);
         });
     }
     function createHandHistoryTable(): Q.Promise<PGQueryReturn> {
@@ -73,7 +78,7 @@ export module PostgresTables {
                     received timestamp ${defaultTimestamp()}
                 );
             `.trim();
-            pg_mgr.runQuery(query).then((result:PGQueryReturn) => { resolve(result); });
+            runPostgresQuery(query, resolve);
         });
     }
     function createPlayerTable(): Q.Promise<PGQueryReturn> {
@@ -86,7 +91,7 @@ export module PostgresTables {
                     joined timestamp ${defaultTimestamp()}
                 );
             `.trim();
-            pg_mgr.runQuery(query).then((result:PGQueryReturn) => { resolve(result); });
+            runPostgresQuery(query, resolve);
         });
     }
     function createWinLossHistoryTable(): Q.Promise<PGQueryReturn> {
@@ -100,8 +105,20 @@ export module PostgresTables {
                     won boolean DEFAULT FALSE
                 );
             `.trim();
-            pg_mgr.runQuery(query).then((result:PGQueryReturn) => { resolve(result); });
+            runPostgresQuery(query, resolve);
         });
+    }
+
+    function runMethod(f:Function, cb:any, message:Array<string>) {
+        f()
+            .then((result:PGQueryReturn) => {
+                if (result.error.length > 0) {
+                    message.push(`error: ${result.error}`);
+                }
+            })
+            .finally(() => {
+                cb();
+            });
     }
 
     /**
@@ -114,52 +131,22 @@ export module PostgresTables {
             // Make this asynchronous list of tasks run in sequence so the tables get created correctly
             var series = [
                 (cb) => {
-                    createGameTable().then((result:PGQueryReturn) => {
-                        if (result.error.length > 0) {
-                            message.push(`error: ${result.error}`);
-                        }
-                        cb();
-                    });
+                    runMethod(createGameTable, cb, message);
                 },
                 (cb) => {
-                    createPlayerTable().then((result:PGQueryReturn) => {
-                        if (result.error.length > 0) {
-                            message.push(`error: ${result.error}`);
-                        }
-                        cb();
-                    });
+                    runMethod(createPlayerTable, cb, message);
                 },
                 (cb) => {
-                    createGameHistoryTable().then((result:PGQueryReturn) => {
-                        if (result.error.length > 0) {
-                            message.push(`error: ${result.error}`);
-                        }
-                        cb();
-                    });
+                    runMethod(createGameHistoryTable, cb, message);
                 },
                 (cb) => {
-                    createHandHistoryTable().then((result:PGQueryReturn) => {
-                        if (result.error.length > 0) {
-                            message.push(`error: ${result.error}`);
-                        }
-                        cb();
-                    });
+                    runMethod(createHandHistoryTable, cb, message);
                 },
                 (cb) => {
-                    createGameHistoryPlayerPivotTable().then((result:PGQueryReturn) => {
-                        if (result.error.length > 0) {
-                            message.push(`error: ${result.error}`);
-                        }
-                        cb();
-                    });
+                    runMethod(createGameHistoryPlayerPivotTable, cb, message);
                 },
                 (cb) => {
-                    createWinLossHistoryTable().then((result:PGQueryReturn) => {
-                        if (result.error.length > 0) {
-                            message.push(`error: ${result.error}`);
-                        }
-                        cb();
-                    });
+                    runMethod(createWinLossHistoryTable, cb, message);
                 }
             ];
             async.series(series, () => {
