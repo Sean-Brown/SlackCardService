@@ -3,6 +3,7 @@ import {ConnectionConfig} from "pg";
 import {Client} from "pg";
 import {QueryResult} from "pg";
 import {Query} from "pg";
+import {PostgresTables} from "./create_tables";
 var Q = require("q");
 
 class PGConfig implements ConnectionConfig {
@@ -53,7 +54,25 @@ export class PGManagerStrings {
  */
 class PGManager {
     config: PGConfig;
-    constructor() {}
+    initialized: boolean;
+    constructor() {
+        this.initialized = false;
+    }
+
+    public init(): Q.Promise<string> {
+        return new Q.Promise((resolve, reject) => {
+            this.readConfig();
+            PostgresTables.createTables()
+                .then((err:string) => {
+                    if (err.length == 0) {
+                        resolve();
+                    }
+                    else {
+                        reject(err);
+                    }
+                });
+        });
+    }
 
     protected query(query:string, values: any[], callback?: (err: Error, result: QueryResult) => void): Query {
         if (this.config == null) {
@@ -162,5 +181,4 @@ class PGManager {
         this.config = new PGConfig(host, port, database, user, password);
     }
 }
-
 export var pg_mgr = new PGManager();
