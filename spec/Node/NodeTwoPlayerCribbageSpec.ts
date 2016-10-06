@@ -20,6 +20,7 @@ import Response = Express.Response;
 import CribbageResponseData = CribbageRoutes.CribbageResponseData;
 
 "use strict";
+import {deleteTables} from "../db/postgres/integration/CreateTablesSpec";
 
 var request = require("supertest"),
     async   = require("async"),
@@ -29,13 +30,25 @@ describe("Integration test the Cribbage game between two players", function() {
     var PeterGriffin:CribbagePlayer, HomerSimpson:CribbagePlayer;
 
     /*
-       Before each test, make sure to create a fresh instance of the application
-       in order to ensure the state of the server is reset between each test run
+       Before all the tests run, make sure to create a fresh instance of the application
+       in order to ensure the state of the server is reset between each test run. Also
+       ensure that the database tables are created
      */
-    beforeEach(function() {
-        createNewServer(this);
-        PeterGriffin = new CribbagePlayer("Peter Griffin", new CribbageHand([]));
-        HomerSimpson = new CribbagePlayer("Homer Simpson", new CribbageHand([]));
+    beforeEach(function(done) {
+        deleteTables()
+            .then(() => {
+                return createNewServer(this);
+            })
+            .finally(() => {
+                PeterGriffin = new CribbagePlayer("Peter Griffin", new CribbageHand([]));
+                HomerSimpson = new CribbagePlayer("Homer Simpson", new CribbageHand([]));
+                done();
+            })
+    });
+    // After all the tests have run, drop the tables
+    afterEach(function(done) {
+        // Asynchronously drop the schema
+        deleteTables().finally(() => { done(); });
     });
 
     var Tokens = {

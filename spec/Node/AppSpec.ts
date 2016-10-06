@@ -1,20 +1,31 @@
 /// <reference path="../../typings/index.d.ts" />
 
-import {setup} from "../../app";
 import {createNewServer} from "./setup";
 
 "use strict";
+import {deleteTables} from "../db/postgres/integration/CreateTablesSpec";
 
 var request = require("supertest"),
     expect  = require("expect");
 
 describe("Run the app", function() {
     /*
-     Before each test, make sure to create a fresh instance of the application
-     in order to ensure the state of the server is reset between each test run
+     Before all the tests run, make sure to create a fresh instance of the application
+     in order to ensure the state of the server is reset between each test run. Also
+     ensure that the database tables are created
      */
-    beforeEach(function() {
-        createNewServer(this);
+    beforeEach(function(done) {
+        // Asynchronously drop the schema
+        deleteTables()
+            .then(() => {
+                return createNewServer(this);
+            })
+            .finally(() => { done(); });
+    });
+    // After all the tests have run, drop the tables
+    afterEach(function(done) {
+        // Asynchronously drop the schema
+        deleteTables().finally(() => { done(); });
     });
 
     it("responds to /", function(done) {
