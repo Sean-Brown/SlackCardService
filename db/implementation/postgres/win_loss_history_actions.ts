@@ -23,11 +23,15 @@ class WinLossHistoryActions implements IWinLossHistoryActions {
         `.trim();
         return this.runQueryReturning(query);
     }
-    get(player_id:number):Q.Promise<WinLossHistoryReturn> {
+    get(player:string):Q.Promise<WinLossHistoryReturn> {
         var query = `
             SELECT * 
             FROM ${getTableName(DBTables.WinLossHistory)}
-            WHERE player_id=${player_id};
+            WHERE player_id=(
+                SELECT id
+                FROM ${getTableName(DBTables.Player)}
+                WHERE name='${player}'
+                );
         `.trim();
         return this.runQueryReturning(query);
     }

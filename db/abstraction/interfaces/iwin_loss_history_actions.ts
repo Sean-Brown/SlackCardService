@@ -11,8 +11,8 @@ export interface IWinLossHistoryActions {
 
     /**
      * Find the win-loss history records associated with the given player
-     * @param player_id the ID of the player
+     * @param player the name of the player
      * @return {Q.Promise<WinLossHistoryReturn>} the win-loss-history rows associated with the player
      */
-    get(player_id:number):Q.Promise<WinLossHistoryReturn>;
+    get(player:string):Q.Promise<WinLossHistoryReturn>;
 }
