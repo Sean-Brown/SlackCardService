@@ -1,4 +1,5 @@
 export enum DBTables {
+    CribbageHandHistory,
     Game,
     GameHistory,
     GameHistoryPlayer,
@@ -8,6 +9,8 @@ export enum DBTables {
 }
 export function getTableName(table:DBTables):string {
     switch (table) {
+        case DBTables.CribbageHandHistory:
+            return "cribbage_hand_history";
         case DBTables.Game:
             return "game";
         case DBTables.GameHistory:
