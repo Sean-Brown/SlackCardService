@@ -27,10 +27,27 @@ class GameHistoryActions implements IGameHistoryActions {
     }
     findMostRecent(game_id:number):Q.Promise<GameHistoryReturn> {
         var query = `
-            SELECT * FROM ${getTableName(DBTables.GameHistory)} 
+            SELECT * 
+            FROM ${getTableName(DBTables.GameHistory)} 
             WHERE game_id=${game_id} AND ended IS NULL
             ORDER BY id DESC 
             LIMIT 1;
+        `.trim();
+        return this.runQueryReturning(query);
+    }
+    find(player:string, game_id:number):Q.Promise<GameHistoryReturn> {
+        var query = `
+            SELECT * 
+            FROM ${getTableName(DBTables.GameHistory)}
+            WHERE game_id=${game_id} AND id IN (
+                SELECT game_history_id
+                FROM ${getTableName(DBTables.GameHistoryPlayer)}
+                WHERE player_id=(
+                    SELECT id
+                    FROM ${getTableName(DBTables.Player)}
+                    WHERE name='${player}'
+                )
+            );
         `.trim();
         return this.runQueryReturning(query);
     }

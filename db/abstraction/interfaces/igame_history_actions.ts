@@ -15,6 +15,14 @@ export interface IGameHistoryActions {
     findMostRecent(game_id:number):Q.Promise<GameHistoryReturn>;
 
     /**
+     * Find the GameHistory records associated with the given player
+     * @param player the name of the player to find GameHistory for
+     * @param game_id the ID of the game to return results for (e.g. Cribbage, Poker, etc)
+     * @return {Q.Promise<GameHistoryReturn>} the found row
+     */
+    find(player:string, game_id:number):Q.Promise<GameHistoryReturn>;
+
+    /**
      * End this game-history record (i.e. set the 'ended' date)
      * @param game_history_id
      * @return {Q.Promise<GameHistoryReturn>} the updated row
