@@ -4,8 +4,11 @@ import {PostgresTables} from "../../../../db/implementation/postgres/create_tabl
 import {createGame, verifyReturn} from "./GameActionsSpec";
 import {Game} from "../../../../db/abstraction/tables/game";
 import {GameHistory} from "../../../../db/abstraction/tables/game_history";
-import {GameHistoryReturn, DBReturnStatus} from "../../../../db/abstraction/return/db_return";
+import {GameHistoryReturn, DBReturnStatus, GameHistoryPlayerReturn} from "../../../../db/abstraction/return/db_return";
 import {game_history_actions} from "../../../../db/implementation/postgres/game_history_actions";
+import {createPlayer} from "./PlayerActionsSpec";
+import {Player} from "../../../../db/abstraction/tables/player";
+import {game_history_player_actions} from "../../../../db/implementation/postgres/game_history_player_actions";
 var Q = require("q");
 
 /**
@@ -112,6 +115,27 @@ describe("Test the 'game-history' actions", function() {
                 expect(result.first().id).toEqual(gh.id);
                 expect(result.first().ended).not.toBeNull("Expected an 'ended' timestamp");
                 expect(result.first().began).toBeLessThan(result.first().ended, "Expected the game to end AFTER it began");
+            })
+            .finally(() => { done(); });
+    });
+    it("can find the game history records associated with a player for a specific game", function(done) {
+        var gh = null, player = null;
+        createGameHistory(game.id)
+            .then((result:GameHistory) => {
+                gh = result;
+                return createPlayer();
+            })
+            .then((result:Player) => {
+                player = result;
+                return game_history_player_actions.createAssociation(player.id, gh.id);
+            })
+            .then((result:GameHistoryPlayerReturn) => {
+                verifyReturn(result, "Expected a game-history-player result");
+                return game_history_actions.find(player.name, gh.id);
+            })
+            .then((result:GameHistoryReturn) => {
+                verifyReturn(result, "Expected a game-history result");
+                expect(result.first().id).toEqual(gh.id);
             })
             .finally(() => { done(); });
     });
