@@ -6,6 +6,9 @@ import async   = require("async");
 var Q = require("q");
 
 export module PostgresTables {
+    function createTable(table:DBTables):string {
+        return `CREATE TABLE IF NOT EXISTS ${getTableName(table)}`;
+    }
     function primaryKey():string {
         return "id SERIAL PRIMARY KEY";
     }
@@ -29,7 +32,7 @@ export module PostgresTables {
     function createGameTable(): Q.Promise<PGQueryReturn> {
         return new Q.Promise((resolve) => {
             var query = `
-                CREATE TABLE IF NOT EXISTS ${getTableName(DBTables.Game)} 
+                ${createTable(DBTables.Game)}
                 (
                     ${primaryKey()},
                     name varchar(128) ${notNullUniqueLengthCheck("name")}
@@ -41,7 +44,7 @@ export module PostgresTables {
     function createGameHistoryTable(): Q.Promise<PGQueryReturn> {
         return new Q.Promise((resolve) => {
             var query = `
-                CREATE TABLE IF NOT EXISTS ${getTableName(DBTables.GameHistory)} 
+                ${createTable(DBTables.GameHistory)} 
                 (
                     ${primaryKey()},
                     game_id integer REFERENCES ${getTableName(DBTables.Game)},
@@ -55,7 +58,7 @@ export module PostgresTables {
     function createGameHistoryPlayerPivotTable(): Q.Promise<PGQueryReturn> {
         return new Q.Promise((resolve) => {
             var query = `
-                CREATE TABLE IF NOT EXISTS ${getTableName(DBTables.GameHistoryPlayer)} 
+                ${createTable(DBTables.GameHistoryPlayer)} 
                 (
                     ${primaryKey()},
                     game_history_id integer REFERENCES ${getTableName(DBTables.GameHistory)},
@@ -68,15 +71,25 @@ export module PostgresTables {
     function createHandHistoryTable(): Q.Promise<PGQueryReturn> {
         return new Q.Promise((resolve) => {
             var query = `
-                CREATE TABLE IF NOT EXISTS ${getTableName(DBTables.HandHistory)} 
+                ${createTable(DBTables.HandHistory)} 
                 (
                     ${primaryKey()},
                     game_history_id integer REFERENCES ${getTableName(DBTables.GameHistory)},
                     player_id integer REFERENCES ${getTableName(DBTables.Player)},
                     hand varchar(128) ${notNullLengthCheck("hand")},
-                    cut varchar(4) ${notNullLengthCheck("cut")},
                     received timestamp ${defaultTimestamp()}
                 );
+            `.trim();
+            runPostgresQuery(query, resolve);
+        });
+    }
+    function createCribbageHandHistoryTable(): Q.Promise<PGQueryReturn> {
+        return new Q.Promise((resolve) => {
+            var query = `  
+                ${createTable(DBTables.CribbageHandHistory)}
+                (
+                    cut varchar(4) ${notNullLengthCheck("cut")}   
+                ) INHERITS(${getTableName(DBTables.HandHistory)});
             `.trim();
             runPostgresQuery(query, resolve);
         });
@@ -84,7 +97,7 @@ export module PostgresTables {
     function createPlayerTable(): Q.Promise<PGQueryReturn> {
         return new Q.Promise((resolve) => {
             var query = `
-                CREATE TABLE IF NOT EXISTS ${getTableName(DBTables.Player)} 
+                ${createTable(DBTables.Player)} 
                 (
                     ${primaryKey()},
                     name varchar ${notNullUniqueLengthCheck("name")},
@@ -97,7 +110,7 @@ export module PostgresTables {
     function createWinLossHistoryTable(): Q.Promise<PGQueryReturn> {
         return new Q.Promise((resolve) => {
             var query = `
-                CREATE TABLE IF NOT EXISTS ${getTableName(DBTables.WinLossHistory)} 
+                ${createTable(DBTables.WinLossHistory)} 
                 (
                     ${primaryKey()},
                     game_history_id integer REFERENCES ${getTableName(DBTables.GameHistory)},
@@ -143,6 +156,9 @@ export module PostgresTables {
                     runMethod(createHandHistoryTable, cb, message);
                 },
                 (cb) => {
+                    runMethod(createCribbageHandHistoryTable, cb, message);
+                },
+                (cb) => {
                     runMethod(createGameHistoryPlayerPivotTable, cb, message);
                 },
                 (cb) => {
@@ -150,6 +166,7 @@ export module PostgresTables {
                 }
             ];
             async.series(series, () => {
+                // Join all the error messages together into one message to resolve on
                 resolve(message.join("\n").replace(/\n$/, ""));
             });
         });
