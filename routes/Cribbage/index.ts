@@ -3,9 +3,7 @@
 /// <reference path="../../card_service/implementations/cribbage_hand.ts" />
 /// <reference path="../../card_service/implementations/cribbage_player.ts" />
 /// <reference path="../../card_service/base_classes/card_game.ts" />
-
 import request = require("request");
-
 import {Request, Response} from "express";
 import {CribbagePlayer} from "../../card_service/implementations/cribbage_player";
 import {Cribbage, CribbageStrings, CribbageReturn} from "../../card_service/implementations/cribbage";
@@ -15,6 +13,12 @@ import {BaseCard as Card, Value, Suit} from "../../card_service/base_classes/ite
 import {ItemCollection} from "../../card_service/base_classes/collections/item_collection";
 import {ImageManager} from "./helpers/image_manager";
 import {SlackResponseType} from "../slack";
+import {Games} from "../../db/implementation/games";
+import {DBRoutes} from "./database";
+import {Game} from "../../db/abstraction/tables/game";
+import {PostgresTables} from "../../db/implementation/postgres/create_tables";
+import {PGQueryReturn} from "../../db/implementation/postgres/manager";
+var Q = require("q");
 
 // TODO: write tests for this module, possibly decompose into smaller pieces
 
@@ -94,7 +98,31 @@ export module CribbageRoutes {
 
     export class Router {
 
+        // The current cribbage game -- TODO make it possible to play multiple games
         currentGame:Cribbage;
+        // The ID of the cribbage game in the database -- TODO probably refactor into separate class
+        cribbageID:number;
+
+        // Initialize the router by getting data that it needs
+        public init():Q.Promise<void> {
+            var that = this;
+            return new Q.Promise((resolve, reject) => {
+                PostgresTables.createTables().then((errors:string) => {
+                    if (errors.length > 0) {
+                        console.log("failed to create the postgres tables");
+                        reject();
+                    }
+                    else {
+                        DBRoutes.router.getGame(Games.Cribbage)
+                            .then((result: Game) => {
+                                that.cribbageID = result.id;
+                                resolve();
+                            });
+                    }
+                });
+            });
+        }
+
         static PLAYER_HAND_EMOJI:string = ":flower_playing_cards:";
         static IMAGE_MANAGER:ImageManager = new ImageManager();
         static VALIDATION_FAILED_RESPONSE: CribbageResponse =
