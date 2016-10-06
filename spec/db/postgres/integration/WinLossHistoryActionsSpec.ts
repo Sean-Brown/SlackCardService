@@ -88,7 +88,7 @@ describe("Test the 'win-loss history' actions", function() {
             })
             .then((result:WinLossHistory) => {
                 wl3 = result;
-                return win_loss_history_actions.get(player.id);
+                return win_loss_history_actions.get(player.name);
             })
             .then((result:WinLossHistoryReturn) => {
                 // We should have gotten back three rows
