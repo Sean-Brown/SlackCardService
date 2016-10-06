@@ -1,7 +1,7 @@
 import {Game} from "../tables/game";
 import {GameHistory} from "../tables/game_history";
 import {GameHistoryPlayerPivot} from "../tables/game_history_player";
-import {HandHistory} from "../tables/hand_history";
+import {CribbageHandHistory} from "../tables/cribbage_hand_history";
 import {Player} from "../tables/player";
 import {WinLossHistory} from "../tables/win_loss_history";
 import {PGQueryReturn} from "../../implementation/postgres/manager";
@@ -71,9 +71,9 @@ export class DBReturn<TableClass> extends BaseDBReturn {
     }
 }
 
+export class CribbageHandHistoryReturn extends DBReturn<CribbageHandHistory> { }
 export class GameReturn extends DBReturn<Game> { }
 export class GameHistoryReturn extends DBReturn<GameHistory> { }
 export class GameHistoryPlayerReturn extends DBReturn<GameHistoryPlayerPivot> { }
-export class HandHistoryReturn extends DBReturn<HandHistory> { }
 export class PlayerReturn extends DBReturn<Player> { }
 export class WinLossHistoryReturn extends DBReturn<WinLossHistory> { }
