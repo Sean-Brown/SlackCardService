@@ -3,7 +3,7 @@
 import {setup} from "../../app";
 import {Express} from "express";
 import * as Mocha from "mocha";
-import {readConfigFromEnv} from "../db/postgres/integration/setEnv";
+import {readConfigFromEnv} from "../setEnv";
 
 var Q = require("q");
 

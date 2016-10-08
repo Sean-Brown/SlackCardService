@@ -1,13 +1,13 @@
 import {deleteTables} from "./CreateTablesSpec";
-import {readConfigFromEnv} from "./setEnv";
+import {readConfigFromEnv} from "../../../setEnv";
 import {PostgresTables} from "../../../../db/implementation/postgres/create_tables";
 import {createGame, verifyReturn} from "./GameActionsSpec";
-import {Game} from "../../../../db/abstraction/tables/game";
-import {GameHistory} from "../../../../db/abstraction/tables/game_history";
-import {GameHistoryReturn, DBReturnStatus, GameHistoryPlayerReturn} from "../../../../db/abstraction/return/db_return";
+import {Game} from "../../../../db/tables/game";
+import {GameHistory} from "../../../../db/tables/game_history";
+import {GameHistoryReturn, DBReturnStatus, GameHistoryPlayerReturn} from "../../../../db/db_return";
 import {game_history_actions} from "../../../../db/implementation/postgres/game_history_actions";
 import {createPlayer} from "./PlayerActionsSpec";
-import {Player} from "../../../../db/abstraction/tables/player";
+import {Player} from "../../../../db/tables/player";
 import {game_history_player_actions} from "../../../../db/implementation/postgres/game_history_player_actions";
 var Q = require("q");
 

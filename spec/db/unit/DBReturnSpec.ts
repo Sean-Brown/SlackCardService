@@ -1,7 +1,7 @@
 /// <reference path="../../../typings/index.d.ts" />
 
-import {GameReturn, DBReturnStatus} from "../../../db/abstraction/return/db_return";
-import {Game} from "../../../db/abstraction/tables/game";
+import {GameReturn, DBReturnStatus} from "../../../db/db_return";
+import {Game} from "../../../db/tables/game";
 
 describe("Test the DBReturn object", function() {
     it("default initializes with an ok status and an empty array of objects", function() {

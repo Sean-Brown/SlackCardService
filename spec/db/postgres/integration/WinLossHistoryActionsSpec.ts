@@ -1,15 +1,15 @@
-import {Player} from "../../../../db/abstraction/tables/player";
+import {Player} from "../../../../db/tables/player";
 import {PostgresTables} from "../../../../db/implementation/postgres/create_tables";
-import {Game} from "../../../../db/abstraction/tables/game";
-import {GameHistory} from "../../../../db/abstraction/tables/game_history";
-import {readConfigFromEnv} from "./setEnv";
+import {Game} from "../../../../db/tables/game";
+import {GameHistory} from "../../../../db/tables/game_history";
+import {readConfigFromEnv} from "../../../setEnv";
 import {deleteTables} from "./CreateTablesSpec";
 import {createGame, verifyReturn} from "./GameActionsSpec";
 import {createPlayer} from "./PlayerActionsSpec";
 import {createGameHistory} from "./GameHistoryActionsSpec";
-import {WinLossHistory} from "../../../../db/abstraction/tables/win_loss_history";
+import {WinLossHistory} from "../../../../db/tables/win_loss_history";
 import {win_loss_history_actions} from "../../../../db/implementation/postgres/win_loss_history_actions";
-import {WinLossHistoryReturn, DBReturnStatus} from "../../../../db/abstraction/return/db_return";
+import {WinLossHistoryReturn, DBReturnStatus} from "../../../../db/db_return";
 var Q = require("q");
 
 function createWinLossHistory(player_id:number, game_history_id:number, won:boolean): Q.Promise<WinLossHistory> {

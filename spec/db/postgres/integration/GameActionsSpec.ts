@@ -2,10 +2,10 @@
 
 import {PostgresTables} from "../../../../db/implementation/postgres/create_tables";
 import {game_actions} from "../../../../db/implementation/postgres/game_actions";
-import {readConfigFromEnv} from "./setEnv";
+import {readConfigFromEnv} from "../../../setEnv";
 import {deleteTables} from "./CreateTablesSpec";
-import {GameReturn, DBReturnStatus, DBReturn} from "../../../../db/abstraction/return/db_return";
-import {Game} from "../../../../db/abstraction/tables/game";
+import {GameReturn, DBReturnStatus, DBReturn} from "../../../../db/db_return";
+import {Game} from "../../../../db/tables/game";
 var Q = require("q");
 
 // Create an entry in the game table

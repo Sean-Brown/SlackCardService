@@ -1,15 +1,15 @@
 import {deleteTables} from "./CreateTablesSpec";
 import {PostgresTables} from "../../../../db/implementation/postgres/create_tables";
-import {Player} from "../../../../db/abstraction/tables/player";
-import {GameHistory} from "../../../../db/abstraction/tables/game_history";
-import {Game} from "../../../../db/abstraction/tables/game";
-import {readConfigFromEnv} from "./setEnv";
+import {Player} from "../../../../db/tables/player";
+import {GameHistory} from "../../../../db/tables/game_history";
+import {Game} from "../../../../db/tables/game";
+import {readConfigFromEnv} from "../../../setEnv";
 import {createGame, verifyReturn} from "./GameActionsSpec";
 import {createPlayer} from "./PlayerActionsSpec";
 import {createGameHistory} from "./GameHistoryActionsSpec";
-import {HandHistory} from "../../../../db/abstraction/tables/hand_history";
+import {HandHistory} from "../../../../db/tables/hand_history";
 import {cribbage_hand_history_actions} from "../../../../db/implementation/postgres/cribbage_hand_history_actions";
-import {CribbageHandHistoryReturn} from "../../../../db/abstraction/return/db_return";
+import {CribbageHandHistoryReturn} from "../../../../db/db_return";
 var Q = require("q");
 
 const hand = "4s-4c-5d-6s";

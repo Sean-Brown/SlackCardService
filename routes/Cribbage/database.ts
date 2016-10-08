@@ -4,12 +4,12 @@
  *********************************************************************************************************************
  */
 
-import {GameHistory} from "../../db/abstraction/tables/game_history";
-import {CribbageHandHistory} from "../../db/abstraction/tables/cribbage_hand_history";
+import {GameHistory} from "../../db/tables/game_history";
+import {CribbageHandHistory} from "../../db/tables/cribbage_hand_history";
 import {pg_mgr} from "../../db/implementation/postgres/manager";
 import {win_loss_history_actions} from "../../db/implementation/postgres/win_loss_history_actions";
-import {WinLossHistoryReturn, DBReturnStatus, GameReturn} from "../../db/abstraction/return/db_return";
-import {Game} from "../../db/abstraction/tables/game";
+import {WinLossHistoryReturn, DBReturnStatus, GameReturn} from "../../db/db_return";
+import {Game} from "../../db/tables/game";
 import {game_actions} from "../../db/implementation/postgres/game_actions";
 var Q = require("q");
 

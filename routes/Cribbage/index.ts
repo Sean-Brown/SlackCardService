@@ -13,9 +13,9 @@ import {BaseCard as Card, Value, Suit} from "../../card_service/base_classes/ite
 import {ItemCollection} from "../../card_service/base_classes/collections/item_collection";
 import {ImageManager} from "./helpers/image_manager";
 import {SlackResponseType} from "../slack";
-import {Games} from "../../db/implementation/games";
+import {Games} from "../../db/games";
 import {DBRoutes} from "./database";
-import {Game} from "../../db/abstraction/tables/game";
+import {Game} from "../../db/tables/game";
 import {PostgresTables} from "../../db/implementation/postgres/create_tables";
 import {PGQueryReturn} from "../../db/implementation/postgres/manager";
 var Q = require("q");

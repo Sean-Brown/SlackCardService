@@ -2,9 +2,9 @@
 
 import {PostgresTables} from "../../../../db/implementation/postgres/create_tables";
 import {PGQueryReturn, pg_mgr} from "../../../../db/implementation/postgres/manager";
-import {DBTables, getTableName} from "../../../../db/abstraction/tables/base_table";
+import {DBTables, getTableName} from "../../../../db/tables/base_table";
 import {EnumExt} from "../../../../card_service/base_classes/items/card";
-import {readConfigFromEnv} from "./setEnv";
+import {readConfigFromEnv} from "../../../setEnv";
 var Q = require("q");
 
 /**

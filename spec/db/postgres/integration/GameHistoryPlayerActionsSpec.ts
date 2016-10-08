@@ -1,15 +1,15 @@
 import {deleteTables} from "./CreateTablesSpec";
 import {PostgresTables} from "../../../../db/implementation/postgres/create_tables";
-import {Game} from "../../../../db/abstraction/tables/game";
+import {Game} from "../../../../db/tables/game";
 import {createGame, verifyReturn} from "./GameActionsSpec";
-import {readConfigFromEnv} from "./setEnv";
-import {GameHistory} from "../../../../db/abstraction/tables/game_history";
+import {readConfigFromEnv} from "../../../setEnv";
+import {GameHistory} from "../../../../db/tables/game_history";
 import {createGameHistory} from "./GameHistoryActionsSpec";
-import {Player} from "../../../../db/abstraction/tables/player";
+import {Player} from "../../../../db/tables/player";
 import {createPlayer} from "./PlayerActionsSpec";
-import {GameHistoryPlayerPivot} from "../../../../db/abstraction/tables/game_history_player";
+import {GameHistoryPlayerPivot} from "../../../../db/tables/game_history_player";
 import {game_history_player_actions} from "../../../../db/implementation/postgres/game_history_player_actions";
-import {GameHistoryPlayerReturn, DBReturnStatus} from "../../../../db/abstraction/return/db_return";
+import {GameHistoryPlayerReturn, DBReturnStatus} from "../../../../db/db_return";
 var Q = require("q");
 
 function createGameHistoryPlayer(player_id:number, game_history_id:number): Q.Promise<GameHistoryPlayerPivot> {

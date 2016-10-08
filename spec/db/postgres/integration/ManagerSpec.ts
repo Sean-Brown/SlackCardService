@@ -1,6 +1,6 @@
 /// <reference path="../../../../typings/index.d.ts" />
 import {pg_mgr, PGConnectionReturn, PGQueryReturn} from "../../../../db/implementation/postgres/manager";
-import {readConfigFromEnv} from "./setEnv";
+import {readConfigFromEnv} from "../../../setEnv";
 
 describe("Test the Postgres Database manager", function() {
     beforeEach(function() {

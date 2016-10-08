@@ -13,6 +13,7 @@
     "pg": "registry:dt/pg#6.1.0+20160830123815",
     "q": "registry:dt/q#0.0.0+20161002164103",
     "request": "github:DefinitelyTyped/DefinitelyTyped/request/request.d.ts#fb2b3b1e068c9ff7d8f9b0851c08d37d96c95c38",
+    "sequelize": "registry:dt/sequelize#3.4.1+20160929080558",
     "serve-static": "github:DefinitelyTyped/DefinitelyTyped/serve-static/serve-static.d.ts#fb2b3b1e068c9ff7d8f9b0851c08d37d96c95c38"
   }
 }
