@@ -31,7 +31,7 @@ describe("Test the 'hand-history' actions", function() {
         // Asynchronously drop the schema
         deleteTables().then(() => {
             // Re-create the tables to start from a fresh slate
-            PostgresTables.createTables()
+            PostgresTables.createModels()
                 .then(() => {
                     return createGame();
                 })

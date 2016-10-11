@@ -27,7 +27,7 @@ describe("Test the 'player' actions", function() {
         deleteTables()
             .then(() => {
                 // Re-create the tables to start from a fresh slate
-                return PostgresTables.createTables();
+                return PostgresTables.createModels();
             })
             .finally(() => { done(); });
     });

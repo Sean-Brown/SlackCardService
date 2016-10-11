@@ -80,7 +80,7 @@ describe("Test creating the database tables", function() {
         deleteTables().then(() => { done(); });
     });
     it("can create the database tables", function(done) {
-        PostgresTables.createTables()
+        PostgresTables.createModels()
             .then((message:string) => {
                 if (message.length > 0) {
                     done.fail(message);

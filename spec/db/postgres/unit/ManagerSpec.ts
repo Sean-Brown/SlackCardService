@@ -41,12 +41,12 @@ describe("Test the Postgres Database manager", function() {
             expect(pg_mgr.readConfig.bind(pg_mgr)).toThrow(PGManagerStrings.PasswordError);
         });
         it("initializes the database tables during init()", function(done) {
-            spyOn(PostgresTables, "createTables").and.callFake(() => {
+            spyOn(PostgresTables, "createModels").and.callFake(() => {
                 return new Q.Promise((resolve) => { resolve(""); });
             });
             pg_mgr.init()
                 .then(() => {
-                    expect(PostgresTables.createTables).toHaveBeenCalled();
+                    expect(PostgresTables.createModels).toHaveBeenCalled();
                 })
                 .finally(() => { done(); });
         });

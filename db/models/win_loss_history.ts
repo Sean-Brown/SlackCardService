@@ -1,9 +1,9 @@
 import {DBTables, getTableName} from "../db_tables";
 import * as Sequelize from "sequelize";
-import {createTable, fk, CreateTable, createTableErrorStr} from "./create_table";
-import {WinLossHistoryReturn, DBReturnStatus} from "../db_return";
-import {PlayerTable} from "./player";
-import {GameHistoryTable} from "./game_history";
+import {createModel, CreateModel, getModelErrorStr} from "./create_table";
+import {WinLossHistoryReturn} from "../db_return";
+import {PlayerModel} from "./player";
+import {GameHistoryModel} from "./game_history";
 var Q = require("q");
 
 interface WinLossHistory {
@@ -12,28 +12,26 @@ interface WinLossHistory {
     won?: boolean;
 }
 interface Instance extends Sequelize.Instance<WinLossHistory>, WinLossHistory { }
-export interface WinLossHistoryTable extends Sequelize.Model<Instance, WinLossHistory> {
+export interface WinLossHistoryModel extends Sequelize.Model<Instance, WinLossHistory> {
 }
 
-/** Implementation of the CreateTable interface */
-class CreateWinLossHistoryTableImpl implements CreateTable<WinLossHistoryTable> {
+/** Implementation of the CreateModel interface */
+class CreateWinLossHistoryModelImpl implements CreateModel<WinLossHistoryModel> {
     /**
-     * Implement the CreateTable interface - create the win_loss_history table
+     * Implement the CreateModel interface - create the win_loss_history table
      * @param {Sequelize.Sequelize} sequelize the sequelize instance that'll create the table
-     * @param {PlayerTable} playerModel the return value of CreatePlayerTable()
-     * @param {GameHistoryTable} gameHistoryModel the return value of CreateGameTable()
+     * @param {PlayerModel} playerModel the return value of CreatePlayerModel()
+     * @param {GameHistoryModel} gameHistoryModel the return value of CreateGameTable()
      * @returns {Promise<PlayerReturn>} returns the creation status along with the model, if the table was created successfully
      */
-    create(sequelize:Sequelize.Sequelize, playerModel:PlayerTable, gameHistoryModel:GameHistoryTable): Q.Promise<WinLossHistoryReturn> {
+    create(sequelize:Sequelize.Sequelize, playerModel:PlayerModel, gameHistoryModel:GameHistoryModel): Q.Promise<WinLossHistoryReturn> {
         return new Q.Promise((resolve, reject) => {
             let ret = new WinLossHistoryReturn();
             const strTable = getTableName(DBTables.CribbageHandHistory);
-            createTable<WinLossHistoryTable, WinLossHistory>(
+            createModel<WinLossHistoryModel, WinLossHistory>(
                 sequelize,
                 strTable,
                 {
-                    player_id: fk(playerModel),
-                    game_history_id: fk(gameHistoryModel),
                     won: {
                         type: Sequelize.BOOLEAN, defaultValue: false
                     }
@@ -42,7 +40,7 @@ class CreateWinLossHistoryTableImpl implements CreateTable<WinLossHistoryTable> 
                     tableName: strTable,
                     underscored: true
                 }
-            ).then((winLossHistory:WinLossHistoryTable) => {
+            ).then((winLossHistory:WinLossHistoryModel) => {
                 // create the associations
                 playerModel.hasMany(winLossHistory);
                 gameHistoryModel.hasMany(winLossHistory);
@@ -51,20 +49,20 @@ class CreateWinLossHistoryTableImpl implements CreateTable<WinLossHistoryTable> 
                 resolve(ret);
             })
             .catch(() => {
-                ret.setError(createTableErrorStr(strTable));
+                ret.setError(getModelErrorStr(strTable));
                 reject(ret);
             });
         });
     }
 }
-const creator = new CreateWinLossHistoryTableImpl();
+const creator = new CreateWinLossHistoryModelImpl();
 /**
  * Create the win_loss_history table
- * @param {Sequelize.Sequelize} sequelize the sequelize instance that'll create the table
- * @param {PlayerTable} playerModel the return value of CreatePlayerTable()
- * @param {GameHistoryTable} gameHistoryModel the return value of CreateGameHistoryTable()
- * @returns {Promise<WinLossHistoryReturn>} returns the creation status along with the model, if the table was created successfully
+ * @param {Sequelize.Sequelize} sequelize the sequelize instance that'll create the model
+ * @param {PlayerModel} playerModel the return value of CreatePlayerModel()
+ * @param {GameHistoryModel} gameHistoryModel the return value of CreateGameHistoryModel()
+ * @returns {Promise<WinLossHistoryReturn>} returns the creation status along with the model, if the model was created successfully
  */
-export function CreateWinLossHistoryTable(sequelize:Sequelize.Sequelize, playerModel:PlayerTable, gameHistoryModel:GameHistoryTable): Q.Promise<WinLossHistoryReturn> {
+export function createWinLossHistoryModel(sequelize:Sequelize.Sequelize, playerModel:PlayerModel, gameHistoryModel:GameHistoryModel): Q.Promise<WinLossHistoryReturn> {
     return creator.create(sequelize, playerModel, gameHistoryModel);
 }

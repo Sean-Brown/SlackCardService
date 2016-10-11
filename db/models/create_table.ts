@@ -3,15 +3,15 @@ import Sequelize = require("sequelize");
 import {DBReturn} from "../db_return";
 var Q = require("q");
 
-export function createTableErrorStr(table:string) {
+export function getModelErrorStr(table:string) {
     return `error creating table ${table}`;
 }
 
-export interface CreateTable<Result> {
+export interface CreateModel<Result> {
     create(...args:any[]):Q.Promise<DBReturn<Result>>;
 }
 
-export function createTable<TInstance, TAttributes>(sequelize:Sqlize, table:string, attributes:DefineAttributes, options:DefineOptions<TInstance>=null): Q.Promise<TInstance> {
+export function createModel<TInstance, TAttributes>(sequelize:Sqlize, table:string, attributes:DefineAttributes, options:DefineOptions<TInstance>=null): Q.Promise<TInstance> {
     return new Q.Promise((resolve, reject) => {
         try {
             var model = sequelize.define(table, attributes, options);
@@ -20,7 +20,7 @@ export function createTable<TInstance, TAttributes>(sequelize:Sqlize, table:stri
                     resolve(model);
                 })
                 .catch(() => {
-                    console.log(createTableErrorStr(table));
+                    console.log(getModelErrorStr(table));
                     reject(null);
                 });
         }

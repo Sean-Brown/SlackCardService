@@ -107,7 +107,7 @@ export module CribbageRoutes {
         public init():Q.Promise<void> {
             var that = this;
             return new Q.Promise((resolve, reject) => {
-                PostgresTables.createTables().then((errors:string) => {
+                PostgresTables.createModels().then((errors:string) => {
                     if (errors.length > 0) {
                         console.log("failed to create the postgres tables");
                         reject();

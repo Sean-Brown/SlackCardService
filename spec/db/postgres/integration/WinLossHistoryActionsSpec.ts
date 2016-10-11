@@ -30,7 +30,7 @@ describe("Test the 'win-loss history' actions", function() {
         // Asynchronously drop the schema
         deleteTables().then(() => {
             // Re-create the tables to start from a fresh slate
-            PostgresTables.createTables()
+            PostgresTables.createModels()
                 .then(() => {
                     return createGame();
                 })

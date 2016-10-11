@@ -29,7 +29,7 @@ describe("Test the 'game-history-player' actions", function() {
         // Asynchronously drop the schema
         deleteTables().then(() => {
             // Re-create the tables to start from a fresh slate
-            PostgresTables.createTables()
+            PostgresTables.createModels()
                 .then(() => {
                     return createGame();
                 })
