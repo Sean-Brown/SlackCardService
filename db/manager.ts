@@ -1,11 +1,13 @@
 import * as Sequelize from "sequelize";
-import {createCribbageHandHistoryTable} from "./models/cribbage_hand_history";
-import {createGameTable} from "./models/game";
-import {createGameHistoryTable} from "./models/game_history";
-import {createGameHistoryPlayerPivotTable} from "./models/game_history_player_pivot";
-import {createPlayerTable} from "./models/player";
-import {createWinLossHistoryTable} from "./models/win_loss_history";
-var Sequelize = require("sequelize");
+import {createCribbageHandHistoryModel, CribbageHandHistoryModel} from "./models/cribbage_hand_history";
+import {createGameModel, GameModel} from "./models/game";
+import {createGameHistoryModel, GameHistoryModel} from "./models/game_history";
+import {createPlayerModel, PlayerModel} from "./models/player";
+import {createWinLossHistoryModel, WinLossHistoryModel} from "./models/win_loss_history";
+import {
+    GameReturn, PlayerReturn, DBReturn, GameHistoryReturn, CribbageHandHistoryReturn,
+    WinLossHistoryReturn
+} from "./db_return";
 var Q = require("q");
 var async = require("async");
 
@@ -15,7 +17,6 @@ export class DBManagerStrings {
     }
     public static get HostError():string { return "Invalid Postgres host, specify the host as the PG_HOST environment variable"; }
     public static get PortError():string { return "Invalid Postgres port, specify the port as the PG_PORT environment variable"; }
-    public static get SchemaError():string { return "Invalid Postgres schema, specify the database as the PG_SCHEMA environment variable"; }
     public static get DatabaseError():string { return "Invalid Postgres database, specify the database as the PG_DB environment variable"; }
     public static get UserError():string { return "Invalid Postgres user, specify the user as the PG_USER environment variable"; }
     public static get PasswordError():string { return "Invalid Postgres password, specify the password as the PG_PASS environment variable"; }
@@ -28,167 +29,269 @@ class DBType {
     public static get Sqlite(): string { return "sqlite"; }
 }
 
+class DBConfig {
+    dbType:string;
+    host:string;
+    port:number;
+    schema:string;
+    database:string;
+    user:string;
+    password:string;
+}
+
+class DBModels {
+    gameModel:GameModel;
+    playerModel:PlayerModel;
+    gameHistoryModel:GameHistoryModel;
+    cribbageHandHistoryModel:CribbageHandHistoryModel;
+    winLossHistoryModel:WinLossHistoryModel;
+}
+
 class DBManager {
-    constructor(private sequelize:Sequelize.Sequelize=null, private hasReadConfig:boolean=false) {
+    private sequelize:Sequelize.Sequelize;
+    private config:DBConfig;
+    private models:DBModels;
+    constructor() {
+        this.config = new DBConfig();
+        this.models = new DBModels();
+        this.readConfig();
+    }
+
+    /**
+     * Initialize sequelize
+     * @param {string} altSchema the alternate schema to use -- useful for debugging
+     * @returns {Q.Promise<any>} the result of sequelize.createSchema
+     */
+    public initialize(altSchema:string=""): Q.Promise<any> {
+        // Read the configuration
+        this.readConfig();
+        const finalSchema = this.getFinalSchema(altSchema);
+        this.sequelize = new Sequelize(
+            this.config.database, this.config.user, this.config.password, {
+                dialect: this.config.dbType,
+                host: this.config.host,
+                port: this.config.port
+            }
+        );
+        return this.sequelize.createSchema(finalSchema)
+            .then(() => {
+                return new Q.Promise((resolve, reject) => {
+                    this.sequelize.sync({schema: finalSchema})
+                        .then(() => {
+                            resolve("");
+                        })
+                        .catch((err:any) => {
+                            reject(err);
+                        });
+                });
+            })
+            .catch((err:any) => {
+                console.log(err);
+                return new Q.Promise().reject(err);
+            });
     }
 
     /**
      * Authenticate with the database
+     * @param {string} altSchema the schema to use, useful for debugging
      * @returns {Q.Promise} empty if successful, otherwise it's an error string
      */
-    public authenticate(): Q.Promise<string> {
+    public authenticate(altSchema:string=""): Q.Promise<string> {
         var that = this;
         return new Q.Promise((resolve, reject) => {
-            if (!that.hasReadConfig) {
-                // The configuration hasn't been read yet, read it
-                var error = that.readConfig();
-                if (error.length > 0) {
-                    // An error occurred, reject the promise
-                    reject(error);
-                }
-                else {
-                    that.hasReadConfig = true;
-                }
+            if (that.sequelize == null) {
+                // The class hasn't been initialized, initialize it
+                that.initialize(altSchema)
+                    .then(() => {
+                        that.sequelize.authenticate()
+                            .then(() => {
+                                resolve("");
+                            })
+                            .catch((err:any) => {
+                                reject(err);
+                            });
+                    })
+                    .catch((err:any) => {
+                        console.log(err);
+                        reject(err);
+                    });
             }
-            that.sequelize.authenticate()
-                .then(() => {
-                    resolve("");
-                })
-                .catch((err:string) => {
-                    reject(err);
-                });
+            else {
+                that.sequelize.authenticate()
+                    .then(() => { resolve(""); })
+                    .catch((err:string) => { reject(err); });
+            }
         });
     }
 
     /**
      * Read the database configuration from the environment variables
      * @returns {string} an error message, if an error occurred
+     * @private
      */
-    public readConfig():Q.Promise<string> {
+    private readConfig():string {
+        var error = "";
         try {
-            var dbType:string = process.env.DB_TYPE;
-            if (dbType == null || dbType.length == 0) {
+            this.config.dbType = process.env.DB_TYPE;
+            if (this.config.dbType == null || this.config.dbType.length == 0) {
                 throw DBManagerStrings.InvalidDbType;
             }
             else {
-                switch (dbType) {
+                switch (this.config.dbType) {
                     case DBType.Postgres:
                         break;
                     default:
-                        throw `Database type ${dbType} is not implemented`;
+                        throw `Database type ${this.config.dbType} is not implemented`;
                 }
             }
-            var host:string = process.env.DB_HOST;
-            if (host == null || host.length == 0) {
+            this.config.host = process.env.DB_HOST;
+            if (this.config.host == null || this.config.host.length == 0) {
                 throw DBManagerStrings.HostError;
             }
-            var port:number = process.env.DB_PORT;
-            if (port == null || port == 0) {
+            this.config.port = process.env.DB_PORT;
+            if (this.config.port == null || this.config.port == 0) {
                 throw DBManagerStrings.PortError;
             }
-            var schema:string = process.env.DB_SCHEMA;
-            if (schema == null || schema.length == 0) {
-                throw DBManagerStrings.SchemaError;
+            this.config.schema = process.env.DB_SCHEMA;
+            if (this.config.schema == null || this.config.schema.length == 0) {
+                // Allow for an empty schema, use a default value
+                this.config.schema = "slack_card_service"
             }
-            var database:string = process.env.DB_DB;
-            if (database == null || database.length == 0) {
+            this.config.database = process.env.DB_DB;
+            if (this.config.database == null || this.config.database.length == 0) {
                 throw DBManagerStrings.DatabaseError;
             }
-            var user:string = process.env.DB_USER;
-            if (user == null || user.length == 0) {
+            this.config.user = process.env.DB_USER;
+            if (this.config.user == null || this.config.user.length == 0) {
                 throw DBManagerStrings.UserError;
             }
-            var password:string = process.env.DB_PASS;
-            if (password == null || password.length == 0) {
+            this.config.password = process.env.DB_PASS;
+            if (this.config.password == null || this.config.password.length == 0) {
                 throw DBManagerStrings.PasswordError;
             }
-            this.sequelize = new Sequelize(
-                database, user, password, {
-                    dialect: dbType,
-                    host: host,
-                    port: port,
-                    schema: schema,
-                }
-            );
-            return this.sequelize.createSchema(schema, function(line) {
-                console.log(line);
-            });
         }
         catch (e) {
-            return new Q.Promise().thenReject(e);
+            error = e;
         }
+        return error;
     }
 
     /**
-     * Create a table in the database
-     * @param createFunction the 'create table' function
-     * @param cb the callback method to let async know that table creation is done
-     * @param message an error message, if an error occurred
+     * Check the 'create model' result and push the error message if one occurred
+     * @param {DBReturn<any>} result the create model result
+     * @param message {Array<string>} the error messages that have occurred thus far
+     * @returns {boolean} true if the result has no error, false if there was an error
      */
-    private createTable(createFunction:Function, args:Array<any>, cb:any, message:Array<string>) {
-        createFunction.apply(args)
-            .then((result:string) => {
-                if (result.length > 0) {
-                    message.push(`error: ${result}`);
-                }
-            })
-            .finally(() => {
-                cb();
-            });
+    private checkResult(result:DBReturn<any>, message:Array<string>):boolean {
+        var ok = true;
+        if (result.message.length > 0) {
+            message.push(`error: ${result.message}`);
+            ok = false;
+        }
+        return ok;
+    }
+
+    private getFinalSchema(altSchema:string):string {
+        return (altSchema.length > 0 ? altSchema : this.config.schema);
     }
 
     /**
-     * Create the tables in the database
+     * Create the models/tables in the database
+     * @param {string} altSchema the schema to use, useful for debugging
      * @returns {Q.Promise} empty if successful, otherwise it's an error string
      */
-    public createTables(): Q.Promise<string> {
+    public createModels(altSchema:string=""): Q.Promise<string> {
         var that = this;
         return new Q.Promise((resolve, reject) => {
             var message = [];
             // Make this asynchronous list of tasks run in sequence so the tables get created correctly
-            var gameTable = null;
             var series = [
                 (cb) => {
-                    that.createTable(createGameTable, [that.sequelize], cb, message);
+                    that.initialize(altSchema)
+                        .finally(() => { cb(); });
                 },
                 (cb) => {
-                    that.createTable(createPlayerTable, [that.sequelize], cb, message);
+                    createGameModel(that.sequelize)
+                        .then((result:GameReturn) => {
+                            if (that.checkResult(result, message)) {
+                                that.models.gameModel = result.first();
+                            }
+                        })
+                        .catch((err:any) => {
+                            console.log(err);
+                        })
+                        .finally(() => { cb(); });
                 },
                 (cb) => {
-                    that.createTable(createGameHistoryTable, [that.sequelize, cb, message);
+                    createPlayerModel(that.sequelize)
+                        .then((result:PlayerReturn) => {
+                            if (that.checkResult(result, message)) {
+                                that.models.playerModel = result.first();
+                            }
+                        })
+                        .finally(() => { cb(); });
                 },
                 (cb) => {
-                    that.createTable(createCribbageHandHistoryTable, that.sequelize, cb, message);
+                    createGameHistoryModel(that.sequelize, that.models.gameModel)
+                        .then((result:GameHistoryReturn) => {
+                            if (that.checkResult(result, message)) {
+                                that.models.gameHistoryModel = result.first();
+                            }
+                        })
+                        .finally(() => { cb(); });
                 },
                 (cb) => {
-                    that.createTable(createWinLossHistoryTable, that.sequelize, cb, message);
+                    createCribbageHandHistoryModel(that.sequelize, that.models.playerModel, that.models.gameHistoryModel)
+                        .then((result:CribbageHandHistoryReturn) => {
+                            if (that.checkResult(result, message)) {
+                                that.models.cribbageHandHistoryModel = result.first();
+                            }
+                        })
+                        .finally(() => { cb(); });
+                },
+                (cb) => {
+                    createWinLossHistoryModel(that.sequelize, that.models.playerModel, that.models.gameHistoryModel)
+                        .then((result:WinLossHistoryReturn) => {
+                            if (that.checkResult(result, message)) {
+                                that.models.winLossHistoryModel = result.first();
+                            }
+                        })
+                        .finally(() => { cb(); });
                 }
             ];
             async.series(series, () => {
                 // Join all the error messages together into one message to resolve on
-                resolve(message.join("\n").replace(/\n$/, ""));
+                var finalMessage = message.join("\n").replace(/\n$/, "");
+                if (finalMessage.length > 0) {
+                    reject(finalMessage);
+                }
+                else {
+                    resolve(finalMessage);
+                }
             });
         });
     }
 
     /**
-     * Delete the tables in the database. Use for testing
+     * Delete the tables in the database schema. Use for testing
+     * @param {string} altSchema the schema to drop (one that was not the one configured in the .env file)
      * @TODO figure out how to get this out of production code through the build process
      */
-    public deleteTables(): Q.Promise<string> {
+    public dropSchema(altSchema:string=""): Q.Promise<string> {
         var that = this;
+        const finalSchema = this.getFinalSchema(altSchema);
         return new Q.Promise((resolve, reject) => {
-             that.sequelize.dropAllSchemas({logging: function(line:any) {
+            that.sequelize.dropSchema(finalSchema, {logging: function(line:any) {
                     console.log(line);
                 }})
-                 .then((result) => {
-                     console.log(result);
-                     resolve("");
-                 })
-                 .catch((result) => {
+                .then((result) => {
+                    console.log(result);
+                    resolve("");
+                })
+                .catch((result) => {
                     console.log(result);
                     reject("Unable to delete the tables, check the log");
-                 });
+                });
         });
     }
 }
