@@ -73,17 +73,11 @@ class DBManager {
                 port: this.config.port
             }
         );
-        return this.sequelize.createSchema(finalSchema)
+        return this.sequelize.createSchema(finalSchema, function(line) {
+                console.log(line);
+            })
             .then(() => {
-                return new Q.Promise((resolve, reject) => {
-                    this.sequelize.sync({schema: finalSchema})
-                        .then(() => {
-                            resolve("");
-                        })
-                        .catch((err:any) => {
-                            reject(err);
-                        });
-                });
+                return this.sequelize.sync({schema: finalSchema});
             })
             .catch((err:any) => {
                 console.log(err);
@@ -99,17 +93,14 @@ class DBManager {
     public authenticate(altSchema:string=""): Q.Promise<string> {
         var that = this;
         return new Q.Promise((resolve, reject) => {
+            const finalSchema = that.getFinalSchema(altSchema);
             if (that.sequelize == null) {
                 // The class hasn't been initialized, initialize it
-                that.initialize(altSchema)
+                return that.initialize(finalSchema)
                     .then(() => {
                         that.sequelize.authenticate()
-                            .then(() => {
-                                resolve("");
-                            })
-                            .catch((err:any) => {
-                                reject(err);
-                            });
+                            .then(() => { resolve(""); })
+                            .catch((err:any) => { console.log(err); reject(err); });
                     })
                     .catch((err:any) => {
                         console.log(err);
@@ -117,9 +108,7 @@ class DBManager {
                     });
             }
             else {
-                that.sequelize.authenticate()
-                    .then(() => { resolve(""); })
-                    .catch((err:string) => { reject(err); });
+                return that.sequelize.authenticate();
             }
         });
     }
@@ -192,7 +181,8 @@ class DBManager {
     }
 
     private getFinalSchema(altSchema:string):string {
-        return (altSchema.length > 0 ? altSchema : this.config.schema);
+        var finalSchema = (altSchema.length > 0 ? altSchema : this.config.schema);
+        return finalSchema.toLowerCase();
     }
 
     /**
@@ -204,14 +194,15 @@ class DBManager {
         var that = this;
         return new Q.Promise((resolve, reject) => {
             var message = [];
+            const finalSchema = that.getFinalSchema(altSchema);
             // Make this asynchronous list of tasks run in sequence so the tables get created correctly
             var series = [
                 (cb) => {
-                    that.initialize(altSchema)
+                    that.initialize(finalSchema)
                         .finally(() => { cb(); });
                 },
                 (cb) => {
-                    createGameModel(that.sequelize)
+                    createGameModel(that.sequelize, finalSchema)
                         .then((result:GameReturn) => {
                             if (that.checkResult(result, message)) {
                                 that.models.gameModel = result.first();
@@ -223,7 +214,7 @@ class DBManager {
                         .finally(() => { cb(); });
                 },
                 (cb) => {
-                    createPlayerModel(that.sequelize)
+                    createPlayerModel(that.sequelize, finalSchema)
                         .then((result:PlayerReturn) => {
                             if (that.checkResult(result, message)) {
                                 that.models.playerModel = result.first();
@@ -232,7 +223,7 @@ class DBManager {
                         .finally(() => { cb(); });
                 },
                 (cb) => {
-                    createGameHistoryModel(that.sequelize, that.models.gameModel)
+                    createGameHistoryModel(that.sequelize, finalSchema, that.models.gameModel)
                         .then((result:GameHistoryReturn) => {
                             if (that.checkResult(result, message)) {
                                 that.models.gameHistoryModel = result.first();
@@ -241,7 +232,7 @@ class DBManager {
                         .finally(() => { cb(); });
                 },
                 (cb) => {
-                    createCribbageHandHistoryModel(that.sequelize, that.models.playerModel, that.models.gameHistoryModel)
+                    createCribbageHandHistoryModel(that.sequelize, finalSchema, that.models.playerModel, that.models.gameHistoryModel)
                         .then((result:CribbageHandHistoryReturn) => {
                             if (that.checkResult(result, message)) {
                                 that.models.cribbageHandHistoryModel = result.first();
@@ -250,11 +241,23 @@ class DBManager {
                         .finally(() => { cb(); });
                 },
                 (cb) => {
-                    createWinLossHistoryModel(that.sequelize, that.models.playerModel, that.models.gameHistoryModel)
+                    createWinLossHistoryModel(that.sequelize, finalSchema, that.models.playerModel, that.models.gameHistoryModel)
                         .then((result:WinLossHistoryReturn) => {
                             if (that.checkResult(result, message)) {
                                 that.models.winLossHistoryModel = result.first();
                             }
+                        })
+                        .catch((err:any) => {
+                            console.log(err);
+                            message.push(err);
+                        })
+                        .finally(() => { cb(); });
+                },
+                (cb) => {
+                    that.sequelize.sync({schema: finalSchema})
+                        .catch((err:any) => {
+                            console.log(err);
+                            message.push(err);
                         })
                         .finally(() => { cb(); });
                 }

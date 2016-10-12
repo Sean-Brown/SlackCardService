@@ -3,7 +3,11 @@ import {readConfigFromEnv} from "../../setEnv";
 import {getRandomSchema} from "../randomSchema";
 
 function dropSchemaAndFinish(schema:string, done:Function) {
-    db_manager.dropSchema(schema).finally(() => { done(); });
+    db_manager.dropSchema(schema.toLowerCase())
+        .catch((err:any) => {
+            console.log(err);
+        })
+        .finally(() => { done(); });
 }
 
 describe("Test the database manager", function() {
@@ -13,17 +17,21 @@ describe("Test the database manager", function() {
     it("can connect to postgres", function(done) {
         const schema = getRandomSchema();
         db_manager.authenticate(schema)
-            .catch((err:string) => {
+            .catch((err) => {
                 fail(err);
             })
-            .finally(() => { dropSchemaAndFinish(schema, done); });
+            .finally(() => {
+                dropSchemaAndFinish(schema, done);
+            });
     });
     it("can create the tables", function(done) {
         const schema = getRandomSchema();
-        db_manager.createModels(schema)
-            .catch((err:Error) => {
-                fail(err.message);
+        db_manager.createModels(schema.toLowerCase())
+            .catch((err) => {
+                console.log(err);
             })
-            .finally(() => { dropSchemaAndFinish(schema, done); });
+            .finally(() => {
+                dropSchemaAndFinish(schema, done);
+            });
     });
 });

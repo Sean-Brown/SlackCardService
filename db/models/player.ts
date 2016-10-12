@@ -17,9 +17,10 @@ class CreatePlayerModelImpl implements CreateModel<PlayerModel> {
     /**
      * Implement the CreateModel interface - create the player table
      * @param {Sequelize.Sequelize} sequelize the sequelize instance that'll create the table
+     * @param {string} schema the schema to create the model in
      * @returns {Promise<PlayerReturn>} returns the creation status along with the model, if the table was created successfully
      */
-    create(sequelize:Sequelize.Sequelize): Q.Promise<PlayerReturn> {
+    create(sequelize:Sequelize.Sequelize, schema:string): Q.Promise<PlayerReturn> {
         return new Q.Promise((resolve, reject) => {
             let ret = new PlayerReturn();
             const strTable = getTableName(DBTables.Player);
@@ -35,7 +36,8 @@ class CreatePlayerModelImpl implements CreateModel<PlayerModel> {
                     }
                 },
                 {
-                    tableName: strTable
+                    tableName: strTable,
+                    schema: schema
                 }
             ).then((model:PlayerModel) => {
                 ret.result = [model];
@@ -52,8 +54,9 @@ const creator = new CreatePlayerModelImpl();
 /**
  * Create the player table
  * @param {Sequelize.Sequelize} sequelize the sequelize instance that'll create the model
+ * @param {string} schema the schema to create the model in
  * @returns {Promise<Player>} returns the creation status along with the model, if the model was created successfully
  */
-export function createPlayerModel(sequelize:Sequelize.Sequelize): Q.Promise<PlayerReturn> {
-    return creator.create(sequelize);
+export function createPlayerModel(sequelize:Sequelize.Sequelize, schema:string): Q.Promise<PlayerReturn> {
+    return creator.create(sequelize, schema);
 }

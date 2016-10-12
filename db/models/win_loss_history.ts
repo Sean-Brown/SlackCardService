@@ -22,12 +22,13 @@ class CreateWinLossHistoryModelImpl implements CreateModel<WinLossHistoryModel> 
      * @param {Sequelize.Sequelize} sequelize the sequelize instance that'll create the table
      * @param {PlayerModel} playerModel the return value of CreatePlayerModel()
      * @param {GameHistoryModel} gameHistoryModel the return value of CreateGameTable()
+     * @param {string} schema the schema to create the model in
      * @returns {Promise<PlayerReturn>} returns the creation status along with the model, if the table was created successfully
      */
-    create(sequelize:Sequelize.Sequelize, playerModel:PlayerModel, gameHistoryModel:GameHistoryModel): Q.Promise<WinLossHistoryReturn> {
+    create(sequelize:Sequelize.Sequelize, schema:string, playerModel:PlayerModel, gameHistoryModel:GameHistoryModel): Q.Promise<WinLossHistoryReturn> {
         return new Q.Promise((resolve, reject) => {
             let ret = new WinLossHistoryReturn();
-            const strTable = getTableName(DBTables.CribbageHandHistory);
+            const strTable = getTableName(DBTables.WinLossHistory);
             createModel<WinLossHistoryModel, WinLossHistory>(
                 sequelize,
                 strTable,
@@ -38,7 +39,8 @@ class CreateWinLossHistoryModelImpl implements CreateModel<WinLossHistoryModel> 
                 },
                 {
                     tableName: strTable,
-                    underscored: true
+                    underscored: true,
+                    schema: schema
                 }
             ).then((winLossHistory:WinLossHistoryModel) => {
                 // create the associations
@@ -59,10 +61,12 @@ const creator = new CreateWinLossHistoryModelImpl();
 /**
  * Create the win_loss_history table
  * @param {Sequelize.Sequelize} sequelize the sequelize instance that'll create the model
+ * @param {string} schema the schema to create the model in
+ * @param {string} schema the schema to create the model in
  * @param {PlayerModel} playerModel the return value of CreatePlayerModel()
  * @param {GameHistoryModel} gameHistoryModel the return value of CreateGameHistoryModel()
  * @returns {Promise<WinLossHistoryReturn>} returns the creation status along with the model, if the model was created successfully
  */
-export function createWinLossHistoryModel(sequelize:Sequelize.Sequelize, playerModel:PlayerModel, gameHistoryModel:GameHistoryModel): Q.Promise<WinLossHistoryReturn> {
-    return creator.create(sequelize, playerModel, gameHistoryModel);
+export function createWinLossHistoryModel(sequelize:Sequelize.Sequelize, schema:string, playerModel:PlayerModel, gameHistoryModel:GameHistoryModel): Q.Promise<WinLossHistoryReturn> {
+    return creator.create(sequelize, schema, playerModel, gameHistoryModel);
 }

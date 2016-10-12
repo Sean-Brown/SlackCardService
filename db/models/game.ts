@@ -17,9 +17,10 @@ class CreateGameModelImpl implements CreateModel<GameModel> {
     /**
      * Implement the CreateModel interface - create the game model
      * @param {Sequelize.Sequelize} sequelize the sequelize instance that'll create the model
+     * @param {string} schema the schema to create the model in
      * @returns {Promise<GameReturn>} returns the creation status along with the model, if the table was created successfully
      */
-    create(sequelize: Sequelize.Sequelize): Q.Promise<GameReturn> {
+    create(sequelize: Sequelize.Sequelize, schema:string): Q.Promise<GameReturn> {
         return new Q.Promise((resolve, reject) => {
             let ret = new GameReturn();
             const strTable = getTableName(DBTables.Game);
@@ -33,6 +34,7 @@ class CreateGameModelImpl implements CreateModel<GameModel> {
                 },
                 {
                     tableName: getTableName(DBTables.Game),
+                    schema: schema
                 }
             ).then((model:GameModel) => {
                 ret.result = [model];
@@ -49,8 +51,9 @@ const creator = new CreateGameModelImpl();
 /**
  * Create the game table
  * @param {Sequelize.Sequelize} sequelize the sequelize instance that'll create the table
+ * @param {string} schema the schema to create the model in
  * @returns {Promise<GameReturn>} returns the creation status along with the model, if the table was created successfully
  */
-export function createGameModel(sequelize:Sequelize.Sequelize): Q.Promise<GameReturn> {
-    return creator.create(sequelize);
+export function createGameModel(sequelize:Sequelize.Sequelize, schema:string): Q.Promise<GameReturn> {
+    return creator.create(sequelize, schema);
 }

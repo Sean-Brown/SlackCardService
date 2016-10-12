@@ -21,9 +21,10 @@ class CreateGameHistoryModelImpl implements CreateModel<GameHistoryModel> {
      * Implement the CreateModel interface - create the game_history table
      * @param {Sequelize.Sequelize} sequelize the sequelize instance that'll create the table
      * @param {GameModel} gameModel the return value of CreateGameTable()
+     * @param {string} schema the schema to create the model in
      * @returns {Promise<GameReturn>} returns the creation status along with the model, if the table was created successfully
      */
-    create(sequelize: Sequelize.Sequelize, gameModel:GameModel): Q.Promise<GameHistoryReturn> {
+    create(sequelize: Sequelize.Sequelize, schema:string, gameModel:GameModel): Q.Promise<GameHistoryReturn> {
         return Q.Promise((resolve, reject) => {
             let ret = new GameHistoryReturn();
             const strTable = getTableName(DBTables.GameHistory);
@@ -42,6 +43,7 @@ class CreateGameHistoryModelImpl implements CreateModel<GameHistoryModel> {
                     tableName: strTable,
                     underscored: true,
                     timestamps: false,
+                    schema: schema
                 }
             ).then((gameHistoryTable:GameHistoryModel) => {
                 // create the foreign key associations
@@ -62,9 +64,10 @@ const creator = new CreateGameHistoryModelImpl();
 /**
  * Create the game table
  * @param {Sequelize.Sequelize} sequelize the sequelize instance that'll create the table
+ * @param {string} schema the schema to create the model in
  * @param {GameModel} gameModel the return value of CreateGameTable()
  * @returns {Promise<GameHistoryReturn>} returns the creation status along with the model, if the table was created successfully
  */
-export function createGameHistoryModel(sequelize:Sequelize.Sequelize, gameModel:GameModel): Q.Promise<GameHistoryReturn> {
-    return creator.create(sequelize, gameModel);
+export function createGameHistoryModel(sequelize:Sequelize.Sequelize, schema:string, gameModel:GameModel): Q.Promise<GameHistoryReturn> {
+    return creator.create(sequelize, schema, gameModel);
 }

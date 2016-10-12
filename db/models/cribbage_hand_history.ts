@@ -21,11 +21,12 @@ class CreateCribbageHandHistoryModelImpl implements CreateModel<CribbageHandHist
     /**
      * Implement the CreateModel interface - create the game model
      * @param {Sequelize.Sequelize} sequelize the sequelize instance that'll create the model
+     * @param {string} schema the schema to create the model in
      * @param {PlayerModel} playerModel the return value of CreatePlayerModel()
      * @param {GameHistoryModel} gameHistoryModel the return value of CreateGameModel()
      * @returns {Promise<GameReturn>} returns the creation status along with the model, if the model was created successfully
      */
-    create(sequelize:Sequelize.Sequelize, playerModel:PlayerModel, gameHistoryModel:GameHistoryModel): Q.Promise<CribbageHandHistoryReturn> {
+    create(sequelize:Sequelize.Sequelize, schema:string, playerModel:PlayerModel, gameHistoryModel:GameHistoryModel): Q.Promise<CribbageHandHistoryReturn> {
         return new Q.Promise((resolve, reject) => {
             let ret = new CribbageHandHistoryReturn();
             const strTable = getTableName(DBTables.CribbageHandHistory);
@@ -42,7 +43,8 @@ class CreateCribbageHandHistoryModelImpl implements CreateModel<CribbageHandHist
                 },
                 {
                     tableName: strTable,
-                    underscored: true
+                    underscored: true,
+                    schema: schema
                 }
             ).then((cribbageHandHistory:CribbageHandHistoryModel) => {
                 // create the foreign key associations
@@ -63,10 +65,11 @@ const creator = new CreateCribbageHandHistoryModelImpl();
 /**
  * Create the cribbage_hand_history model
  * @param {Sequelize.Sequelize} sequelize the sequelize instance that'll create the model
+ * @param {string} schema the schema to create the model in
  * @param {PlayerModel} playerModel the return value of CreatePlayerModel()
  * @param {GameHistoryModel} gameHistoryModel the return value of CreateGameModel()
  * @returns {Promise<CribbageHandHistoryReturn>} returns the creation status along with the model, if the table was created successfully
  */
-export function createCribbageHandHistoryModel(sequelize:Sequelize.Sequelize, playerModel:PlayerModel, gameHistoryModel:GameHistoryModel): Q.Promise<CribbageHandHistoryReturn> {
-    return creator.create(sequelize, playerModel, gameHistoryModel);
+export function createCribbageHandHistoryModel(sequelize:Sequelize.Sequelize, schema:string, playerModel:PlayerModel, gameHistoryModel:GameHistoryModel): Q.Promise<CribbageHandHistoryReturn> {
+    return creator.create(sequelize, schema, playerModel, gameHistoryModel);
 }
