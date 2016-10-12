@@ -47,7 +47,7 @@ class DBModels {
     winLossHistoryModel:WinLossHistoryModel;
 }
 
-class DBManager {
+export class DBManager {
     private sequelize:Sequelize.Sequelize;
     private config:DBConfig;
     private models:DBModels;
@@ -298,4 +298,4 @@ class DBManager {
         });
     }
 }
-export var db_manager = new DBManager();
+//export var db_manager = new DBManager();
