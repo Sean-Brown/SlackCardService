@@ -5,15 +5,10 @@
 /// <reference path="../../card_service/implementations/cribbage.ts" />
 /// <reference path="../../card_service/base_classes/card_game.ts" />
 
-import {BaseCard, Suit, Value} from "../../card_service/base_classes/items/card";
-import {BaseHand} from "../../card_service/base_classes/collections/hand";
 import {CribbagePlayer} from "../../card_service/implementations/cribbage_player";
-import {CribbageTeam} from "../../card_service/implementations/cribbage_team";
-import {Cribbage, CribbageGameDescription, CribbageStrings} from "../../card_service/implementations/cribbage";
-import {BaseCardGame, Players, Sequence} from "../../card_service/base_classes/card_game";
+import {CribbageGameDescription, CribbageStrings} from "../../card_service/implementations/cribbage";
 import {CribbageHand} from "../../card_service/implementations/cribbage_hand";
-import {ItemCollection} from "../../card_service/base_classes/collections/item_collection";
-import {setup, CribbageRoutePrefix} from "../../app";
+import {CribbageRoutePrefix} from "../../app";
 import {createNewServer} from "./setup";
 import {CribbageRoutes} from "../../routes/Cribbage/index";
 import Response = Express.Response;
