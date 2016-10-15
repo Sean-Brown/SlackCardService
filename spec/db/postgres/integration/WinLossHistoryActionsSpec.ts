@@ -27,26 +27,27 @@ describe("Test the 'win-loss history' actions", function() {
     var gameHistory:GameHistory = null;
     beforeEach(function(done) {
         readConfigFromEnv();
-        // Asynchronously drop the schema
-        deleteTables().then(() => {
-            // Re-create the tables to start from a fresh slate
-            PostgresTables.createTables()
-                .then(() => {
-                    return createGame();
-                })
-                .then((result:Game) => {
-                    game = result;
-                    return createPlayer();
-                })
-                .then((result:Player) => {
-                    player = result;
-                    return createGameHistory(game.id);
-                })
-                .then((result:GameHistory) => {
-                    gameHistory = result;
-                })
-                .finally(() => { done(); });
-        });
+        // Create the tables
+        PostgresTables.createTables()
+            .then(() => {
+                return createGame();
+            })
+            .then((result:Game) => {
+                game = result;
+                return createPlayer();
+            })
+            .then((result:Player) => {
+                player = result;
+                return createGameHistory(game.id);
+            })
+            .then((result:GameHistory) => {
+                gameHistory = result;
+            })
+            .catch(() => {
+                // fail the test
+                fail("Test should have succeeded");
+            })
+            .finally(() => { done(); });
     });
     afterEach(function(done) {
         // Drop the tables
@@ -57,12 +58,20 @@ describe("Test the 'win-loss history' actions", function() {
             .then((result:WinLossHistory) => {
                 expect(result.won).toBeTruthy("The result should have been a win");
             })
+            .catch(() => {
+                // fail the test
+                fail("Test should have succeeded");
+            })
             .finally(() => { done(); });
     });
     it("can create a loss entry", function(done) {
         createWinLossHistory(player.id, gameHistory.id, false)
             .then((result:WinLossHistory) => {
-                expect(result.won).toBeFalsy("The result should have been a loss");
+                fail("The result should have been a loss");
+            })
+            .catch(() => {
+                // fail the test
+                fail("Test should have succeeded");
             })
             .finally(() => { done(); });
     });
@@ -102,6 +111,10 @@ describe("Test the 'win-loss history' actions", function() {
                 }
                 expect(wins).toEqual(2);
                 expect(losses).toEqual(1);
+            })
+            .catch(() => {
+                // fail the test
+                fail("Test should have succeeded");
             })
             .finally(() => { done(); });
     });
