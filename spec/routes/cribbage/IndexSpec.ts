@@ -7,10 +7,4 @@ describe("Test the cribbage routes 'index' class", function() {
     beforeEach(() => {
         router = new Router();
     });
-    it("allows a ten to be entered as '10' or 't'", function(done) {
-        var cards = Router.parseCards("10s tc");
-        expect(cards.length).toEqual(2);
-        expect(cards[0].value).toEqual(Value.Ten);
-        expect(cards[1].value).toEqual(Value.Ten);
-    });
 });
