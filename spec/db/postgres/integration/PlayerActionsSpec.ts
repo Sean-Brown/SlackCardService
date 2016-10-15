@@ -23,20 +23,20 @@ export function createPlayer(): Q.Promise<Player> {
 describe("Test the 'player' actions", function() {
     beforeEach(function(done) {
         readConfigFromEnv();
-        // Asynchronously drop the schema
-        deleteTables()
-            .then(() => {
-                // Re-create the tables to start from a fresh slate
-                return PostgresTables.createTables();
-            })
-            .finally(() => { done(); });
+        // Create the tables
+        PostgresTables.createTables().finally(() => { done(); });
     });
     afterEach(function(done) {
         // Drop the tables
         deleteTables().finally(() => { done(); });
     });
     it("can create a player", function(done) {
-        createPlayer().finally(() => { done(); });
+        createPlayer()
+            .catch(() => {
+                // fail the test
+                fail("Test should have succeeded");
+            })
+            .finally(() => { done(); });
     });
     it("can find an existing player", function(done) {
         createPlayer()
@@ -46,6 +46,10 @@ describe("Test the 'player' actions", function() {
             .then((result:PlayerReturn) => {
                 verifyReturn(result, "Expected a result from finding a player");
                 expect(result.first().name).toBe(player);
+            })
+            .catch(() => {
+                // fail the test
+                fail("Test should have succeeded");
             })
             .finally(() => { done(); });
     });
@@ -57,6 +61,10 @@ describe("Test the 'player' actions", function() {
             .then((result:PlayerReturn) => {
                 verifyReturn(result, "Expected a result from finding a player by name");
                 expect(result.first().name).toBe(player);
+            })
+            .catch(() => {
+                // fail the test
+                fail("Test should have succeeded");
             })
             .finally(() => { done(); });
     });
