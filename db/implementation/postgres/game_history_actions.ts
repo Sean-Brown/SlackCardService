@@ -8,16 +8,12 @@ import utcTimestamp = PostgresTables.utcTimestamp;
 
 class GameHistoryActions implements IGameHistoryActions {
     private runQueryReturning(query:string):Q.Promise<GameHistoryReturn> {
-        return Q.Promise((resolve, reject) => {
+        return Q.Promise((resolve) => {
             var ret = new GameHistoryReturn();
             pg_mgr.runQuery(query)
                 .then((result:PGQueryReturn) => {
                     ret.initFromResult(result);
                     resolve(ret);
-                })
-                .catch((result:PGQueryReturn) => {
-                    ret.initFromResult(result);
-                    reject(ret);
                 });
         });
     }

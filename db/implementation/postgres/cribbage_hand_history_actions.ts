@@ -6,16 +6,12 @@ var Q = require("q");
 
 class CribbageHandHistoryActions implements ICribbageHandHistoryActions {
     private runQueryReturning(query:string):Q.Promise<CribbageHandHistoryReturn> {
-        return new Q.Promise((resolve, reject) => {
+        return new Q.Promise((resolve) => {
             var ret = new CribbageHandHistoryReturn();
             pg_mgr.runQuery(query)
                 .then((result:PGQueryReturn) => {
                     ret.initFromResult(result);
                     resolve(ret);
-                })
-                .catch((result:PGQueryReturn) => {
-                    ret.initFromResult(result);
-                    reject(ret);
                 });
         });
     }
