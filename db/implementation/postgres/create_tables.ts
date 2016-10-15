@@ -85,9 +85,12 @@ export module PostgresTables {
     }
     function createCribbageHandHistoryTable(): Q.Promise<PGQueryReturn> {
         return new Q.Promise((resolve) => {
+            // NOTE add the foreign key constraints since constraints are NOT inherited, only columns
             var query = `  
                 ${createTable(DBTables.CribbageHandHistory)}
                 (
+                    game_history_id integer REFERENCES ${getTableName(DBTables.GameHistory)},
+                    player_id integer REFERENCES ${getTableName(DBTables.Player)},
                     cut varchar(4) ${notNullLengthCheck("cut")}   
                 ) INHERITS(${getTableName(DBTables.HandHistory)});
             `.trim();
