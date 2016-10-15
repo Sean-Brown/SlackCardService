@@ -15,20 +15,22 @@ var Q = require("q");
 
 const hand = "4s-4c-5d-6s";
 const cut = "6h";
-function createCribbageHandHistory(player_id:number, game_history_id:number): Q.Promise<CribbageHandHistory> {
-    return new Q.Promise((resolve, reject) => {
+function createCribbageHandHistory(player_id:number, game_history_id:number, expectResult:boolean = true): Q.Promise<CribbageHandHistory> {
+    return new Q.Promise((resolve) => {
         cribbage_hand_history_actions.create(player_id, game_history_id, hand, cut)
             .then((ret: CribbageHandHistoryReturn) => {
-                verifyReturn(ret, "Expected a hand-history result");
+                if (expectResult) {
+                    verifyReturn(ret, "Expected a result from the creating a cribbage-hand-history");
+                }
+                else {
+                    expect(ret.message.length).toBeGreaterThan(0);
+                    expect(ret.first()).toBeNull("No result should have been returned.");
+                }
                 resolve(ret.first());
-            })
-            .catch((ret: CribbageHandHistoryReturn) => {
-                expect(ret.first()).toBeNull("No result should have been returned.");
-                reject(null);
             });
     });
 }
-describe("Test the 'hand-history' actions", function() {
+describe("Test the 'cribbage-hand-history' actions", function() {
     var player:Player = null;
     var game:Game = null;
     var gameHistory:GameHistory = null;
@@ -56,7 +58,7 @@ describe("Test the 'hand-history' actions", function() {
         // Drop the tables
         deleteTables().finally(() => { done(); });
     });
-    it("can add a hand-history row", function(done) {
+    it("can add a cribbage-hand-history row", function(done) {
         createCribbageHandHistory(player.id, gameHistory.id)
             .catch(() => {
                 // make the test fail
@@ -65,7 +67,7 @@ describe("Test the 'hand-history' actions", function() {
             .finally(() => { done(); });
     });
     it("enforces player_id foreign key constraints", function(done) {
-        createCribbageHandHistory(0, gameHistory.id)
+        createCribbageHandHistory(0, gameHistory.id, false)
             .then(() => {
                 // make the test fail
                 fail(`Test should have failed`);
@@ -73,7 +75,7 @@ describe("Test the 'hand-history' actions", function() {
             .finally(() => { done(); });
     });
     it("enforces game_history_id foreign key constraints", function(done) {
-        createCribbageHandHistory(player.id, 0)
+        createCribbageHandHistory(player.id, 0, false)
             .then(() => {
                 // make the test fail
                 fail(`Test should have failed`);

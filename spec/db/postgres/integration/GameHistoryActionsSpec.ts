@@ -13,18 +13,23 @@ var Q = require("q");
 
 /**
  * Create a row for the game-history in the database
+ * @param {number} game_id the ID of the game
+ * @param {boolean} expectResult (=true) expect a non-null return object
  * @returns the game-history object for that row
  */
-export function createGameHistory(game_id:number): Q.Promise<GameHistory> {
-    return new Q.Promise((resolve, reject) => {
+export function createGameHistory(game_id:number, expectResult:boolean = true): Q.Promise<GameHistory> {
+    return new Q.Promise((resolve) => {
         game_history_actions.create(game_id)
             .then((ret: GameHistoryReturn) => {
-                verifyReturn(ret, "Expected a result from creating the game-history");
+                if (expectResult) {
+                    verifyReturn(ret, "Expected a result from creating the game-history");
+                }
+                else {
+                    // Should have an error message and a null result
+                    expect(ret.message.length).toBeGreaterThan(0);
+                    expect(ret.first()).toBeNull("No result should have been returned.");
+                }
                 resolve(ret.first());
-            })
-            .catch((ret: GameHistoryReturn) => {
-                expect(ret.first()).toBeNull("Should have had a null result");
-                reject(null);
             });
     });
 }
@@ -148,10 +153,11 @@ describe("Test the 'game-history' actions", function() {
             .finally(() => { done(); });
     });
     it("enforces game_id foreign key constraint", function(done) {
-        createGameHistory(0)
-            .then(() => {
-                // fail the text
-                fail(`Test should have failed`);
+        createGameHistory(0, false)
+            .then((result:GameHistory) => {
+                if (result != null) {
+                    fail(`Test should have failed`);
+                }
             })
             .finally(() => { done(); });
     });
