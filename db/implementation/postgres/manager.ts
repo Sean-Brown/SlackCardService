@@ -84,13 +84,13 @@ class PGManager {
     }
 
     /**
-     * Run the given query and throw an error if the query fails
+     * Run the given query. This promise ALWAYS resolves: check for errors in the return value
      * @param query the query to run
      * @returns {Q.Promise<QueryResult>} a promise that will resolve on a QueryResult or reject with null if the query fails
      */
     public runQuery(query:string): Q.Promise<PGQueryReturn> {
         var that = this;
-        return new Q.Promise((resolve, reject) => {
+        return new Q.Promise((resolve) => {
             // Connect to Postgres asynchronously: wait for the connection to resolve
             var pgResult = new PGQueryReturn();
             that.connect()
@@ -104,13 +104,8 @@ class PGManager {
                             // There was an error, set an error message
                             console.log(`Query <${query}> returned ${err.message}`);
                             pgResult.setError(err.message.toString());
-                            // Reject with the value
-                            reject(pgResult);
                         }
-                        else {
-                            // Resolve on the value
-                            resolve(pgResult);
-                        }
+                        resolve(pgResult);
                     })
                 })
                 .catch((pgConn: PGConnectionReturn) => {
@@ -118,8 +113,7 @@ class PGManager {
                         // There was an error, set the error message
                         pgResult.setError(pgConn.error);
                     }
-                    // Reject on the value
-                    reject(pgResult);
+                    resolve(pgResult);
                 });
         });
     }
