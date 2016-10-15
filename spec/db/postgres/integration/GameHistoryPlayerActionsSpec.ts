@@ -13,11 +13,16 @@ import {GameHistoryPlayerReturn, DBReturnStatus} from "../../../../db/abstractio
 var Q = require("q");
 
 function createGameHistoryPlayer(player_id:number, game_history_id:number): Q.Promise<GameHistoryPlayerPivot> {
-    return new Q.Promise((resolve) => {
-        game_history_player_actions.createAssociation(player_id, game_history_id).then((ret: GameHistoryPlayerReturn) => {
-            verifyReturn(ret, "Expected a game-history-player return value");
-            resolve(ret.first());
-        });
+    return new Q.Promise((resolve, reject) => {
+        game_history_player_actions.createAssociation(player_id, game_history_id)
+            .then((ret: GameHistoryPlayerReturn) => {
+                verifyReturn(ret, "Expected a game-history-player return value");
+                resolve(ret.first());
+            })
+            .catch((ret: GameHistoryPlayerReturn) => {
+                expect(ret.first()).toBeNull("Should have returned a null result");
+                reject(null);
+            });
     });
 }
 describe("Test the 'game-history-player' actions", function() {
@@ -26,32 +31,38 @@ describe("Test the 'game-history-player' actions", function() {
     var gameHistory:GameHistory = null;
     beforeEach(function(done) {
         readConfigFromEnv();
-        // Asynchronously drop the schema
-        deleteTables().then(() => {
-            // Re-create the tables to start from a fresh slate
-            PostgresTables.createTables()
-                .then(() => {
-                    return createGame();
-                })
-                .then((result:Game) => {
-                    game = result;
-                    return createPlayer();
-                })
-                .then((result:Player) => {
-                    player = result;
-                    return createGameHistory(game.id);
-                })
-                .then((result:GameHistory) => {
-                    gameHistory = result;
-                })
-                .finally(() => { done(); });
-        });
+        // Create the tables
+        PostgresTables.createTables()
+            .then(() => {
+                return createGame();
+            })
+            .then((result:Game) => {
+                game = result;
+                return createPlayer();
+            })
+            .then((result:Player) => {
+                player = result;
+                return createGameHistory(game.id);
+            })
+            .then((result:GameHistory) => {
+                gameHistory = result;
+            })
+            .catch(() => {
+                // fail the test
+                expect(true).toBeFalsy("Test should have succeeded");
+            })
+            .finally(() => { done(); });
     });
     afterEach(function(done) {
         // Drop the tables
         deleteTables().finally(() => { done(); });
     });
     it("can create the game-history-player association", function(done) {
-        createGameHistoryPlayer(player.id, gameHistory.id).finally(() => { done(); });
+        createGameHistoryPlayer(player.id, gameHistory.id)
+            .catch(() => {
+                // fail the test
+                expect(true).toBeFalsy("Test should have succeeded");
+            })
+            .finally(() => { done(); });
     });
 });
