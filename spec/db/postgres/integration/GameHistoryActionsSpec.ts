@@ -43,7 +43,7 @@ describe("Test the 'game-history' actions", function() {
             })
             .catch(() => {
                 // fail the test
-                expect(true).toBeFalsy("Test should have succeeded");
+                fail("Test should have succeeded");
             })
             .finally(() => { done(); });
     });
@@ -151,7 +151,7 @@ describe("Test the 'game-history' actions", function() {
         createGameHistory(0)
             .then(() => {
                 // fail the text
-                expect(true).toBeFalsy(`Test should have failed`);
+                fail(`Test should have failed`);
             })
             .finally(() => { done(); });
     });

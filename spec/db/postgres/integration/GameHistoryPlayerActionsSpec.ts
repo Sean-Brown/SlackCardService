@@ -49,7 +49,7 @@ describe("Test the 'game-history-player' actions", function() {
             })
             .catch(() => {
                 // fail the test
-                expect(true).toBeFalsy("Test should have succeeded");
+                fail("Test should have succeeded");
             })
             .finally(() => { done(); });
     });
@@ -61,7 +61,7 @@ describe("Test the 'game-history-player' actions", function() {
         createGameHistoryPlayer(player.id, gameHistory.id)
             .catch(() => {
                 // fail the test
-                expect(true).toBeFalsy("Test should have succeeded");
+                fail("Test should have succeeded");
             })
             .finally(() => { done(); });
     });

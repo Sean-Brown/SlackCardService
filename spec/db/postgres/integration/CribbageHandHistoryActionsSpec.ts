@@ -60,7 +60,7 @@ describe("Test the 'hand-history' actions", function() {
         createCribbageHandHistory(player.id, gameHistory.id)
             .catch(() => {
                 // make the test fail
-                expect(true).toBeFalsy(`Test should have succeeded`);
+                fail(`Test should have succeeded`);
             })
             .finally(() => { done(); });
     });
@@ -68,7 +68,7 @@ describe("Test the 'hand-history' actions", function() {
         createCribbageHandHistory(0, gameHistory.id)
             .then(() => {
                 // make the test fail
-                expect(true).toBeFalsy(`Test should have failed`);
+                fail(`Test should have failed`);
             })
             .finally(() => { done(); });
     });
@@ -76,7 +76,7 @@ describe("Test the 'hand-history' actions", function() {
         createCribbageHandHistory(player.id, 0)
             .then(() => {
                 // make the test fail
-                expect(true).toBeFalsy(`Test should have failed`);
+                fail(`Test should have failed`);
             })
             .finally(() => { done(); });
     });

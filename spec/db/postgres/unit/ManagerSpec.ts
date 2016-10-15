@@ -53,7 +53,7 @@ describe("Test the Postgres Database manager", function() {
         it("returns errors that occur during initialization", function(done) {
             pg_mgr.init()
                 .then(() => {
-                    expect(false).toBe(true, "Initialization should have failed");
+                    fail("Initialization should have failed");
                 })
                 .catch((err:string) => {
                     expect(err.length).toBeGreaterThan(0, "Initialization should've failed with an error string");
