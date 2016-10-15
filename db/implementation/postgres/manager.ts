@@ -126,7 +126,7 @@ class PGManager {
 
     /**
      * Connect to the Postgres database
-     * @returns {Promise<PGConnectionReturn} a client connected to the Postgres database or null with an error message if a failure occurs
+     * @returns {Q.Promise<PGConnectionReturn} a client connected to the Postgres database or null with an error message if a failure occurs
      */
     public connect(): Q.Promise<PGConnectionReturn> {
         if (this.config == null) {
