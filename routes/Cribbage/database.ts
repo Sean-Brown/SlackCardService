@@ -8,9 +8,14 @@ import {GameHistory} from "../../db/abstraction/tables/game_history";
 import {CribbageHandHistory} from "../../db/abstraction/tables/cribbage_hand_history";
 import {pg_mgr} from "../../db/implementation/postgres/manager";
 import {win_loss_history_actions} from "../../db/implementation/postgres/win_loss_history_actions";
-import {WinLossHistoryReturn, DBReturnStatus, GameReturn} from "../../db/abstraction/return/db_return";
+import {
+    WinLossHistoryReturn, DBReturnStatus, GameReturn, PlayerReturn, GameHistoryReturn
+} from "../../db/abstraction/return/db_return";
 import {Game} from "../../db/abstraction/tables/game";
 import {game_actions} from "../../db/implementation/postgres/game_actions";
+import {Player} from "../../db/abstraction/tables/player";
+import {player_actions} from "../../db/implementation/postgres/player_actions";
+import {game_history_actions} from "../../db/implementation/postgres/game_history_actions";
 var Q = require("q");
 
 export module DBRoutes {
@@ -40,9 +45,9 @@ export module DBRoutes {
 
     class Router {
         constructor(private initialized = false) { }
-        private init():Q.Promise<void> {
+        private init():Q.Promise<string> {
             var that = this;
-            return new Q.Promise((resolve) => {
+            return new Q.Promise((resolve, reject) => {
                 if (that.initialized) {
                     // Already initialize, resolve immediately
                     resolve();
@@ -52,9 +57,85 @@ export module DBRoutes {
                     pg_mgr.init()
                         .then(() => {
                             that.initialized = true;
-                            resolve();
+                            resolve("");
+                        })
+                        .catch((err:string) => {
+                            reject(err);
                         });
                 }
+            });
+        }
+
+        /**
+         * Add a player to the database. If the player already exists, then return that player
+         * from the database.
+         * @param {string} player the name of the player
+         * @returns {Q.Promise} resolves on a Player object or null if there was an error
+         */
+        addPlayer(player:string):Q.Promise<Player> {
+            var that = this;
+            return new Q.Promise((resolve, reject) => {
+                that.init()
+                    .then(() => {
+                        player_actions.findByName(player)
+                            .then((result:PlayerReturn) => {
+                                if (result.status != DBReturnStatus.ok) {
+                                    console.log(result.message);
+                                    reject(null);
+                                }
+                                else if (result.first() != null) {
+                                    console.log(`Player ${player} already exists in the database`);
+                                    resolve(result.first());
+                                }
+                                else {
+                                    // The player does not exist, create them
+                                    player_actions.create(player)
+                                        .then((result:PlayerReturn) => {
+                                            if (result.status != DBReturnStatus.ok) {
+                                                console.log(result.message);
+                                                reject(null);
+                                            }
+                                            else {
+                                                console.log(`Created player ${player} in the database`);
+                                                resolve(result.first());
+                                            }
+                                        });
+                                }
+                            });
+                    })
+                    .catch((err:string) => {
+                        console.log(err);
+                        reject(null);
+                    });
+            });
+        }
+
+        /**
+         * Create a game history entry for the given game and players
+         * @param game_id the ID of the game (i.e. the Cribbage ID in the database)
+         * @param player_ids the IDs of the players who are part of this game
+         */
+        createGameHistory(game_id:number, player_ids:Array<number>): Q.Promise<GameHistory> {
+            var that = this;
+            return new Q.Promise((resolve, reject) => {
+                that.init()
+                    .then(() => {
+                        game_history_actions.create(game_id)
+                            .then((result:GameHistoryReturn) => {
+                                if (result.status != DBReturnStatus.ok) {
+                                    console.log(result.message);
+                                    reject(null);
+                                }
+                                else {
+                                    // Associate the players with the game
+                                    // TODO Add bulk-insert method to game_history_player_actions
+                                }
+                            });
+                    })
+                    .catch((err:string) => {
+                        console.log(err);
+                        reject(null);
+                    });
             });
         }
 
@@ -100,6 +181,7 @@ export module DBRoutes {
                     });
             });
         }
+
         winLossHistory(player:string):Q.Promise<WinLossHistoryResponse> {
             var that = this;
             return new Q.Promise((resolve, reject) => {
@@ -126,6 +208,7 @@ export module DBRoutes {
                     });
             });
         }
+
         gameHistory(player:string):Q.Promise<GameHistoryResponse> {
             var that = this;
             return new Q.Promise((resolve, reject) => {
@@ -135,6 +218,7 @@ export module DBRoutes {
                 });
             });
         }
+
         cribbageHandHistory(player:string, gameHistoryID:number):Q.Promise<CribbageHandHistoryResponse> {
             var that = this;
             return new Q.Promise((resolve, reject) => {
