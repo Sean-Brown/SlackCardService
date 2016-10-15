@@ -17,7 +17,8 @@ import {Games} from "../../db/implementation/games";
 import {DBRoutes} from "./database";
 import {Game} from "../../db/abstraction/tables/game";
 import {PostgresTables} from "../../db/implementation/postgres/create_tables";
-import {PGQueryReturn} from "../../db/implementation/postgres/manager";
+import {Player} from "../../db/abstraction/tables/player";
+import {GameHistory} from "../../db/abstraction/tables/game_history";
 var Q = require("q");
 
 // TODO: write tests for this module, possibly decompose into smaller pieces
@@ -100,8 +101,12 @@ export module CribbageRoutes {
 
         // The current cribbage game -- TODO make it possible to play multiple games
         currentGame:Cribbage;
+        // The ID of the current game in the database
+        currentGameHistoryID:number;
         // The ID of the cribbage game in the database -- TODO probably refactor into separate class
         cribbageID:number;
+        // The database IDs of the current players
+        playerIDs:Array<number> = [];
 
         // Initialize the router by getting data that it needs
         public init():Q.Promise<void> {
@@ -195,7 +200,7 @@ export module CribbageRoutes {
          * @returns {BaseCard} the parsed card
          * @throws CribbageStrings.ErrorStrings.INVALID_CARD_SYNTAX if parsing fails
          */
-        static parseCards(text: string):Array<Card> {
+        public static parseCards(text: string):Array<Card> {
             if (!text)
                 throw CribbageStrings.ErrorStrings.INVALID_CARD_SYNTAX;
             // Strip out all the spaces
@@ -218,6 +223,8 @@ export module CribbageRoutes {
                     case '7': value = Value.Seven; break;
                     case '8': value = Value.Eight; break;
                     case '9': value = Value.Nine; break;
+                    // allow for the player to enter '10' or 't' for a ten
+                    case 't': value = Value.Ten; break;
                     case '1':
                         if (charSuit != "0")
                             throw CribbageStrings.ErrorStrings.INVALID_CARD_SYNTAX;
@@ -282,17 +289,32 @@ export module CribbageRoutes {
             else {
                 try {
                     if (this.currentGame == null) {
-                        this.currentGame = new Cribbage(new Players([newPlayer]))
+                        this.currentGame = new Cribbage(new Players([]));
                     }
-                    else {
-                        this.currentGame.addPlayer(newPlayer);
-                    }
+                    // Add the player to the database if they don't exist
+                    var that = this;
+                    DBRoutes.router.addPlayer(player)
+                        .then((dbPlayer:Player) => {
+                            // The player is in the database, now add them to the game
+                            that.playerIDs.push(dbPlayer.id);
+                            that.currentGame.addPlayer(newPlayer);
+                            Router.sendResponse(response, res);
+                        })
+                        .catch(() => {
+                            // Failed to add the player to the database, don't add them to the game
+                            Router.sendResponse(
+                                Router.makeResponse(
+                                    500,
+                                    `Sorry, unable to add or find ${player} in the database`
+                                ),
+                                res
+                            );
+                        });
                 }
                 catch (e) {
-                    response = Router.makeResponse(500, e);
+                    Router.sendResponse(Router.makeResponse(500, e), res);
                 }
             }
-            Router.sendResponse(response, res);
         }
 
         beginGame(req:Request, res:Response) {
@@ -308,18 +330,41 @@ export module CribbageRoutes {
             }
             else {
                 try {
-                    this.currentGame.begin();
-                    response.data.text = `${CribbageStrings.MessageStrings.FMT_START_GAME}${this.currentGame.dealer.name}'s crib.`;
-                    response.data.attachments.push(
-                        new CribbageResponseAttachment(`Players: ${this.currentGame.printPlayers()}`)
-                    );
+                    // Create the game-history row in the database
+                    var that = this;
+                    DBRoutes.router.createGameHistory(this.cribbageID, this.playerIDs)
+                        .then((gameHistory:GameHistory) => {
+                            that.currentGameHistoryID = gameHistory.id;
+                            this.currentGame.begin();
+                            response.data.text = `${CribbageStrings.MessageStrings.FMT_START_GAME}${this.currentGame.dealer.name}'s crib.`;
+                            response.data.attachments.push(
+                                new CribbageResponseAttachment(`Players: ${this.currentGame.printPlayers()}`)
+                            );
+                            Router.sendResponse(response, res);
+                        })
+                        .catch(() => {
+                            Router.sendResponse(
+                                Router.makeResponse(
+                                    500,
+                                    "Unable to create the game-history record in the database",
+                                    SlackResponseType.in_channel
+                                ),
+                                res
+                            );
+                        });
                 }
                 catch (e) {
                     // SB TODO: Elaborate on what went wrong
-                    response = Router.makeResponse(500, `Cannot start the game, an error has occurred: ${e}`);
+                    Router.sendResponse(
+                        Router.makeResponse(
+                            500,
+                            `Cannot start the game, an error has occurred: ${e}`,
+                            SlackResponseType.in_channel
+                        ),
+                        res
+                    );
                 }
             }
-            Router.sendResponse(response, res);
         }
 
         resetGame(req:Request, res:Response) {
