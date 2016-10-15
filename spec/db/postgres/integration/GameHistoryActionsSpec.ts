@@ -16,28 +16,36 @@ var Q = require("q");
  * @returns the game-history object for that row
  */
 export function createGameHistory(game_id:number): Q.Promise<GameHistory> {
-    return new Q.Promise((resolve) => {
-        game_history_actions.create(game_id).then((ret: GameHistoryReturn) => {
-            verifyReturn(ret, "Expected a result from creating the game-history");
-            resolve(ret.first());
-        });
+    return new Q.Promise((resolve, reject) => {
+        game_history_actions.create(game_id)
+            .then((ret: GameHistoryReturn) => {
+                verifyReturn(ret, "Expected a result from creating the game-history");
+                resolve(ret.first());
+            })
+            .catch((ret: GameHistoryReturn) => {
+                expect(ret.first()).toBeNull("Should have had a null result");
+                reject(null);
+            });
     });
 }
 describe("Test the 'game-history' actions", function() {
     var game:Game = null;
     beforeEach(function(done) {
         readConfigFromEnv();
-        // Asynchronously drop the schema
-        deleteTables().then(() => {
-            // Re-create the tables to start from a fresh slate
-            PostgresTables.createTables()
-                .then(() => {
-                    // Before beginning, create a game and save it
-                    return createGame();
-                })
-                .then((result:Game) => { game = result; })
-                .finally(() => { done(); });
-        });
+        // Create the tables
+        PostgresTables.createTables()
+            .then(() => {
+                // Before beginning, create a game and save it
+                return createGame();
+            })
+            .then((result:Game) => {
+                game = result;
+            })
+            .catch(() => {
+                // fail the test
+                expect(true).toBeFalsy("Test should have succeeded");
+            })
+            .finally(() => { done(); });
     });
     afterEach(function(done) {
         // Drop the tables
@@ -136,6 +144,14 @@ describe("Test the 'game-history' actions", function() {
             .then((result:GameHistoryReturn) => {
                 verifyReturn(result, "Expected a game-history result");
                 expect(result.first().id).toEqual(gh.id);
+            })
+            .finally(() => { done(); });
+    });
+    it("enforces game_id foreign key constraint", function(done) {
+        createGameHistory(0)
+            .then(() => {
+                // fail the text
+                expect(true).toBeFalsy(`Test should have failed`);
             })
             .finally(() => { done(); });
     });
