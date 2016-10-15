@@ -86,7 +86,7 @@ class PGManager {
     /**
      * Run the given query and throw an error if the query fails
      * @param query the query to run
-     * @returns {JQueryPromise<QueryResult>} a promise that will resolve on a QueryResult or reject with null if the query fails
+     * @returns {Q.Promise<QueryResult>} a promise that will resolve on a QueryResult or reject with null if the query fails
      */
     public runQuery(query:string): Q.Promise<PGQueryReturn> {
         var that = this;
@@ -102,7 +102,7 @@ class PGManager {
                         pgResult.value = result;
                         if (err != null) {
                             // There was an error, set an error message
-                            console.log(`Query <${query}> returned ${err.message.toString()}`);
+                            console.log(`Query <${query}> returned ${err.message}`);
                             pgResult.setError(err.message.toString());
                             // Reject with the value
                             reject(pgResult);
@@ -113,7 +113,7 @@ class PGManager {
                         }
                     })
                 })
-                .fail((pgConn: PGConnectionReturn) => {
+                .catch((pgConn: PGConnectionReturn) => {
                     if (pgConn.error.length > 0) {
                         // There was an error, set the error message
                         pgResult.setError(pgConn.error);
