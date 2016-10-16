@@ -20,7 +20,7 @@ describe("Test the logic of the CribbageRoutes module", function() {
             expect(cards[0].equalsOther(aceOfSpaces)).toBe(true);
             expect(cards[1].equalsOther(fourOfHearts)).toBe(true);
         });
-        it("allows a ten to be entered as '10' or 't'", function(done) {
+        it("allows a ten to be entered as '10' or 't'", function() {
             var cards = Router.parseCards("10s tc");
             expect(cards.length).toEqual(2);
             expect(cards[0].value).toEqual(Value.Ten);
