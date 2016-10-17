@@ -40,10 +40,13 @@ export class BaseCard implements IItem {
             return false;
         return (this.suit == card.suit && this.value == card.value);
     }
-    toString() {
-        return (Value[this.value] + ' of ' + Suit[this.suit]);
+    shortString():string {
+        return `${Value[this.value].substring(0, 1)} ${Suit[this.suit].substring(0, 1)}`;
     }
-    toUrlString(extension:string="png") {
+    toString():string {
+        return `${Value[this.value]} of ${Suit[this.suit]}`;
+    }
+    toUrlString(extension:string="png"):string {
         return `${Value[this.value]}Of${Suit[this.suit]}.${extension}`;
     }
 }
