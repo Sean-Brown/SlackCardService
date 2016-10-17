@@ -19,6 +19,11 @@ import {Game} from "../../db/abstraction/tables/game";
 import {PostgresTables} from "../../db/implementation/postgres/create_tables";
 import {Player} from "../../db/abstraction/tables/player";
 import {GameHistory} from "../../db/abstraction/tables/game_history";
+import {cribbage_hand_history_actions} from "../../db/implementation/postgres/cribbage_hand_history_actions";
+import {CribbageHandHistoryReturn, DBReturnStatus, WinLossHistoryReturn} from "../../db/abstraction/return/db_return";
+import {CribbageHandHistory} from "../../db/abstraction/tables/cribbage_hand_history";
+import {win_loss_history_actions} from "../../db/implementation/postgres/win_loss_history_actions";
+import {WinLossHistory} from "../../db/abstraction/tables/win_loss_history";
 var Q = require("q");
 
 // TODO: write tests for this module, possibly decompose into smaller pieces
@@ -26,6 +31,7 @@ var Q = require("q");
 export module CribbageRoutes {
 
     import MessageStrings = CribbageStrings.MessageStrings;
+    import CribbageHandHistoryResponse = DBRoutes.CribbageHandHistoryResponse;
 
     class CribbageAttachmentField {
         constructor(
@@ -105,8 +111,8 @@ export module CribbageRoutes {
         currentGameHistoryID:number;
         // The ID of the cribbage game in the database -- TODO probably refactor into separate class
         cribbageID:number;
-        // The database IDs of the current players
-        playerIDs:Array<number> = [];
+        // The database rows of the current players
+        players:Array<Player> = [];
 
         // Initialize the router by getting data that it needs
         public init():Q.Promise<void> {
@@ -144,6 +150,15 @@ export module CribbageRoutes {
             attachments:Array<CribbageResponseAttachment>=[]
         ): CribbageResponse {
             return new CribbageResponse(status, new CribbageResponseData(response_type, text, attachments));
+        }
+
+        private static makeErrorResponse(
+            text:string,
+            status:number=500,
+            response_type:SlackResponseType=SlackResponseType.ephemeral,
+            attachments:Array<CribbageResponseAttachment>=[]
+        ): CribbageResponse {
+            return Router.makeResponse(status, text, response_type, attachments);
         }
 
         private static sendResponse(response:CribbageResponse, res:Response):void {
@@ -270,6 +285,85 @@ export module CribbageRoutes {
         }
 
         /**
+         * Record each player's hand and the kitty in the database
+         * @note always resolves
+         * @returns an error string, if there was an error, otherwise an empty string
+         */
+        private recordCribbageHands(): Q.Promise<string> {
+            var that = this;
+            return new Q.Promise((resolve) => {
+                var chhs = [];
+                // Find the dealer's ID
+                let dealer_id = 0, dealer_name = that.currentGame.dealer.name.toUpperCase();
+                for (let ix = 0; ix < that.players.length; ix++) {
+                    let player = that.players[ix];
+                    if (dealer_id == 0 && player.name.toUpperCase() == dealer_name) {
+                        dealer_id = player.id;
+                    }
+                    // Find the corresponding player in the cribbage game in order to find their hand
+                    let gamePlayer:CribbagePlayer = that.currentGame.players.findPlayer(player.name);
+                    chhs.push(
+                        new CribbageHandHistory(0, player.id, that.currentGameHistoryID, gamePlayer.hand.toShortString(), that.currentGame.cut.shortString())
+                    );
+                }
+                // Add the kitty
+                chhs.push(
+                    new CribbageHandHistory(0, dealer_id, that.currentGameHistoryID, that.currentGame.kitty.toShortString(), that.currentGame.cut.shortString(), true)
+                );
+                cribbage_hand_history_actions.createMany(chhs)
+                    .then((result:CribbageHandHistoryReturn) => {
+                        if (result.status != DBReturnStatus.ok) {
+                            // Something went wrong
+                            resolve(result.message);
+                        }
+                        else {
+                            // Success!
+                            resolve("");
+                        }
+                    });
+            });
+        }
+
+        /**
+         * Record the winners and losers in the database, send a response to the channel if something fails
+         * @note this method always resolves
+         * @returns {Q.Promise} an error string if an error occurred, otherwise an empty string
+         */
+        private recordResult(req:Request) {
+            var that = this;
+            let histories = [];
+            for (let ix = 0; ix < that.players.length; ix++) {
+                let player = that.players[ix];
+                histories.push(
+                    new WinLossHistory(0, player.id, that.currentGameHistoryID, that.currentGame.wonGame(player.name))
+                );
+            }
+            win_loss_history_actions.createMany(histories)
+                .then((result:WinLossHistoryReturn) => {
+                    if (result.status != DBReturnStatus.ok) {
+                        // Something went wrong
+                        console.error(result.message);
+                        Router.sendDelayedResponse(
+                            Router.makeErrorResponse(result.message, 500, SlackResponseType.in_channel).data,
+                            Router.getResponseUrl(req)
+                        );
+                    }
+                    else {
+                        // Success!
+                    }
+                });
+        }
+
+        private getPlayerIDs(): Array<number> {
+            var playerIDs = [];
+            for (let ix = 0; ix < this.players.length; ix++) {
+                playerIDs.push(this.players[ix].id);
+            }
+            return playerIDs;
+        }
+
+
+        /**
          * NOTE:
          * A new Game should be created by players joining the game via "joinGame",
          * then calling "beginGame" when all have joined
@@ -296,15 +390,14 @@ export module CribbageRoutes {
                     DBRoutes.router.addPlayer(player)
                         .then((dbPlayer:Player) => {
                             // The player is in the database, now add them to the game
-                            that.playerIDs.push(dbPlayer.id);
+                            that.players.push(dbPlayer);
                             that.currentGame.addPlayer(newPlayer);
                             Router.sendResponse(response, res);
                         })
                         .catch(() => {
                             // Failed to add the player to the database, don't add them to the game
                             Router.sendResponse(
-                                Router.makeResponse(
-                                    500,
+                                Router.makeErrorResponse(
                                     `Sorry, unable to add or find ${player} in the database`
                                 ),
                                 res
@@ -312,7 +405,7 @@ export module CribbageRoutes {
                         });
                 }
                 catch (e) {
-                    Router.sendResponse(Router.makeResponse(500, e), res);
+                    Router.sendResponse(Router.makeErrorResponse(e), res);
                 }
             }
         }
@@ -320,10 +413,10 @@ export module CribbageRoutes {
         beginGame(req:Request, res:Response) {
             var response = Router.makeResponse(200, CribbageStrings.MessageStrings.FMT_START_GAME, SlackResponseType.in_channel);
             if (this.currentGame == null) {
-                response = Router.makeResponse(500, CribbageStrings.ErrorStrings.NO_GAME);
+                response = Router.makeErrorResponse(CribbageStrings.ErrorStrings.NO_GAME);
             }
             else if (this.currentGame.hasBegun) {
-                response = Router.makeResponse(500, CribbageStrings.ErrorStrings.HAS_BEGUN);
+                response = Router.makeErrorResponse(CribbageStrings.ErrorStrings.HAS_BEGUN);
             }
             else if (!Router.verifyRequest(req, Routes.beginGame)) {
                 response = Router.VALIDATION_FAILED_RESPONSE;
@@ -332,7 +425,8 @@ export module CribbageRoutes {
                 try {
                     // Create the game-history row in the database
                     var that = this;
-                    DBRoutes.router.createGameHistory(this.cribbageID, this.playerIDs)
+                    var playerIDs = that.getPlayerIDs();
+                    DBRoutes.router.createGameHistory(this.cribbageID, playerIDs)
                         .then((gameHistory:GameHistory) => {
                             that.currentGameHistoryID = gameHistory.id;
                             this.currentGame.begin();
@@ -344,9 +438,9 @@ export module CribbageRoutes {
                         })
                         .catch(() => {
                             Router.sendResponse(
-                                Router.makeResponse(
-                                    500,
+                                Router.makeErrorResponse(
                                     "Unable to create the game-history record in the database",
+                                    500,
                                     SlackResponseType.in_channel
                                 ),
                                 res
@@ -356,9 +450,9 @@ export module CribbageRoutes {
                 catch (e) {
                     // SB TODO: Elaborate on what went wrong
                     Router.sendResponse(
-                        Router.makeResponse(
-                            500,
+                        Router.makeErrorResponse(
                             `Cannot start the game, an error has occurred: ${e}`,
+                            500,
                             SlackResponseType.in_channel
                         ),
                         res
@@ -370,23 +464,33 @@ export module CribbageRoutes {
         resetGame(req:Request, res:Response) {
             var secret = req.body.text;
             var player = Router.getPlayerName(req);
-            var response = Router.makeResponse(500, `You're not allowed to reset the game, ${player}!!`, SlackResponseType.in_channel);
+            var response = Router.makeErrorResponse(`You're not allowed to reset the game, ${player}!!`, SlackResponseType.in_channel);
             var reset = false;
             if (!Router.verifyRequest(req, Routes.resetGame)) {
                 response = Router.VALIDATION_FAILED_RESPONSE;
             }
             else if (secret != null && secret == (process.env.CRIB_RESET_SECRET || "secret")) {
                 // Allow the game to be reset
-                response = Router.makeResponse(200, CribbageStrings.MessageStrings.GAME_RESET, SlackResponseType.ephemeral);
-                Router.roundOverResetImages(this.currentGame);
-                this.currentGame = new Cribbage(new Players<CribbagePlayer>([]));
-                reset = true;
-            }
-            Router.sendResponse(response, res);
-            if (reset) {
-                response.data.response_type = SlackResponseType.in_channel;
-                response.data.text = `${response.data.text} by ${player}`;
-                Router.sendDelayedResponse(response.data, Router.getResponseUrl(req));
+                DBRoutes.router.resetGame(this.currentGameHistoryID)
+                    .then((result:boolean) => {
+                        if (result) {
+                            // Success
+                            response = Router.makeResponse(200, CribbageStrings.MessageStrings.GAME_RESET, SlackResponseType.ephemeral);
+                            Router.roundOverResetImages(this.currentGame);
+                            this.currentGame = new Cribbage(new Players<CribbagePlayer>([]));
+                            reset = true;
+                        }
+                        else {
+                            // Failure
+                            response = Router.makeErrorResponse("Failed to reset the game in the database");
+                        }
+                        Router.sendResponse(response, res);
+                        if (reset) {
+                            response.data.response_type = SlackResponseType.in_channel;
+                            response.data.text = `${response.data.text} by ${player}`;
+                            Router.sendDelayedResponse(response.data, Router.getResponseUrl(req));
+                        }
+                    });
             }
         }
 
@@ -418,17 +522,23 @@ export module CribbageRoutes {
                     }
                     else {
                         Router.IMAGE_MANAGER.getLatestPlayerHand(player, hand)
-                            .done(function (handUrl:string) {
+                            .then(function (handUrl:string) {
                                 console.log(`adding attachment with url ${handUrl}`);
                                 response.data.attachments = [new CribbageResponseAttachment(`${Router.PLAYER_HAND_EMOJI}`, "", handUrl)];
                                 response.data.text = "";
                                 console.log(`Returning ${JSON.stringify(response)}`);
                                 Router.sendDelayedResponse(response.data, Router.getResponseUrl(req));
+                            })
+                            .catch((err:any) => {
+                                Router.sendDelayedResponse(
+                                    Router.makeErrorResponse(err).data,
+                                    Router.getResponseUrl(req)
+                                );
                             });
                     }
                 }
                 catch (e) {
-                    response = Router.makeResponse(500, e);
+                    response = Router.makeErrorResponse(e);
                 }
             }
             Router.sendResponse(response, res);
@@ -458,6 +568,8 @@ export module CribbageRoutes {
                     if (cribRes.gameOver) {
                         response.data.text = responseText;
                         Router.resetSequenceImages();
+                        // Record the wins/losses in the database
+                        this.recordResult(req);
                     }
                     else if (responseText.length > 0) {
                         if (cribRes.roundOver) {
@@ -474,7 +586,7 @@ export module CribbageRoutes {
                     }
                 }
                 catch (e) {
-                    response = Router.makeResponse(500, `Error! ${e}! Current player: ${this.currentGame.nextPlayerInSequence.name}`);
+                    response = Router.makeErrorResponse(`Error! ${e}! Current player: ${this.currentGame.nextPlayerInSequence.name}`);
                 }
             }
             if (cribRes && cribRes.sequenceOver) {
@@ -550,6 +662,8 @@ export module CribbageRoutes {
                     if (cribRes.gameOver) {
                         response.data.text = cribRes.message;
                         Router.roundOverResetImages(this.currentGame);
+                        // Record the wins/losses in the database
+                        this.recordResult(req);
                     }
                     else {
                         // Show the card they just played
@@ -589,12 +703,16 @@ export module CribbageRoutes {
                     }
                 }
                 catch (e) {
-                    response = Router.makeResponse(500, e);
+                    response = Router.makeErrorResponse(e);
                 }
             }
             if (response.status != 200 || cribRes.gameOver) {
                 // send the response right away
                 Router.sendResponse(response, res);
+                if (cribRes.gameOver) {
+                    // Record the wins/losses in the database
+                    this.recordResult(req);
+                }
             }
             else {
                 // send a dummy response just to acknowledge the command was received
@@ -609,25 +727,36 @@ export module CribbageRoutes {
                     , responseUrl
                 );
                 if (this.currentGame.isReady()) {
-                    // Let the players know it's time to begin the game
-                    var text = `The game is ready to begin. Play a card ${this.currentGame.nextPlayerInSequence.name}.\n`+
+                    // Record each player's hand plus the kitty in the database
+                    this.recordCribbageHands()
+                        .then((error:string) => {
+                            if (error.length > 0) {
+                                // Something went wrong
+                                Router.sendDelayedResponse(
+                                    Router.makeErrorResponse(`Error saving your hands to the database: ${error}`, 500, SlackResponseType.in_channel).data,
+                                    Router.getResponseUrl(req)
+                                );
+                            }
+                            // Let the players know it's time to begin the game
+                            var text = `The game is ready to begin. Play a card ${this.currentGame.nextPlayerInSequence.name}.\n`+
                                 `${Cribbage.cutEmoji}  The cut card is:`;
-                    if (cribRes.message.length > 0) {
-                        text = `${cribRes.message}\n${text}`;
-                    }
-                    Router.sendDelayedResponse(
-                        new CribbageResponseData(
-                            SlackResponseType.in_channel,
-                            "",
-                            [new CribbageResponseAttachment(
-                                text,
-                                "",
-                                ImageManager.getCardImageUrl(this.currentGame.cut)
-                            )]
-                        ),
-                        responseUrl,
-                        2000
-                    );
+                            if (cribRes.message.length > 0) {
+                                text = `${cribRes.message}\n${text}`;
+                            }
+                            Router.sendDelayedResponse(
+                                new CribbageResponseData(
+                                    SlackResponseType.in_channel,
+                                    "",
+                                    [new CribbageResponseAttachment(
+                                        text,
+                                        "",
+                                        ImageManager.getCardImageUrl(this.currentGame.cut)
+                                    )]
+                                ),
+                                responseUrl,
+                                2000
+                            );
+                        });
                 }
             }
         }
@@ -644,6 +773,8 @@ export module CribbageRoutes {
                     if (cribResponse.gameOver) {
                         response.data.text = cribResponse.message;
                         Router.roundOverResetImages(this.currentGame);
+                        // Record the wins/losses in the database
+                        this.recordResult(req);
                     }
                     else if (cribResponse.message.length > 0) {
                         response.data.text += `\n${cribResponse.message}`;
@@ -653,7 +784,7 @@ export module CribbageRoutes {
                     }
                 }
                 catch (e) {
-                    response = Router.makeResponse(500, e);
+                    response = Router.makeErrorResponse(e);
                 }
             }
             Router.sendResponse(response, res);
