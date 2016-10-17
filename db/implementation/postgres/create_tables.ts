@@ -91,7 +91,8 @@ export module PostgresTables {
                 (
                     game_history_id integer REFERENCES ${getTableName(DBTables.GameHistory)},
                     player_id integer REFERENCES ${getTableName(DBTables.Player)},
-                    cut varchar(4) ${notNullLengthCheck("cut")}   
+                    cut varchar(4) ${notNullLengthCheck("cut")},
+                    is_crib boolean NOT NULL DEFAULT false
                 ) INHERITS(${getTableName(DBTables.HandHistory)});
             `.trim();
             runPostgresQuery(query, resolve);
