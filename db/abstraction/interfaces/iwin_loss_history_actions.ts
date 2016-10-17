@@ -1,13 +1,19 @@
 import {WinLossHistoryReturn} from "../return/db_return";
+import {WinLossHistory} from "../tables/win_loss_history";
 export interface IWinLossHistoryActions {
     /**
      * Create a new win-loss history record
-     * @param player_id the ID of the player who won/lost
-     * @param game_history_id the ID of the GameHistory that was won/lost
-     * @param won boolean indicating if this player won the game
+     * @param wlh the WinLossHistory object -- note the ID is ignored
      * @return {Q.Promise<WinLossHistoryReturn>} a promise to return the newly created row
      */
-    create(player_id:number, game_history_id:number, won:boolean):Q.Promise<WinLossHistoryReturn>;
+    create(wlh:WinLossHistory):Q.Promise<WinLossHistoryReturn>;
+
+    /**
+     * Create many win-loss history records
+     * @param wlhs
+     * @return {Q.Promise<WinLossHistoryReturn>} a promise to return the newly created rows
+     */
+    createMany(wlhs:Array<WinLossHistory>):Q.Promise<WinLossHistoryReturn>;
 
     /**
      * Find the win-loss history records associated with the given player
