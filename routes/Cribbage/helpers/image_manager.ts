@@ -74,14 +74,20 @@ module ImageConvert {
         return cardFilePath;
     }
 
-    var download = function(uri:string, filename:string, callback:any){
+    var download = function(uri:string, filename:string, successCallback:any, failureCallback:any){
         request.head(uri, function(err, res, body){
-            request(uri).pipe(fs.createWriteStream(filename)).on('close', callback);
+            if (err) {
+                console.error(`Error downloading ${filename} from ${uri}: ${err}`);
+                failureCallback(err);
+            }
+            else {
+                request(uri).pipe(fs.createWriteStream(filename)).on('close', successCallback);
+            }
         });
     };
 
     function downloadCard(card:Card): Q.Promise<string> {
-        return new Q.Promise((resolve) => {
+        return new Q.Promise((resolve, reject) => {
             var cardFilePath = `${cardsPath}${card.toUrlString()}`;
             if (fs.existsSync(cardFilePath)) {
                 console.log(`getting the ${card.toString()} from cache`);
@@ -91,9 +97,12 @@ module ImageConvert {
             else {
                 console.log(`About to download the ${card.toString()}`);
                 // Download the card
-                download(getCardImageUrl(card), cardFilePath, function () {
-                    resolve(cardFilePath);
-                });
+                download(
+                    getCardImageUrl(card),
+                    cardFilePath,
+                    function () { resolve(cardFilePath); },
+                    function(err:string) { reject(err); }
+                );
             }
         });
     }
@@ -135,37 +144,42 @@ module ImageConvert {
                 // Download all the cards asynchronously
                 promises.push(downloadCard(hand.itemAt(ix)));
             }
-            Q.Promise.all(promises).then(function (values) {
-                console.log("Finished downloading the cards, now create the final image");
-                // Merge together all the downloaded images
-                playerHandPath = `${imagesPath}${generateUniqueName(player, type)}.png`;
-                var width = 0, maxHeight = 0;
-                for (var jx = 0; jx < values.length; jx++) {
-                    var cardFilePath = values[jx];
-                    width += images(cardFilePath).width();
-                    var height = images(cardFilePath).height();
-                    if (height > maxHeight) {
-                        maxHeight = height;
+            Q.Promise.all(promises)
+                .then(function (values) {
+                    console.log("Finished downloading the cards, now create the final image");
+                    // Merge together all the downloaded images
+                    playerHandPath = `${imagesPath}${generateUniqueName(player, type)}.png`;
+                    var width = 0, maxHeight = 0;
+                    for (var jx = 0; jx < values.length; jx++) {
+                        var cardFilePath = values[jx];
+                        width += images(cardFilePath).width();
+                        var height = images(cardFilePath).height();
+                        if (height > maxHeight) {
+                            maxHeight = height;
+                        }
                     }
-                }
-                var playerHandImage = images(width, maxHeight);
-                var xOffset = 0;
-                width = 0;
-                for (var kx = 0; kx < values.length; kx++) {
-                    var filePath = values[kx];
-                    width += images(filePath).width();
-                    playerHandImage = playerHandImage.draw(images(filePath), xOffset, 0);
-                    xOffset = width;
-                }
-                console.log("Creating the final image...");
-                try {
-                    playerHandImage.save(playerHandPath);
-                }
-                catch (e) {
-                    reject(e);
-                }
-                resolve(playerHandPath);
-            });
+                    var playerHandImage = images(width, maxHeight);
+                    var xOffset = 0;
+                    width = 0;
+                    for (var kx = 0; kx < values.length; kx++) {
+                        var filePath = values[kx];
+                        width += images(filePath).width();
+                        playerHandImage = playerHandImage.draw(images(filePath), xOffset, 0);
+                        xOffset = width;
+                    }
+                    console.log("Creating the final image...");
+                    try {
+                        playerHandImage.save(playerHandPath);
+                    }
+                    catch (e) {
+                        reject(e);
+                    }
+                    resolve(playerHandPath);
+                })
+                .catch((err:any) => {
+                    console.error(`Q.Promise.all() rejected with ${err}`);
+                    reject(err);
+                });
         });
     }
 }
@@ -269,8 +283,11 @@ export class ImageManager {
             else {
                 // Create a new image and resolve on that
                 that.createPlayerHandImageAsync(player, hand)
-                    .done(function(handUrl:string){
+                    .then(function(handUrl:string){
                         resolve(handUrl);
+                    })
+                    .catch((err:any) => {
+                        reject(err);
                     });
             }
         });
@@ -296,6 +313,9 @@ export class ImageManager {
                     playerImages.pushImage(handPath, type);
                     that.playerImages.addItem(playerImages);
                     resolve(ImageConvert.makeLocalUrlPath(handPath));
+                })
+                .catch((err:any) => {
+                    reject(err);
                 });
         });
     }
