@@ -7,4 +7,12 @@ export interface IGameHistoryPlayerPivotActions {
      * @return {Q.Promise<GameHistoryPlayerReturn>} promise to return the newly created row
      */
     createAssociation(player_id:number, game_history_id:number): Q.Promise<GameHistoryPlayerReturn>;
+
+    /**
+     * Create the association between each of the given players and the GameHistory record
+     * @param player_ids
+     * @param game_history_id
+     * @return {Q.Promise<GameHistoryPlayerReturn>} promise to return the newly created rows
+     */
+    createAssociations(player_ids:Array<number>, game_history_id:number): Q.Promise<GameHistoryPlayerReturn>;
 }
