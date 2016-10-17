@@ -118,6 +118,8 @@ export class Cribbage extends CardGame<CribbagePlayer, StandardDeck> {
         if (this.numPlayers < 2 || this.numPlayers > 6)
             throw ErrorStrings.INVALID_NUMBER_OF_PLAYERS;
         this.mode = (this.numPlayers == 4 || this.numPlayers == 6 ? Mode.Team : Mode.FFA);
+        // Remove the previous winners, if there were any
+        this.winningTeam = null;
         if (this.mode == Mode.Team) {
             if (this.numPlayers == 4) {
                 this.teams = new Teams(new ItemCollection<CribbageTeam>([
@@ -154,6 +156,19 @@ export class Cribbage extends CardGame<CribbagePlayer, StandardDeck> {
      */
     isReady():boolean {
         return (this.kitty ? (this.kitty.countItems() == 4) : false);
+    }
+
+    /**
+     * Returns true if the player is on the winning team, false otherwise
+     * @param player
+     */
+    wonGame(player:string):boolean {
+        var gamePlayer = this.findPlayer(player);
+        var won = false;
+        if (gamePlayer != null && this.winningTeam != null) {
+            won = this.winningTeam.hasPlayer(gamePlayer);
+        }
+        return won;
     }
 
     /**
