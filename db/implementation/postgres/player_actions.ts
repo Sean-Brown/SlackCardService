@@ -1,8 +1,6 @@
 import {IPlayerActions} from "../../abstraction/interfaces/iplayer_actions";
-import {PlayerReturn, DBReturnStatus} from "../../abstraction/return/db_return";
-import {Player} from "../../abstraction/tables/player";
+import {PlayerReturn} from "../../abstraction/return/db_return";
 import {pg_mgr, PGQueryReturn} from "./manager";
-import {QueryResult} from "pg";
 import {DBTables, getTableName} from "../../abstraction/tables/base_table";
 var Q = require("q");
 
