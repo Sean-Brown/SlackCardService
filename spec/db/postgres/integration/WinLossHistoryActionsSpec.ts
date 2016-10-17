@@ -14,7 +14,7 @@ var Q = require("q");
 
 function createWinLossHistory(player_id:number, game_history_id:number, won:boolean): Q.Promise<WinLossHistory> {
     return new Q.Promise((resolve) => {
-        win_loss_history_actions.create(player_id, game_history_id, won)
+        win_loss_history_actions.create(new WinLossHistory(0, player_id, game_history_id, won))
             .then((ret:WinLossHistoryReturn) => {
                 verifyReturn(ret, "Expected a win-loss-history result");
                 resolve(ret.first());
@@ -116,6 +116,21 @@ describe("Test the 'win-loss history' actions", function() {
                 // fail the test
                 fail("Test should have succeeded");
             })
+            .finally(() => { done(); });
+    });
+    it("can add multiple rows at once", function(done) {
+        createPlayer("Donatello")
+            .then((result:Player) => {
+                return win_loss_history_actions.createMany([
+                    new WinLossHistory(0, player.id, gameHistory.id, true),
+                    new WinLossHistory(0, result.id, gameHistory.id)
+                ]);
+            })
+            .then((result:WinLossHistoryReturn) => {
+                expect(result.status).toBe(DBReturnStatus.ok);
+                expect(result.result.length).toEqual(2);
+            })
+            .catch(() => { fail("The test should have succeeded"); })
             .finally(() => { done(); });
     });
 });

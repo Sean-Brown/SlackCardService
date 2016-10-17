@@ -10,11 +10,12 @@ var Q = require("q");
 const player = "DaVinci";
 /**
  * Create a row for the player in the database
+ * @param playerName the name of the player, defaults to {player}
  * @returns the Player object for that row
  */
-export function createPlayer(): Q.Promise<Player> {
-    return new Q.Promise((resolve) => {
-        player_actions.create(player).then((ret: PlayerReturn) => {
+export function createPlayer(playerName:string = player): Q.Promise<Player> {
+    return new Q.Promise((resolve, reject) => {
+        player_actions.create(playerName).then((ret: PlayerReturn) => {
             verifyReturn(ret, "Expected a result from creating a game");
             resolve(ret.first());
         });

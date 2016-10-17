@@ -65,4 +65,20 @@ describe("Test the 'game-history-player' actions", function() {
             })
             .finally(() => { done(); });
     });
+    it("can create multiple game-history-player associations", function(done) {
+        createPlayer("Tesla")
+            .then((result:Player) => {
+                return game_history_player_actions.createAssociations([
+                    player.id, result.id
+                ], gameHistory.id);
+            })
+            .then((result:GameHistoryPlayerReturn) => {
+                expect(result.status).toEqual(DBReturnStatus.ok);
+                expect(result.result.length).toEqual(2);
+            })
+            .catch(() => {
+                fail("The test should have succeeded");
+            })
+            .finally(() => { done(); });
+    });
 });
