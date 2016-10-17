@@ -2,6 +2,7 @@ import {IWinLossHistoryActions} from "../../abstraction/interfaces/iwin_loss_his
 import {WinLossHistoryReturn} from "../../abstraction/return/db_return";
 import {pg_mgr, PGQueryReturn} from "./manager";
 import {DBTables, getTableName} from "../../abstraction/tables/base_table";
+import {WinLossHistory} from "../../abstraction/tables/win_loss_history";
 var Q = require("q");
 
 class WinLossHistoryActions implements IWinLossHistoryActions {
@@ -15,13 +16,25 @@ class WinLossHistoryActions implements IWinLossHistoryActions {
                 });
         });
     }
-    create(player_id:number, game_history_id:number, won:boolean):Q.Promise<WinLossHistoryReturn> {
+    create(wlh:WinLossHistory):Q.Promise<WinLossHistoryReturn> {
         var query = `
             INSERT INTO ${getTableName(DBTables.WinLossHistory)} (player_id, game_history_id, won) 
-            VALUES (${player_id}, ${game_history_id}, ${won}) 
+            VALUES (${wlh.player_id}, ${wlh.game_history_id}, ${wlh.won}) 
             RETURNING *;
         `.trim();
         return this.runQueryReturning(query);
+    }
+    createMany(wlhs:Array<WinLossHistory>):Q.Promise<WinLossHistoryReturn> {
+        var query = [`INSERT INTO ${getTableName(DBTables.WinLossHistory)} (player_id, game_history_id, won) VALUES\n`];
+        for (let ix = 0; ix < wlhs.length; ix++) {
+            let wlh = wlhs[ix];
+            query.push(`(${wlh.player_id}, ${wlh.game_history_id}, ${wlh.won})`);
+            query.push(",\n");
+        }
+        // Remove the last comma
+        query.pop();
+        query.push("\nRETURNING *;");
+        return this.runQueryReturning(query.join(""));
     }
     get(player:string):Q.Promise<WinLossHistoryReturn> {
         var query = `
