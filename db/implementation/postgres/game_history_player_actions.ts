@@ -1,4 +1,4 @@
-import {GameHistoryPlayerReturn, DBReturnStatus} from "../../abstraction/return/db_return";
+import {GameHistoryPlayerReturn} from "../../abstraction/return/db_return";
 import {IGameHistoryPlayerPivotActions} from "../../abstraction/interfaces/igame_history_player_actions";
 import {pg_mgr, PGQueryReturn} from "./manager";
 import {DBTables, getTableName} from "../../abstraction/tables/base_table";
@@ -22,6 +22,17 @@ class GameHistoryPlayerPivotActions implements IGameHistoryPlayerPivotActions {
             RETURNING *;
         `.trim();
         return this.runQueryReturning(query);
+    }
+    createAssociations(player_ids:Array<number>, game_history_id:number): Q.Promise<GameHistoryPlayerReturn> {
+        var query = [`INSERT INTO ${getTableName(DBTables.GameHistoryPlayer)} (player_id, game_history_id) VALUES\n`];
+        for (let ix = 0; ix < player_ids.length; ix++) {
+            query.push(`(${player_ids[ix]}, ${game_history_id})`);
+            query.push(",\n");
+        }
+        // Remove the last comma
+        query.pop();
+        query.push("\nRETURNING *;");
+        return this.runQueryReturning(query.join(''));
     }
 }
 export var game_history_player_actions = new GameHistoryPlayerPivotActions();
