@@ -77,15 +77,15 @@ export module CribbageRoutes {
     }
 
     // SB TODO: refactor into an env file
-    enum Tokens {
-        joinGame = <any>process.env.ST_JOIN_GAME,
-        describe = <any>process.env.ST_DESCRIBE,
-        resetGame = <any>process.env.ST_RESET_GAME,
-        beginGame = <any>process.env.ST_BEGIN_GAME,
-        showHand = <any>process.env.ST_SHOW_HAND,
-        playCard = <any>process.env.ST_PLAY_CARD,
-        throwCard = <any>process.env.ST_THROW_CARD,
-        go = <any>process.env.ST_GO
+    class Tokens {
+        public static get joinGame() { return process.env.ST_JOIN_GAME; }
+        public static get describe() { return process.env.ST_DESCRIBE; }
+        public static get resetGame() { return process.env.ST_RESET_GAME; }
+        public static get beginGame() { return process.env.ST_BEGIN_GAME; }
+        public static get showHand() { return process.env.ST_SHOW_HAND; }
+        public static get playCard() { return process.env.ST_PLAY_CARD; }
+        public static get throwCard() { return process.env.ST_THROW_CARD; }
+        public static get go() { return process.env.ST_GO; }
     }
 
     export enum Routes {
@@ -362,6 +362,21 @@ export module CribbageRoutes {
             return playerIDs;
         }
 
+        private resetGameState():CribbageResponse {
+            var response = Router.makeResponse(200, CribbageStrings.MessageStrings.GAME_RESET, SlackResponseType.ephemeral);
+            Router.roundOverResetImages(this.currentGame);
+            this.currentGame = new Cribbage(new Players<CribbagePlayer>([]));
+            return response;
+        }
+
+        private sendResetGameResponse(req:Request, res:Response, player:string, response:CribbageResponse, reset:boolean) {
+            Router.sendResponse(response, res);
+            if (reset) {
+                response.data.response_type = SlackResponseType.in_channel;
+                response.data.text = `${response.data.text} by ${player}`;
+                Router.sendDelayedResponse(response.data, Router.getResponseUrl(req));
+            }
+        }
 
         /**
          * NOTE:
@@ -464,31 +479,32 @@ export module CribbageRoutes {
             var player = Router.getPlayerName(req);
             var response = Router.makeErrorResponse(`You're not allowed to reset the game, ${player}!!`, SlackResponseType.in_channel);
             var reset = false;
+            var that = this;
             if (!Router.verifyRequest(req, Routes.resetGame)) {
                 response = Router.VALIDATION_FAILED_RESPONSE;
             }
             else if (secret != null && secret == (process.env.CRIB_RESET_SECRET || "secret")) {
-                // Allow the game to be reset
-                DBRoutes.router.resetGame(this.currentGameHistoryID)
-                    .then((result:boolean) => {
-                        if (result) {
-                            // Success
-                            response = Router.makeResponse(200, CribbageStrings.MessageStrings.GAME_RESET, SlackResponseType.ephemeral);
-                            Router.roundOverResetImages(this.currentGame);
-                            this.currentGame = new Cribbage(new Players<CribbagePlayer>([]));
-                            reset = true;
-                        }
-                        else {
-                            // Failure
-                            response = Router.makeErrorResponse("Failed to reset the game in the database");
-                        }
-                        Router.sendResponse(response, res);
-                        if (reset) {
-                            response.data.response_type = SlackResponseType.in_channel;
-                            response.data.text = `${response.data.text} by ${player}`;
-                            Router.sendDelayedResponse(response.data, Router.getResponseUrl(req));
-                        }
-                    });
+                if (that.currentGameHistoryID) {
+                    // Allow the game to be reset
+                    DBRoutes.router.resetGame(that.currentGameHistoryID)
+                        .then((result: boolean) => {
+                            if (result) {
+                                // Success
+                                response = that.resetGameState();
+                                reset = true;
+                            }
+                            else {
+                                // Failure
+                                response = Router.makeErrorResponse("Failed to reset the game in the database");
+                            }
+                            that.sendResetGameResponse(req, res, player, response, reset);
+                        });
+                }
+                else {
+                    response = that.resetGameState();
+                    reset = true;
+                    that.sendResetGameResponse(req, res, player, response, reset);
+                }
             }
         }
 
