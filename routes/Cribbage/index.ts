@@ -78,14 +78,14 @@ export module CribbageRoutes {
 
     // SB TODO: refactor into an env file
     enum Tokens {
-        joinGame = <any>"WMYyNOpoJRM4dbNBp6x9yOqP",
-        describe = <any>"IA5AtVdbkur2aIGw1B549SgD",
-        resetGame = <any>"43LROOjSf8qa3KPYXvmxgdt1",
-        beginGame = <any>"GECanrrjA8dYMlv2e4jkLQGe",
-        showHand = <any>"Xa73JDXrWDnU276yqwremEsO",
-        playCard = <any>"hnlyb5m5PfRNWyGJ3VNb8nkt",
-        throwCard = <any>"2tanrKih6wNcq662RFlI1jnZ",
-        go = <any>"WdOvhPaczrOv6p8snxJSwLvL"
+        joinGame = <any>process.env.ST_JOIN_GAME,
+        describe = <any>process.env.ST_DESCRIBE,
+        resetGame = <any>process.env.ST_RESET_GAME,
+        beginGame = <any>process.env.ST_BEGIN_GAME,
+        showHand = <any>process.env.ST_SHOW_HAND,
+        playCard = <any>process.env.ST_PLAY_CARD,
+        throwCard = <any>process.env.ST_THROW_CARD,
+        go = <any>process.env.ST_GO
     }
 
     export enum Routes {
@@ -154,8 +154,8 @@ export module CribbageRoutes {
 
         private static makeErrorResponse(
             text:string,
-            status:number=500,
             response_type:SlackResponseType=SlackResponseType.ephemeral,
+            status:number=500,
             attachments:Array<CribbageResponseAttachment>=[]
         ): CribbageResponse {
             return Router.makeResponse(status, text, response_type, attachments);
@@ -344,7 +344,7 @@ export module CribbageRoutes {
                         // Something went wrong
                         console.error(result.message);
                         Router.sendDelayedResponse(
-                            Router.makeErrorResponse(result.message, 500, SlackResponseType.in_channel).data,
+                            Router.makeErrorResponse(result.message, SlackResponseType.in_channel).data,
                             Router.getResponseUrl(req)
                         );
                     }
@@ -440,7 +440,6 @@ export module CribbageRoutes {
                             Router.sendResponse(
                                 Router.makeErrorResponse(
                                     "Unable to create the game-history record in the database",
-                                    500,
                                     SlackResponseType.in_channel
                                 ),
                                 res
@@ -452,7 +451,6 @@ export module CribbageRoutes {
                     Router.sendResponse(
                         Router.makeErrorResponse(
                             `Cannot start the game, an error has occurred: ${e}`,
-                            500,
                             SlackResponseType.in_channel
                         ),
                         res
@@ -733,7 +731,7 @@ export module CribbageRoutes {
                             if (error.length > 0) {
                                 // Something went wrong
                                 Router.sendDelayedResponse(
-                                    Router.makeErrorResponse(`Error saving your hands to the database: ${error}`, 500, SlackResponseType.in_channel).data,
+                                    Router.makeErrorResponse(`Error saving your hands to the database: ${error}`, SlackResponseType.in_channel).data,
                                     Router.getResponseUrl(req)
                                 );
                             }
