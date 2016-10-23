@@ -16,13 +16,23 @@ import CribbageResponseData = CribbageRoutes.CribbageResponseData;
 
 "use strict";
 import {deleteTables} from "../db/postgres/integration/CreateTablesSpec";
+import {player_actions} from "../../db/implementation/postgres/player_actions";
+import {
+    PlayerReturn, DBReturnStatus, GameReturn, DBReturn,
+    GameHistoryReturn, GameHistoryPlayerReturn
+} from "../../db/abstraction/return/db_return";
+import {game_actions} from "../../db/implementation/postgres/game_actions";
+import {Games} from "../../db/implementation/games";
+import {game_history_actions} from "../../db/implementation/postgres/game_history_actions";
+import {game_history_player_actions} from "../../db/implementation/postgres/game_history_player_actions";
 
 var request = require("supertest"),
     async   = require("async"),
     expect  = require("expect");
 
 describe("Integration test the Cribbage game between two players", function() {
-    var PeterGriffin:CribbagePlayer, HomerSimpson:CribbagePlayer;
+    var PeterGriffin:CribbagePlayer, HomerSimpson:CribbagePlayer,
+        cribbageID:number, currentGameID:number;
 
     /*
        Before all the tests run, make sure to create a fresh instance of the application
@@ -61,6 +71,40 @@ describe("Integration test the Cribbage game between two players", function() {
         });
     }
 
+    function expectSuccess<TableClass>(result:DBReturn<TableClass>) {
+        expect(result.status).toEqual(DBReturnStatus.ok);
+    }
+
+    function expectPlayerInDatabase(player:CribbagePlayer): Q.Promise<void> {
+        // Expect the player to be in the 'player' database table
+        return player_actions.findByName(player.name)
+            .then((result:PlayerReturn) => {
+                expectSuccess(result);
+                return findGameHistoryPlayer(result.first().id);
+            });
+    }
+
+    function findGameInDatabase(): Q.Promise<void> {
+        return game_actions.findByName(Games.Cribbage)
+            .then((result:GameReturn) => {
+                expectSuccess(result);
+                cribbageID = result.first().id;
+                // Find the game history
+                return game_history_actions.findMostRecent(cribbageID);
+            })
+            .then((result:GameHistoryReturn) => {
+                expectSuccess(result);
+                currentGameID = result.first().id;
+            });
+    }
+
+    function findGameHistoryPlayer(player_id:number): Q.Promise<void> {
+        return game_history_player_actions.findAssociation(player_id, currentGameID)
+            .then((result:GameHistoryPlayerReturn) => {
+                expectSuccess(result);
+            });
+    }
+
     function joinGameAndBeginSeries(agent) {
         return [
             function(cb) {
@@ -95,6 +139,13 @@ describe("Integration test the Cribbage game between two players", function() {
                             return true; // Return true to indicate an error, see the SuperTest documentation
                     })
                     .end(cb);
+            },
+            function(cb) {
+                // Find the game, game_history, and player in the database
+                findGameInDatabase()
+                    .then(() => { return expectPlayerInDatabase(PeterGriffin); })
+                    .then(() => { return expectPlayerInDatabase(HomerSimpson); })
+                    .finally(() => { cb(); });
             }
         ];
     }
