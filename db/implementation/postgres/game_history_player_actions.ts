@@ -34,5 +34,13 @@ class GameHistoryPlayerPivotActions implements IGameHistoryPlayerPivotActions {
         query.push("\nRETURNING *;");
         return this.runQueryReturning(query.join(''));
     }
+    findAssociation(player_id:number, game_history_id:number): Q.Promise<GameHistoryPlayerReturn> {
+        var query = `
+            SELECT * 
+            FROM ${getTableName(DBTables.GameHistoryPlayer)}
+            WHERE player_id=${player_id} AND game_history_id=${game_history_id};
+        `.trim();
+        return this.runQueryReturning(query);
+    }
 }
 export var game_history_player_actions = new GameHistoryPlayerPivotActions();

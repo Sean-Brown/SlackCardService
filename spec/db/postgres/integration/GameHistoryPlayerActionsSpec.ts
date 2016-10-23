@@ -81,4 +81,17 @@ describe("Test the 'game-history-player' actions", function() {
             })
             .finally(() => { done(); });
     });
+    it("can find the game-history-player assocation", function(done) {
+        createGameHistoryPlayer(player.id, gameHistory.id)
+            .then(() => {
+                return game_history_player_actions.findAssociation(player.id, gameHistory.id);
+            })
+            .then((result:GameHistoryPlayerReturn) => {
+                verifyReturn(result, "Expected a game-history-player return value");
+            })
+            .catch(() => {
+                fail("The test should have succeeded");
+            })
+            .finally(() => { done(); });
+    });
 });

@@ -15,4 +15,11 @@ export interface IGameHistoryPlayerPivotActions {
      * @return {Q.Promise<GameHistoryPlayerReturn>} promise to return the newly created rows
      */
     createAssociations(player_ids:Array<number>, game_history_id:number): Q.Promise<GameHistoryPlayerReturn>;
+
+    /**
+     * Find the game-history-player association in the database
+     * @param player_id
+     * @param game_history_id
+     */
+    findAssociation(player_id:number, game_history_id:number): Q.Promise<GameHistoryPlayerReturn>;
 }
