@@ -127,7 +127,7 @@ export module DBRoutes {
                         game_history_actions.create(game_history_id)
                             .then((result:GameHistoryReturn) => {
                                 if (result.status != DBReturnStatus.ok) {
-                                    console.log(result.message);
+                                    console.error(result.message);
                                     reject(null);
                                 }
                                 else {
