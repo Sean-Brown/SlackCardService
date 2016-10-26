@@ -6,6 +6,7 @@ import {readConfigFromEnv} from "./setEnv";
 import {deleteTables} from "./CreateTablesSpec";
 import {GameReturn, DBReturnStatus, DBReturn} from "../../../../db/abstraction/return/db_return";
 import {Game} from "../../../../db/abstraction/tables/game";
+import {verifyReturn} from "../../../verifyReturn";
 var Q = require("q");
 
 // Create an entry in the game table
@@ -26,10 +27,6 @@ export function createGame(): Q.Promise<Game> {
                 reject(null);
             });
     });
-}
-export function verifyReturn<ReturnType>(ret:DBReturn<ReturnType>, resultIsNullMsg:string) {
-    expect(ret.status).toEqual(DBReturnStatus.ok);
-    expect(ret.first()).not.toBeNull(resultIsNullMsg);
 }
 describe("Test the 'game' actions", function() {
     beforeEach(function(done) {

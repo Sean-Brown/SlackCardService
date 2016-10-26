@@ -1,7 +1,8 @@
 import {deleteTables} from "./CreateTablesSpec";
 import {PostgresTables} from "../../../../db/implementation/postgres/create_tables";
 import {Game} from "../../../../db/abstraction/tables/game";
-import {createGame, verifyReturn} from "./GameActionsSpec";
+import {createGame} from "./GameActionsSpec";
+import {verifyReturn} from "../../../verifyReturn";
 import {readConfigFromEnv} from "./setEnv";
 import {GameHistory} from "../../../../db/abstraction/tables/game_history";
 import {createGameHistory} from "./GameHistoryActionsSpec";

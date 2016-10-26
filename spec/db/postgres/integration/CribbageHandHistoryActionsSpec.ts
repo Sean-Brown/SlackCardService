@@ -4,13 +4,13 @@ import {Player} from "../../../../db/abstraction/tables/player";
 import {GameHistory} from "../../../../db/abstraction/tables/game_history";
 import {Game} from "../../../../db/abstraction/tables/game";
 import {readConfigFromEnv} from "./setEnv";
-import {createGame, verifyReturn} from "./GameActionsSpec";
+import {createGame} from "./GameActionsSpec";
 import {createPlayer} from "./PlayerActionsSpec";
 import {createGameHistory} from "./GameHistoryActionsSpec";
 import {cribbage_hand_history_actions} from "../../../../db/implementation/postgres/cribbage_hand_history_actions";
 import {CribbageHandHistoryReturn, DBReturnStatus} from "../../../../db/abstraction/return/db_return";
 import {CribbageHandHistory} from "../../../../db/abstraction/tables/cribbage_hand_history";
-import {Cribbage} from "../../../../card_service/implementations/cribbage";
+import {verifyReturn} from "../../../verifyReturn";
 var Q = require("q");
 
 const hand = "4s-4c-5d-6s";

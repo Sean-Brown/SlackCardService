@@ -2,9 +2,9 @@ import {deleteTables} from "./CreateTablesSpec";
 import {readConfigFromEnv} from "./setEnv";
 import {PostgresTables} from "../../../../db/implementation/postgres/create_tables";
 import {Player} from "../../../../db/abstraction/tables/player";
-import {DBReturnStatus, PlayerReturn} from "../../../../db/abstraction/return/db_return";
+import {PlayerReturn} from "../../../../db/abstraction/return/db_return";
 import {player_actions} from "../../../../db/implementation/postgres/player_actions";
-import {verifyReturn} from "./GameActionsSpec";
+import {verifyReturn} from "../../../verifyReturn";
 var Q = require("q");
 
 const player = "DaVinci";
