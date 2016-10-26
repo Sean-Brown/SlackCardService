@@ -76,8 +76,7 @@ export module CribbageRoutes {
         }
     }
 
-    // SB TODO: refactor into an env file
-    class Tokens {
+    export class Tokens {
         public static get joinGame() { return process.env.ST_JOIN_GAME; }
         public static get describe() { return process.env.ST_DESCRIBE; }
         public static get resetGame() { return process.env.ST_RESET_GAME; }
@@ -88,15 +87,15 @@ export module CribbageRoutes {
         public static get go() { return process.env.ST_GO; }
     }
 
-    export enum Routes {
-        joinGame = <any>"/joinGame",
-        beginGame = <any>"/beginGame",
-        resetGame = <any>"/resetGame",
-        describe = <any>"/describe",
-        showHand = <any>"/showHand",
-        playCard = <any>"/playCard",
-        throwCard = <any>"/throw",
-        go = <any>"/go"
+    export class Routes {
+        public static get joinGame() { return "/joinGame"; }
+        public static get beginGame() { return "/beginGame"; }
+        public static get resetGame() { return "/resetGame"; }
+        public static get describe() { return "/describe"; }
+        public static get showHand() { return "/showHand"; }
+        public static get playCard() { return "/playCard"; }
+        public static get throwCard() { return "/throw"; }
+        public static get go() { return "/go"; }
     }
 
     function removeSpaces(str:string):string {
@@ -441,13 +440,13 @@ export module CribbageRoutes {
                     // Create the game-history row in the database
                     var that = this;
                     var playerIDs = that.getPlayerIDs();
-                    DBRoutes.router.createGameHistory(this.cribbageID, playerIDs)
+                    DBRoutes.router.createGameHistory(that.cribbageID, playerIDs)
                         .then((gameHistory:GameHistory) => {
                             that.currentGameHistoryID = gameHistory.id;
-                            this.currentGame.begin();
-                            response.data.text = `${CribbageStrings.MessageStrings.FMT_START_GAME}${this.currentGame.dealer.name}'s crib.`;
+                            that.currentGame.begin();
+                            response.data.text = `${CribbageStrings.MessageStrings.FMT_START_GAME}${that.currentGame.dealer.name}'s crib.`;
                             response.data.attachments.push(
-                                new CribbageResponseAttachment(`Players: ${this.currentGame.printPlayers()}`)
+                                new CribbageResponseAttachment(`Players: ${that.currentGame.printPlayers()}`)
                             );
                             Router.sendResponse(response, res);
                         })
@@ -720,58 +719,64 @@ export module CribbageRoutes {
                     response = Router.makeErrorResponse(e);
                 }
             }
-            if (response.status != 200 || cribRes.gameOver) {
-                // send the response right away
-                Router.sendResponse(response, res);
-                if (cribRes.gameOver) {
-                    // Record the wins/losses in the database
-                    this.recordResult(req);
+            if (cribRes != null) {
+                if (response.status != 200 || cribRes.gameOver) {
+                    // send the response right away
+                    Router.sendResponse(response, res);
+                    if (cribRes.gameOver) {
+                        // Record the wins/losses in the database
+                        this.recordResult(req);
+                    }
+                }
+                else {
+                    // send a dummy response just to acknowledge the command was received
+                    Router.sendResponse(Router.makeResponse(200, "Thanks for throwing!"), res);
+                }
+                if (response.status == 200 && !cribRes.gameOver) {
+                    Router.sendDelayedResponse(
+                        new CribbageResponseData(
+                            SlackResponseType.in_channel,
+                            `${player} threw to the kitty`
+                        )
+                        , responseUrl
+                    );
+                    if (this.currentGame.isReady()) {
+                        // Record each player's hand plus the kitty in the database
+                        this.recordCribbageHands()
+                            .then((error: string) => {
+                                if (error.length > 0) {
+                                    // Something went wrong
+                                    Router.sendDelayedResponse(
+                                        Router.makeErrorResponse(`Error saving your hands to the database: ${error}`, SlackResponseType.in_channel).data,
+                                        Router.getResponseUrl(req)
+                                    );
+                                }
+                                // Let the players know it's time to begin the game
+                                var text = `The game is ready to begin. Play a card ${this.currentGame.nextPlayerInSequence.name}.\n` +
+                                    `${Cribbage.cutEmoji}  The cut card is:`;
+                                if (cribRes.message.length > 0) {
+                                    text = `${cribRes.message}\n${text}`;
+                                }
+                                Router.sendDelayedResponse(
+                                    new CribbageResponseData(
+                                        SlackResponseType.in_channel,
+                                        "",
+                                        [new CribbageResponseAttachment(
+                                            text,
+                                            "",
+                                            ImageManager.getCardImageUrl(this.currentGame.cut)
+                                        )]
+                                    ),
+                                    responseUrl,
+                                    2000
+                                );
+                            });
+                    }
                 }
             }
             else {
                 // send a dummy response just to acknowledge the command was received
                 Router.sendResponse(Router.makeResponse(200, "Thanks for throwing!"), res);
-            }
-            if (response.status == 200 && !cribRes.gameOver) {
-                Router.sendDelayedResponse(
-                    new CribbageResponseData(
-                        SlackResponseType.in_channel,
-                        `${player} threw to the kitty`
-                    )
-                    , responseUrl
-                );
-                if (this.currentGame.isReady()) {
-                    // Record each player's hand plus the kitty in the database
-                    this.recordCribbageHands()
-                        .then((error:string) => {
-                            if (error.length > 0) {
-                                // Something went wrong
-                                Router.sendDelayedResponse(
-                                    Router.makeErrorResponse(`Error saving your hands to the database: ${error}`, SlackResponseType.in_channel).data,
-                                    Router.getResponseUrl(req)
-                                );
-                            }
-                            // Let the players know it's time to begin the game
-                            var text = `The game is ready to begin. Play a card ${this.currentGame.nextPlayerInSequence.name}.\n`+
-                                `${Cribbage.cutEmoji}  The cut card is:`;
-                            if (cribRes.message.length > 0) {
-                                text = `${cribRes.message}\n${text}`;
-                            }
-                            Router.sendDelayedResponse(
-                                new CribbageResponseData(
-                                    SlackResponseType.in_channel,
-                                    "",
-                                    [new CribbageResponseAttachment(
-                                        text,
-                                        "",
-                                        ImageManager.getCardImageUrl(this.currentGame.cut)
-                                    )]
-                                ),
-                                responseUrl,
-                                2000
-                            );
-                        });
-                }
             }
         }
 
