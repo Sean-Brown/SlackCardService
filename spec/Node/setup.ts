@@ -9,7 +9,7 @@ var Q = require("q");
 
 var express = require("express");
 
-interface TestClass extends Mocha.ITest {
+export interface TestClass extends Mocha.ITest {
     app: Express;
 }
 
