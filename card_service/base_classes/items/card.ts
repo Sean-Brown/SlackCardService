@@ -41,7 +41,12 @@ export class BaseCard implements IItem {
         return (this.suit == card.suit && this.value == card.value);
     }
     shortString():string {
-        return `${Value[this.value].substring(0, 1)} ${Suit[this.suit].substring(0, 1)}`;
+        if (this.value > 1 && this.value < 10) {
+            return `${this.value}${Suit[this.suit].substring(0,1)}`;
+        }
+        else {
+            return `${Value[this.value].substring(0, 1)}${Suit[this.suit].substring(0, 1)}`;
+        }
     }
     toString():string {
         return `${Value[this.value]} of ${Suit[this.suit]}`;
