@@ -1,23 +1,20 @@
 import {CribbageStrings} from "../../card_service/implementations/cribbage";
 import {CribbageRoutes} from "../../routes/Cribbage";
-import {BaseCard as Card, Suit, Value} from "../../card_service/base_classes/items/card";
+import {Value} from "../../card_service/base_classes/items/card";
 import Router = CribbageRoutes.Router;
+import {aceOfSpades, fourOfHearts, tenOfClubs, queenOfDiamonds} from "../StandardCards";
 
 describe("Test the logic of the CribbageRoutes module", function() {
     describe("Test parsing cards", function() {
-        var aceOfSpaces     = new Card(Suit.Spades,     Value.Ace),
-            fourOfHearts    = new Card(Suit.Hearts,     Value.Four),
-            tenOfClubs      = new Card(Suit.Clubs,      Value.Ten),
-            queenOfDiamonds = new Card(Suit.Diamonds,   Value.Queen);
         it("parses one card correctly", function() {
             var cards = Router.parseCards("AS");
             expect(cards.length).toEqual(1);
-            expect(cards[0].equalsOther(aceOfSpaces)).toBe(true);
+            expect(cards[0].equalsOther(aceOfSpades)).toBe(true);
         });
         it("parses two cards correctly", function() {
             var cards = Router.parseCards("AS 4H");
             expect(cards.length).toEqual(2);
-            expect(cards[0].equalsOther(aceOfSpaces)).toBe(true);
+            expect(cards[0].equalsOther(aceOfSpades)).toBe(true);
             expect(cards[1].equalsOther(fourOfHearts)).toBe(true);
         });
         it("allows a ten to be entered as '10' or 't'", function() {
@@ -29,7 +26,7 @@ describe("Test the logic of the CribbageRoutes module", function() {
         it("parses multiple cards correctly", function() {
             var cards = Router.parseCards("AS 4H 10C QD");
             expect(cards.length).toEqual(4);
-            expect(cards[0].equalsOther(aceOfSpaces)).toBe(true);
+            expect(cards[0].equalsOther(aceOfSpades)).toBe(true);
             expect(cards[1].equalsOther(fourOfHearts)).toBe(true);
             expect(cards[2].equalsOther(tenOfClubs)).toBe(true);
             expect(cards[3].equalsOther(queenOfDiamonds)).toBe(true);
@@ -37,7 +34,7 @@ describe("Test the logic of the CribbageRoutes module", function() {
         it("strips all spaces", function() {
             var cards = Router.parseCards("  AS  4H  ");
             expect(cards.length).toEqual(2);
-            expect(cards[0].equalsOther(aceOfSpaces)).toBe(true);
+            expect(cards[0].equalsOther(aceOfSpades)).toBe(true);
             expect(cards[1].equalsOther(fourOfHearts)).toBe(true);
         });
         it("does a case-insensitive match", function() {

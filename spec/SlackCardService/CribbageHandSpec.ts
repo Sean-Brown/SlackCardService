@@ -1,15 +1,8 @@
 /// <reference path="../../typings/index.d.ts" />
-/// <reference path="../../card_service/base_classes/collections/hand.ts" />
-/// <reference path="../../card_service/implementations/cribbage_player.ts" />
-/// <reference path="../../card_service/implementations/cribbage_team.ts" />
-/// <reference path="../../card_service/implementations/cribbage.ts" />
-/// <reference path="../../card_service/base_classes/card_game.ts" />
 
 import fs = require("fs");
 import {CribbageHand} from "../../card_service/implementations/cribbage_hand";
 import {ImageManager} from "../../routes/Cribbage/helpers/image_manager";
-
-"use strict";
 import {
     aceOfClubs, fourOfHearts, eightOfClubs, eightOfHearts, queenOfSpades, aceOfDiamonds,
     aceOfSpades, sixOfSpades, tenOfDiamonds, tenOfClubs, fourOfSpades, twoOfClubs, threeOfSpades, threeOfHearts,
@@ -17,6 +10,8 @@ import {
     fiveOfDiamonds, fourOfDiamonds, threeOfDiamonds, twoOfSpades, twoOfHearts, twoOfDiamonds, kingOfHearts, jackOfClubs,
     eightOfDiamonds, eightOfSpades, fiveOfClubs, fiveOfHearts
 } from "../StandardCards";
+
+"use strict";
 
 describe("Test a Cribbage game between two players", function() {
     beforeEach(function() {

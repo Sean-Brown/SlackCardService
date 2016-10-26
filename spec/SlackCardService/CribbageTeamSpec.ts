@@ -1,12 +1,12 @@
 /// <reference path="../../typings/index.d.ts" />
-/// <reference path="../../card_service/base_classes/collections/hand.ts" />
-/// <reference path="../../card_service/implementations/cribbage_team.ts" />
-/// <reference path="../../card_service/implementations/cribbage_player.ts" />
 
 import {CribbagePlayer} from "../../card_service/implementations/cribbage_player";
 import {CribbageHand} from "../../card_service/implementations/cribbage_hand";
 import {CribbageTeam} from "../../card_service/implementations/cribbage_team";
-import {BaseCard, Suit, Value} from "../../card_service/base_classes/items/card";
+import {
+    jackOfHearts, sevenOfDiamonds, sixOfClubs, aceOfSpades, fourOfSpades, kingOfHearts,
+    queenOfDiamonds, sevenOfClubs
+} from "../StandardCards";
 
 describe("Test the Cribbage Team's functionality", function() {
     var team;
@@ -14,16 +14,16 @@ describe("Test the Cribbage Team's functionality", function() {
     var playerTwo;
     beforeEach(function() {
         playerOne = new CribbagePlayer("Bob", new CribbageHand([
-            new BaseCard(Suit.Spades, Value.Ace),
-            new BaseCard(Suit.Clubs, Value.Six),
-            new BaseCard(Suit.Diamonds, Value.Seven),
-            new BaseCard(Suit.Hearts, Value.Jack)
+            aceOfSpades,
+            sixOfClubs,
+            sevenOfDiamonds,
+            jackOfHearts
         ]));
         playerTwo = new CribbagePlayer("Steve", new CribbageHand([
-            new BaseCard(Suit.Spades, Value.Four),
-            new BaseCard(Suit.Clubs, Value.Seven),
-            new BaseCard(Suit.Diamonds, Value.Queen),
-            new BaseCard(Suit.Hearts, Value.King)
+            fourOfSpades,
+            sevenOfClubs,
+            queenOfDiamonds,
+            kingOfHearts
         ]));
     	team = new CribbageTeam(1, [playerOne, playerTwo]);
     });

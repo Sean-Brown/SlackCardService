@@ -1,6 +1,4 @@
 /// <reference path="../../typings/index.d.ts" />
-/// <reference path="../../card_service/base_classes/items/card.ts" />
-/// <reference path="../../card_service/implementations/standard_deck.ts" />
 
 import {StandardDeck} from "../../card_service/implementations/standard_deck";
 import {BaseCard} from "../../card_service/base_classes/items/card";
