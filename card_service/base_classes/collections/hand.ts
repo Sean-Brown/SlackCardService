@@ -34,4 +34,17 @@ export class BaseHand extends ItemCollection<Card> implements HandActions {
     size() {
         return this.items.length;
     }
+
+    /**
+     * Return the hand in short-string form, for example:
+     * three of clubs, two of spades would return "3c 2s"
+     * @returns {string}
+     */
+    toShortString():string {
+        var str = [];
+        for (let ix = 0; ix < this.countItems(); ix++) {
+            str.push(this.itemAt(ix).shortString());
+        }
+        return str.join(" ");
+    }
 }

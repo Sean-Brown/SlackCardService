@@ -1,4 +1,4 @@
-/// <reference path="../../../typings/tsd.d.ts" />
+/// <reference path="../../../typings/index.d.ts" />
 /// <reference path="../../../card_service/interfaces/iitem" />
 /// <reference path="../../../card_service/base_classes/collections/item_collection" />
 /// <reference path="../../../card_service/implementations/cribbage.ts" />
@@ -8,7 +8,6 @@
 
 import request = require("request");
 import fs = require("fs");
-import Promise = require("promise");
 //if (process.env.NODE_ENV != "Production")
 //require('promise/lib/rejection-tracking').enable();
 import images = require("images");
@@ -19,6 +18,7 @@ import {ItemCollection} from "../../../card_service/base_classes/collections/ite
 import {Sequence} from "../../../card_service/base_classes/card_game";
 import {sep} from "path";
 import {CribbagePlayer} from "../../../card_service/implementations/cribbage_player";
+var Q = require("q");
 
 
 function mkdirSync(path:string):void {
@@ -48,19 +48,46 @@ module ImageConvert {
     var cardsPath = process.env.TMP_CARDS_PATH || "public/cards/";
     cardsPath = endWithSlash(cardsPath);
 
-    export function getCardImageUrl(card:Card, deckType:string="Default"): string {
-        var cardUrlStr = card.toUrlString();
-        return `${process.env.AWS_S3_STANDARD_DECK_URL}${deckType}/${cardUrlStr}`;
+    export function makeLocalUrlPath(imagePath:string):string {
+        var path = `${process.env.APP_HOST_URL}/${imagePath}`;
+        console.log(`returning local url path ${path}`);
+        return path;
     }
 
-    var download = function(uri:string, filename:string, callback:any){
+    /**
+     * Get a url to the card's image. The image either exists locally (in which case return
+     * the url string for the local card
+     * @param card
+     * @param deckType
+     * @returns {*}
+     */
+    export function getCardImageUrl(card:Card, deckType:string="Default"): string {
+        var cardUrlStr = card.toUrlString(), cardFilePath = `${cardsPath}${cardUrlStr}`;
+        if (fs.existsSync(cardFilePath)) {
+            // Give the url to the card on the heroku server
+            cardFilePath = makeLocalUrlPath(cardFilePath);
+        }
+        else {
+            // Give the S3 url
+            cardFilePath = `${process.env.AWS_S3_STANDARD_DECK_URL}${deckType}/${cardUrlStr}`;
+        }
+        return cardFilePath;
+    }
+
+    var download = function(uri:string, filename:string, successCallback:any, failureCallback:any){
         request.head(uri, function(err, res, body){
-            request(uri).pipe(fs.createWriteStream(filename)).on('close', callback);
+            if (err) {
+                console.error(`Error downloading ${filename} from ${uri}: ${err}`);
+                failureCallback(err);
+            }
+            else {
+                request(uri).pipe(fs.createWriteStream(filename)).on('close', successCallback);
+            }
         });
     };
 
-    function downloadCard(card:Card): Promise {
-        return new Promise(function(resolve, reject) {
+    function downloadCard(card:Card): Q.Promise<string> {
+        return new Q.Promise((resolve, reject) => {
             var cardFilePath = `${cardsPath}${card.toUrlString()}`;
             if (fs.existsSync(cardFilePath)) {
                 console.log(`getting the ${card.toString()} from cache`);
@@ -70,9 +97,12 @@ module ImageConvert {
             else {
                 console.log(`About to download the ${card.toString()}`);
                 // Download the card
-                download(getCardImageUrl(card), cardFilePath, function () {
-                    resolve(cardFilePath);
-                });
+                download(
+                    getCardImageUrl(card),
+                    cardFilePath,
+                    function () { resolve(cardFilePath); },
+                    function(err:string) { reject(err); }
+                );
             }
         });
     }
@@ -89,9 +119,17 @@ module ImageConvert {
         return `${player}-${type}-${year}${month}${day}-${hour}${minute}${second}${millisecond}`;
     }
 
-    export function makeHandImageAsync(player:string, hand:CribbageHand, type:PlayerImageType, imagesPath:string, sortCards:boolean=true):Promise<string> {
+    /***
+     * @param player
+     * @param hand
+     * @param type
+     * @param imagesPath
+     * @param sortCards
+     * @returns {string} the local path to the image
+     */
+    export function makeHandImageAsync(player:string, hand:CribbageHand, type:PlayerImageType, imagesPath:string, sortCards:boolean=true):Q.Promise<string> {
         console.log(`Making the hand image at ${imagesPath}`);
-        return new Promise(function(resolve, reject) {
+        return new Q.Promise(function(resolve, reject) {
             var playerHandPath = "";
             imagesPath = endWithSlash(imagesPath);
             if (!fs.existsSync(imagesPath)) {
@@ -100,43 +138,48 @@ module ImageConvert {
             }
             if (sortCards)
                 hand.sortCards();
-            var promises:Array<Promise> = [];
+            var promises:Array<Q.Promise<string>> = [];
             console.log("downloading the cards");
             for (var ix = 0; ix < hand.size(); ix++) {
                 // Download all the cards asynchronously
                 promises.push(downloadCard(hand.itemAt(ix)));
             }
-            Promise.all(promises).then(function (values) {
-                console.log("Finished downloading the cards, now create the final image");
-                // Merge together all the downloaded images
-                playerHandPath = `${imagesPath}${generateUniqueName(player, type)}.png`;
-                var width = 0, maxHeight = 0;
-                for (var jx = 0; jx < values.length; jx++) {
-                    var cardFilePath = values[jx];
-                    width += images(cardFilePath).width();
-                    var height = images(cardFilePath).height();
-                    if (height > maxHeight) {
-                        maxHeight = height;
+            Q.Promise.all(promises)
+                .then(function (values) {
+                    console.log("Finished downloading the cards, now create the final image");
+                    // Merge together all the downloaded images
+                    playerHandPath = `${imagesPath}${generateUniqueName(player, type)}.png`;
+                    var width = 0, maxHeight = 0;
+                    for (var jx = 0; jx < values.length; jx++) {
+                        var cardFilePath = values[jx];
+                        width += images(cardFilePath).width();
+                        var height = images(cardFilePath).height();
+                        if (height > maxHeight) {
+                            maxHeight = height;
+                        }
                     }
-                }
-                var playerHandImage = images(width, maxHeight);
-                var xOffset = 0;
-                width = 0;
-                for (var kx = 0; kx < values.length; kx++) {
-                    var filePath = values[kx];
-                    width += images(filePath).width();
-                    playerHandImage = playerHandImage.draw(images(filePath), xOffset, 0);
-                    xOffset = width;
-                }
-                console.log("Creating the final image...");
-                try {
-                    playerHandImage.save(playerHandPath);
-                }
-                catch (e) {
-                    reject(e);
-                }
-                resolve(playerHandPath);
-            });
+                    var playerHandImage = images(width, maxHeight);
+                    var xOffset = 0;
+                    width = 0;
+                    for (var kx = 0; kx < values.length; kx++) {
+                        var filePath = values[kx];
+                        width += images(filePath).width();
+                        playerHandImage = playerHandImage.draw(images(filePath), xOffset, 0);
+                        xOffset = width;
+                    }
+                    console.log("Creating the final image...");
+                    try {
+                        playerHandImage.save(playerHandPath);
+                    }
+                    catch (e) {
+                        reject(e);
+                    }
+                    resolve(playerHandPath);
+                })
+                .catch((err:any) => {
+                    console.error(`Q.Promise.all() rejected with ${err}`);
+                    reject(err);
+                });
         });
     }
 }
@@ -169,7 +212,7 @@ class PlayerImages implements IItem {
     }
     /**
      * Add the image to the head of the list
-     * @param {string} imageUrl the url of the image
+     * @param {string} imagePath the local path to the image
      * @param {PlayerImageType} type the type of image
      */
     pushImage(imagePath:string, type:PlayerImageType): void {
@@ -229,20 +272,22 @@ export class ImageManager {
      * @param {CribbageHand} hand the hand to create an image for if the player does not have a latest hand
      * @returns the path to the image of the player's latest hand
      */
-    getLatestPlayerHand(player:string, hand:CribbageHand):Promise<string> {
+    getLatestPlayerHand(player:string, hand:CribbageHand):Q.Promise<string> {
         var that = this;
-        return new Promise(function(resolve, reject) {
-            var imagePath = "";
+        return new Q.Promise(function(resolve, reject) {
             var playerImage = that.findPlayerImage(player);
             if (playerImage != null && playerImage.imageCount() > 0) {
                 // Resolve on the cached image
-                resolve(playerImage.getLatestImage());
+                resolve(ImageConvert.makeLocalUrlPath(playerImage.getLatestImage()));
             }
             else {
                 // Create a new image and resolve on that
                 that.createPlayerHandImageAsync(player, hand)
-                    .done(function(handPath:string){
-                        resolve(handPath);
+                    .then(function(handUrl:string){
+                        resolve(handUrl);
+                    })
+                    .catch((err:any) => {
+                        reject(err);
                     });
             }
         });
@@ -251,27 +296,13 @@ export class ImageManager {
     /**
      * Get the path to the last sequence image
      */
-    getLatestSequence(sequence:Sequence):Promise<string> {
-        var that = this;
-        return new Promise(function(resolve, reject) {
-            var sequenceImage = this.findPlayerImage(ImageManager.SEQUENCE_NAME);
-            if (sequenceImage != null) {
-                // Resolve on the cached image
-                resolve(sequenceImage.getLatestImage());
-            }
-            else {
-                // Create a new image and resolve on that
-                that.createSequenceImageAsync(sequence)
-                    .done(function(handPath:string){
-                        resolve(handPath);
-                    });
-            }
-        });
+    getLatestSequence(sequence:Sequence):Q.Promise<string> {
+        return this.getLatestPlayerHand(ImageManager.SEQUENCE_NAME, new CribbageHand(sequence.cards.items));
     }
 
-    private createHandImageAsync(player:string, hand:CribbageHand, type:PlayerImageType, sortHand:boolean):Promise<string> {
+    private createHandImageAsync(player:string, hand:CribbageHand, type:PlayerImageType, sortHand:boolean):Q.Promise<string> {
         var that = this;
-        return new Promise(function(resolve, reject) {
+        return new Q.Promise(function(resolve, reject) {
             ImageConvert.makeHandImageAsync(player, hand, type, ImageManager.HANDS_PATH, sortHand)
                 .then(function(handPath:string) {
                     // Add the hand's image to the player's collection of hand images
@@ -281,7 +312,10 @@ export class ImageManager {
                     }
                     playerImages.pushImage(handPath, type);
                     that.playerImages.addItem(playerImages);
-                    resolve(handPath);
+                    resolve(ImageConvert.makeLocalUrlPath(handPath));
+                })
+                .catch((err:any) => {
+                    reject(err);
                 });
         });
     }
@@ -312,11 +346,11 @@ export class ImageManager {
         return this.createHandImageAsync(player, new CribbageHand(discards), PlayerImageType.discard, true);
     }
 
-    createSequenceImageAsync(sequence:Sequence):Promise<string> {
+    createSequenceImageAsync(sequence:Sequence):Q.Promise<string> {
         return this.createHandImageAsync(ImageManager.SEQUENCE_NAME, new CribbageHand(sequence.cards.items), PlayerImageType.sequence, false);
     }
 
-    createPlayerHandImageAsync(player:string, hand:CribbageHand):Promise<string> {
+    createPlayerHandImageAsync(player:string, hand:CribbageHand):Q.Promise<string> {
         return this.createHandImageAsync(player, hand, PlayerImageType.hand, true);
     }
 }

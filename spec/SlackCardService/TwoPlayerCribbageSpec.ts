@@ -1,71 +1,28 @@
-/// <reference path="../../typings/jasmine/jasmine.d.ts" />
-/// <reference path="../../card_service/base_classes/collections/hand.ts" />
-/// <reference path="../../card_service/implementations/cribbage_player.ts" />
-/// <reference path="../../card_service/implementations/cribbage_team.ts" />
-/// <reference path="../../card_service/implementations/cribbage.ts" />
-/// <reference path="../../card_service/base_classes/card_game.ts" />
+/// <reference path="../../typings/index.d.ts" />
 
 import {BaseCard, Suit, Value} from "../../card_service/base_classes/items/card";
 import {BaseHand} from "../../card_service/base_classes/collections/hand";
 import {CribbagePlayer} from "../../card_service/implementations/cribbage_player";
-import {CribbageTeam} from "../../card_service/implementations/cribbage_team";
 import {Cribbage, CribbageStrings} from "../../card_service/implementations/cribbage";
-import {BaseCardGame, Players, Sequence, removeLastTwoChars} from "../../card_service/base_classes/card_game";
+import {Players, Sequence, removeLastTwoChars} from "../../card_service/base_classes/card_game";
 import {CribbageHand} from "../../card_service/implementations/cribbage_hand";
 import {ItemCollection} from "../../card_service/base_classes/collections/item_collection";
 import Base = Mocha.reporters.Base;
 import ErrorStrings = CribbageStrings.ErrorStrings;
+import {
+    aceOfSpades, queenOfDiamonds, aceOfClubs, threeOfSpades, aceOfHearts, queenOfClubs, tenOfDiamonds,
+    fiveOfSpades, aceOfDiamonds, tenOfClubs, fiveOfHearts, twoOfClubs, fourOfClubs, sixOfClubs, eightOfClubs,
+    twoOfDiamonds, eightOfSpades, queenOfSpades, queenOfHearts, kingOfHearts, fiveOfClubs, kingOfSpades,
+    sevenOfSpades, sevenOfDiamonds, eightOfHearts, nineOfHearts, jackOfSpades, nineOfDiamonds, fourOfSpades,
+    sixOfSpades, sevenOfClubs, jackOfHearts, sixOfHearts, sevenOfHearts, fourOfHearts, fourOfDiamonds,
+    sixOfDiamonds, kingOfClubs, threeOfClubs, threeOfDiamonds, twoOfHearts, tenOfHearts, kingOfDiamonds,
+    eightOfDiamonds
+} from "../StandardCards";
 
 "use strict";
 
 describe("Test a Cribbage game between two players", function() {
 	var game, playerOne, playerTwo;
-    var aceOfSpades = new BaseCard(Suit.Spades, Value.Ace),
-        aceOfHearts = new BaseCard(Suit.Hearts, Value.Ace),
-        aceOfDiamonds = new BaseCard(Suit.Diamonds, Value.Ace),
-        aceOfClubs = new BaseCard(Suit.Clubs, Value.Ace),
-        twoOfHearts = new BaseCard(Suit.Hearts, Value.Two),
-        twoOfDiamonds = new BaseCard(Suit.Diamonds, Value.Two),
-        twoOfClubs = new BaseCard(Suit.Clubs, Value.Two),
-        threeOfClubs = new BaseCard(Suit.Clubs, Value.Three),
-        threeOfSpades = new BaseCard(Suit.Spades, Value.Three),
-        threeOfDiamonds = new BaseCard(Suit.Diamonds, Value.Three),
-        fourOfHearts = new BaseCard(Suit.Hearts, Value.Four),
-        fourOfSpades = new BaseCard(Suit.Spades, Value.Four),
-        fourOfClubs = new BaseCard(Suit.Clubs, Value.Four),
-        fourOfDiamonds = new BaseCard(Suit.Diamonds, Value.Four),
-        fiveOfHearts = new BaseCard(Suit.Hearts, Value.Five),
-        fiveOfSpades = new BaseCard(Suit.Spades, Value.Five),
-        fiveOfClubs = new BaseCard(Suit.Clubs, Value.Five),
-        fiveOfDiamonds = new BaseCard(Suit.Diamonds, Value.Five),
-        sixOfHearts = new BaseCard(Suit.Hearts, Value.Six),
-        sixOfSpades = new BaseCard(Suit.Spades, Value.Six),
-        sixOfClubs = new BaseCard(Suit.Clubs, Value.Six),
-        sixOfDiamonds = new BaseCard(Suit.Diamonds, Value.Six),
-        sevenOfSpades = new BaseCard(Suit.Spades, Value.Seven),
-        sevenOfDiamonds = new BaseCard(Suit.Diamonds, Value.Seven),
-        sevenOfHearts = new BaseCard(Suit.Hearts, Value.Seven),
-        sevenOfClubs = new BaseCard(Suit.Clubs, Value.Seven),
-        eightOfClubs = new BaseCard(Suit.Clubs, Value.Eight),
-        eightOfHearts = new BaseCard(Suit.Hearts, Value.Eight),
-        eightOfSpades = new BaseCard(Suit.Spades, Value.Eight),
-        eightOfDiamonds = new BaseCard(Suit.Diamonds, Value.Eight),
-        nineOfHearts = new BaseCard(Suit.Hearts, Value.Nine),
-        nineOfDiamonds = new BaseCard(Suit.Diamonds, Value.Nine),
-        tenOfHearts = new BaseCard(Suit.Hearts, Value.Ten),
-        tenOfClubs = new BaseCard(Suit.Clubs, Value.Ten),
-        tenOfDiamonds = new BaseCard(Suit.Diamonds, Value.Ten),
-        jackOfHearts = new BaseCard(Suit.Hearts, Value.Jack),
-        jackOfSpades = new BaseCard(Suit.Spades, Value.Jack),
-        jackOfHearts = new BaseCard(Suit.Hearts, Value.Jack),
-        queenOfDiamonds = new BaseCard(Suit.Diamonds, Value.Queen),
-        queenOfClubs = new BaseCard(Suit.Clubs, Value.Queen),
-        queenOfHearts = new BaseCard(Suit.Hearts, Value.Queen),
-        queenOfSpades = new BaseCard(Suit.Spades, Value.Queen),
-        kingOfClubs = new BaseCard(Suit.Clubs, Value.King),
-        kingOfDiamonds = new BaseCard(Suit.Diamonds, Value.King),
-        kingOfHearts = new BaseCard(Suit.Hearts, Value.King),
-        kingOfSpades = new BaseCard(Suit.Spades, Value.King);
     beforeEach(function() {
         playerOne = new CribbagePlayer("Alice", new CribbageHand([]));
         playerTwo = new CribbagePlayer("Bob", new CribbageHand([]));

@@ -14,40 +14,42 @@
   "description": "Web service for playing card games",
   "main": "app.js",
   "scripts": {
-    "build": "tsc -p .",
-    "preinstall": "tsd install && npm run build || true",
+    "build": "typings install && tsc -p .",
+    "postinstall": "npm run build || true",
     "start": "node app.js",
-    "test": "npm run test-node && npm run test-service",
+    "test": "node -v && npm -v && npm run test-node && npm run test-service",
     "test-node": "mocha -c -b --reporter spec spec/Node/*.js",
     "test-service": "jasmine-node --color --test-dir ./spec/SlackCardService/"
   },
   "typescript": {
-    "definition": "typings/tsd.d.ts"
+    "definition": "typings/index.d.ts"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Sean-Brown/SlackCardService.git"
   },
   "dependencies": {
+    "async": "^2.0.1",
     "body-parser": "^1.14.1",
+    "dotenv": "^2.0.0",
     "errorhandler": "^1.4.2",
+    "expect": "^1.13.4",
     "express": "^4.13.3",
-    "form-data": "^0.2.0",
-    "images": "^2.1.10",
+    "form-data": "^2.1.0",
+    "images": "3.0.0",
+    "pg": "^6.1.0",
     "promise": "^7.1.1",
+    "q": "^1.4.1",
     "request": "^2.67.0",
-    "tsd": "^0.6.5",
-    "typescript": "^1.7.5"
+    "typescript": "2.0.3",
+    "typings": "1.4"
   },
   "devDependencies": {
-    "async": "^1.5.2",
-    "expect": "^1.13.4",
-    "jasmine": "^2.3.2",
-    "jasmine-node": "^1.14.5",
-    "jquery": "^2.1.4",
-    "mocha": "^2.3.4",
+    "jasmine-node": "^2.0.0-beta4",
+    "karma": "^1.3.0",
+    "mocha": "^3.0.2",
     "node-inspector": "^0.12.5",
-    "supertest": "^1.1.0"
+    "supertest": "^2.0.0"
   },
   "keywords": [
     "slack",

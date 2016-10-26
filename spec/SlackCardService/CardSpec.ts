@@ -1,11 +1,9 @@
-/// <reference path="../../typings/jasmine/jasmine.d.ts" />
-/// <reference path="../../card_service/base_classes/items/card.ts" />
+/// <reference path="../../typings/index.d.ts" />
 
-import {BaseCard, Suit, Value} from "../../card_service/base_classes/items/card";
+import {aceOfSpades} from "../StandardCards";
 
 describe("Test the BaseCard", function() {
     it("should print its name correctly", function () {
-        var card = new BaseCard(Suit.Spades, Value.Ace);
-        expect(card.toString()).toEqual("Ace of Spades");
+        expect(aceOfSpades.toString()).toEqual("Ace of Spades");
     });
 });

@@ -1,21 +1,19 @@
-/// <reference path="../../typings/jasmine/jasmine.d.ts" />
-/// <reference path="../../card_service/implementations/cribbage_hand.ts" />
-/// <reference path="../../card_service/implementations/cribbage_player.ts" />
+/// <reference path="../../typings/index.d.ts" />
 
-import {BaseCard, Suit, Value} from "../../card_service/base_classes/items/card";
 import {CribbagePlayer} from "../../card_service/implementations/cribbage_player";
 import {CribbageHand} from "../../card_service/implementations/cribbage_hand";
+import {kingOfHearts, jackOfDiamonds, fourOfClubs, aceOfSpades} from "../StandardCards";
 
 describe("Test the Cribbage Player's functionality", function() {
     var player;
     var duplicateCard;
 	beforeEach(function() {
-        duplicateCard = new BaseCard(Suit.Spades, Value.Ace);
+        duplicateCard = aceOfSpades;
 		player = new CribbagePlayer("Bob", new CribbageHand([
             duplicateCard,
-            new BaseCard(Suit.Clubs, Value.Four),
-            new BaseCard(Suit.Diamonds, Value.Jack),
-            new BaseCard(Suit.Hearts, Value.King)
+            fourOfClubs,
+            jackOfDiamonds,
+            kingOfHearts
         ]));
 	});
     it("tracks the cards it has played", function () {

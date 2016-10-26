@@ -1,10 +1,11 @@
-/// <reference path="typings/tsd.d.ts" />
+/// <reference path="typings/index.d.ts" />
 /// <reference path="routes/Cribbage/index.ts" />
 
 // Dependencies
 
 import {Express, Request, Response} from "express";
 import {CribbageRoutes} from "./routes/Cribbage/index";
+var Q = require("q");
 
 var bodyParser  = require("body-parser"),
     errorHandler= require("errorhandler"),
@@ -13,51 +14,64 @@ var bodyParser  = require("body-parser"),
 
 export var CribbageRoutePrefix = "/cribbage";
 
-export function setup(app: Express):Express {
-    // Configuration
-    app.use(bodyParser.json());
-    app.use(bodyParser.urlencoded({
-        extended: true
-    }));
+export function setup(app: Express):Q.Promise<Express> {
+    return new Q.Promise((resolve, reject) => {
+        // Configuration
+        app.use(bodyParser.json());
+        app.use(bodyParser.urlencoded({
+            extended: true
+        }));
 
-    app.use("/public", express.static(__dirname + "/public"));
-    app.use(express.static(__dirname + "/public"));
+        app.use("/public", express.static(__dirname + "/public"));
+        app.use(express.static(__dirname + "/public"));
 
-    var env = process.env.NODE_ENV || "development";
-    if("development" == env.toLowerCase()) {
-        app.use(errorHandler({ dumpExceptions: true, showStack: true }));
-    }
-    else {
-        app.use(errorHandler());
-    }
+        var env = process.env.NODE_ENV || "development";
+        if("development" == env.toLowerCase()) {
+            app.use(errorHandler({ dumpExceptions: true, showStack: true }));
+        }
+        else {
+            app.use(errorHandler());
+        }
 
-    // Routes
-    var routes = new CribbageRoutes.Router();
-    app.locals.cribbageRoutes = routes;
-    // Respond to the base route with "Hello world"
-    app.get("/", function(req: Request, res: Response) {
-        res.status(200).send("Hello world!");
+        // Routes
+        var routes = new CribbageRoutes.Router();
+        routes.init()
+            .then(() => {
+                app.locals.cribbageRoutes = routes;
+                // Respond to the base route with "Hello world"
+                app.get("/", function(req: Request, res: Response) {
+                    res.status(200).send("Hello world!");
+                });
+                // Cribbage Routes
+                app.get(CribbageRoutePrefix + CribbageRoutes.Routes.beginGame, routes.beginGame.bind(routes));
+                app.get(CribbageRoutePrefix + CribbageRoutes.Routes.describe, routes.describe.bind(routes));
+                app.get(CribbageRoutePrefix + CribbageRoutes.Routes.showHand, routes.showHand.bind(routes));
+                app.post(CribbageRoutePrefix + CribbageRoutes.Routes.go, routes.go.bind(routes));
+                app.post(CribbageRoutePrefix + CribbageRoutes.Routes.playCard, routes.playCard.bind(routes));
+                app.post(CribbageRoutePrefix + CribbageRoutes.Routes.joinGame, routes.joinGame.bind(routes));
+                app.post(CribbageRoutePrefix + CribbageRoutes.Routes.resetGame, routes.resetGame.bind(routes));
+                app.post(CribbageRoutePrefix + CribbageRoutes.Routes.throwCard, routes.throwCard.bind(routes));
+                // All other routes send back a "request not found"
+                app.get("*", function(req: Request, res: Response) {
+                    res.status(404).send("Unknown request");
+                });
+                resolve(app);
+            })
+            .catch(() => {
+                reject(null);
+            });
     });
-    // Cribbage Routes
-    app.get(CribbageRoutePrefix + CribbageRoutes.Routes.beginGame, routes.beginGame);
-    app.get(CribbageRoutePrefix + CribbageRoutes.Routes.describe, routes.describe);
-    app.get(CribbageRoutePrefix + CribbageRoutes.Routes.showHand, routes.showHand);
-    app.post(CribbageRoutePrefix + CribbageRoutes.Routes.go, routes.go);
-    app.post(CribbageRoutePrefix + CribbageRoutes.Routes.playCard, routes.playCard);
-    app.post(CribbageRoutePrefix + CribbageRoutes.Routes.joinGame, routes.joinGame);
-    app.post(CribbageRoutePrefix + CribbageRoutes.Routes.resetGame, routes.resetGame);
-    app.post(CribbageRoutePrefix + CribbageRoutes.Routes.throwCard, routes.throwCard);
-    // All other routes send back a "request not found"
-    app.get("*", function(req: Request, res: Response) {
-        res.status(404).send("Unknown request");
-    });
-    return app;
 }
 
-export var app = setup(express());
-// start listening for incoming requests
-export var server = app.listen(port, () => {
-    console.log("Express server listening on port %d in %s mode", port, app.settings.env);
-});
+setup(express())
+    .then((app:Express) => {
+        // start listening for incoming requests
+        app.listen(port, () => {
+            console.log("Express server listening on port %d in %s mode", port, app.settings.env);
+        });
+    })
+    .catch(() => {
+        console.log("Failed to create the express application");
+    });
 
 
