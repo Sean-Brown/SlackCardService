@@ -331,6 +331,7 @@ export module CribbageRoutes {
         private recordResult(req:Request) {
             var that = this;
             let histories = [];
+            console.log(`Recording win-loss history for ${that.currentGameHistoryID}`);
             for (let ix = 0; ix < that.players.length; ix++) {
                 let player = that.players[ix];
                 histories.push(
@@ -349,6 +350,7 @@ export module CribbageRoutes {
                     }
                     else {
                         // Success!
+                        console.log(`Successfully recorded win-loss history for game ${result.first().game_history_id}`);
                     }
                 });
         }
