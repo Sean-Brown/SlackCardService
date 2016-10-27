@@ -39,13 +39,19 @@ export class CribbageHand extends BaseHand {
         }
         // Count flush
         var numInFlush = 0;
-        if (mustHaveFiveCardFlush) {
-            numInFlush = this.countFlush();
-        }
-        else {
-            this.removeItem(cutCard);
-            numInFlush = this.countFlush();
-            this.addItem(cutCard);
+        numInFlush = this.countFlush();
+        var maxFlush = (numInFlush == 5);
+        if (!maxFlush) {
+            if (mustHaveFiveCardFlush) {
+                // All 5 cards must be a flush for it to count
+                numInFlush = 0;
+            }
+            else {
+                // Check for a flush without the cut card
+                this.removeItem(cutCard);
+                numInFlush = this.countFlush();
+                this.addItem(cutCard);
+            }
         }
         if (numInFlush >= (mustHaveFiveCardFlush ? 5 : 4)) {
             points += numInFlush;
