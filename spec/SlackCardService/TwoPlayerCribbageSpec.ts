@@ -381,8 +381,8 @@ describe("Test a Cribbage game between two players", function() {
                 new CribbageHand([nineOfHearts, kingOfDiamonds, tenOfDiamonds, fiveOfClubs, sevenOfHearts, queenOfSpades]);
             game.dealer = playerOne;
             game.nextPlayerInSequence = playerTwo;
-            game.giveToKitty(playerOne.name, new ItemCollection<BaseCard>([aceOfSpades, fourOfSpades]);
-            game.giveToKitty(playerTwo.name, new ItemCollection<BaseCard>([sevenOfHearts, queenOfSpades]);
+            game.giveToKitty(playerOne.name, new ItemCollection<BaseCard>([aceOfSpades, fourOfSpades]));
+            game.giveToKitty(playerTwo.name, new ItemCollection<BaseCard>([sevenOfHearts, queenOfSpades]));
             game.cut = eightOfSpades;
             game.playCard(playerTwo.name, nineOfHearts);
             game.playCard(playerOne.name, nineOfClubs); // 2
