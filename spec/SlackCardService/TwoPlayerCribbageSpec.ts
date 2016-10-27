@@ -16,7 +16,7 @@ import {
     sevenOfSpades, sevenOfDiamonds, eightOfHearts, nineOfHearts, jackOfSpades, nineOfDiamonds, fourOfSpades,
     sixOfSpades, sevenOfClubs, jackOfHearts, sixOfHearts, sevenOfHearts, fourOfHearts, fourOfDiamonds,
     sixOfDiamonds, kingOfClubs, threeOfClubs, threeOfDiamonds, twoOfHearts, tenOfHearts, kingOfDiamonds,
-    eightOfDiamonds, nineOfClubs, jackOfDiamonds
+    eightOfDiamonds, nineOfClubs, jackOfDiamonds, tenOfSpades
 } from "../StandardCards";
 
 "use strict";
@@ -283,6 +283,29 @@ describe("Test a Cribbage game between two players", function() {
             spyOn(game, "roundOverResetState");
             game.playCard(playerOne.name, sixOfHearts);
             expect(game.roundOverResetState).toHaveBeenCalled();
+        });
+        it("counts correctly", function() {
+            // Expose a bug where the flush isn't counted correctly
+            playerOne.hand =
+                new CribbageHand([twoOfHearts, fiveOfHearts, eightOfHearts, kingOfHearts, aceOfClubs, threeOfClubs]);
+            playerTwo.hand =
+                new CribbageHand([sixOfSpades, sevenOfDiamonds, sevenOfHearts, kingOfSpades, kingOfClubs, tenOfSpades]);
+            game.dealer = playerTwo;
+            game.nextPlayerInSequence = playerOne;
+            game.giveToKitty(playerOne.name, new ItemCollection<BaseCard>([aceOfClubs, threeOfClubs]));
+            game.giveToKitty(playerTwo.name, new ItemCollection<BaseCard>([kingOfClubs, tenOfSpades]));
+            game.cut = sixOfHearts;
+            game.playersInPlay.addItems(game.players.items);
+            game.playCard(playerOne.name, eightOfHearts);
+            game.playCard(playerTwo.name, sevenOfHearts);
+            game.playCard(playerOne.name, kingOfHearts);
+            game.playCard(playerTwo.name, sixOfSpades);
+            game.playCard(playerOne.name, twoOfHearts);
+            game.playCard(playerTwo.name, kingOfSpades);
+            game.playCard(playerOne.name, fiveOfHearts);
+            game.playCard(playerTwo.name, sevenOfDiamonds);
+            // Player one should have: 9 points (15 for 4 + flush of 5 = 9)
+            expect(game.teams.findTeam(playerOne).countPoints()).toEqual(9);
         });
     });
     describe("Test player playing cards after other player says 'go'", function() {
