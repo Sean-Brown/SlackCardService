@@ -327,17 +327,17 @@ export class Cribbage extends CardGame<CribbagePlayer, StandardDeck> {
                 var prevPoints = points;
                 points += 2;
                 if (prevPoints > 0) {
-                    response.message += ` in addition to ${prevPoints} points from the run-of-play ${Cribbage.teamPointsString(team)}.`;
+                    response.message += ` in addition to ${prevPoints} points from the run-of-play ${Cribbage.teamPointsString(team)}.\n`;
                 }
                 else {
-                    response.message += ` ${Cribbage.teamPointsString(team)}`;
+                    response.message += ` ${Cribbage.teamPointsString(team)}\n`;
                 }
             }
             if (this.roundOver()) {
                 response.roundOver = true;
-                if (!is31 && !is15) {
+                if (!is31) {
                     // The last player to play gets a point for a go
-                    response.message = `${player.name} gets a point for a go`;
+                    response.message += `${player.name} gets a point for a go`;
                     if (team.addPoints(player, 1)) {
                         // Game over
                         response = this.setGameOver(team);
