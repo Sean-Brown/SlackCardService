@@ -193,7 +193,7 @@ export module DBRoutes {
                                     })
                             }
                             else {
-                                resolve(result.result);
+                                resolve(result.first());
                             }
                         }
                     })
