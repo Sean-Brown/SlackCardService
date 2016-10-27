@@ -7,15 +7,7 @@ Getting started:
 - run "npm install" from the command line to install the node modules
 - run "typings install" from the command line to install the typescript definition files
 
-That should be enough to get started, but it's also good to setup the test runners:
-- Mocha: configure Mocha to run the tests in the ./spec/Node directory
-- Node.js: configure a Node.js test runner to run the tests in the ./spec/SlackCardService directory
-
-To run the tests:
-  * open a command pompt
-  * cd to the root of the SlackCardService project
-  * run "npm test"
-This should run all the tests under the "spec" directory
+Check under the /spec directory if you're interested in setting up the tests
 
 If you get errors, check the test output and make sure that the version of node and npm specified 
 that were used when running the tests are the same version as node and npm in package.json under the 
