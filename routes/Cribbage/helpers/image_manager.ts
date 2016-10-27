@@ -227,8 +227,8 @@ class PlayerImages implements IItem {
     clearAll():void {
         // Delete all the image files -- delay this by a few seconds so clients
         // have time to download the image files
-        var store = [];
-        for (var ix = 0; ix < this.images.countItems(); ix++) {
+        let store = [];
+        for (let ix = 0; ix < this.images.countItems(); ix++) {
             var playerImage = this.images.itemAt(ix);
             if (fs.existsSync(playerImage.path)) {
                 store.push(playerImage.path);
@@ -239,7 +239,8 @@ class PlayerImages implements IItem {
         this.images.removeAll();
         // Remove the images after a time delay
         setTimeout(() => {
-            for (var image in store) {
+            for (let ix = 0; ix < store.length; ix++) {
+                let image = store[ix];
                 fs.unlinkSync(image);
             }
         }, 5000)
