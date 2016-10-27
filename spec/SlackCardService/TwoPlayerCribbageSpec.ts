@@ -16,7 +16,7 @@ import {
     sevenOfSpades, sevenOfDiamonds, eightOfHearts, nineOfHearts, jackOfSpades, nineOfDiamonds, fourOfSpades,
     sixOfSpades, sevenOfClubs, jackOfHearts, sixOfHearts, sevenOfHearts, fourOfHearts, fourOfDiamonds,
     sixOfDiamonds, kingOfClubs, threeOfClubs, threeOfDiamonds, twoOfHearts, tenOfHearts, kingOfDiamonds,
-    eightOfDiamonds
+    eightOfDiamonds, nineOfClubs, jackOfDiamonds
 } from "../StandardCards";
 
 "use strict";
@@ -373,6 +373,33 @@ describe("Test a Cribbage game between two players", function() {
             game.go(playerOne.name);
             // Player two is out of cards and player one has one card left, expect them to be the next player to play
             expect(game.nextPlayerInSequence.equalsOther(playerOne)).toBe(true);
+        });
+        it("gives the player 15 for two AND a point for the last card", function() {
+            playerOne.hand =
+                new CribbageHand([nineOfClubs, eightOfDiamonds, tenOfHearts, jackOfDiamonds, aceOfSpades, fourOfSpades]);
+            playerTwo.hand =
+                new CribbageHand([nineOfHearts, kingOfDiamonds, tenOfDiamonds, fiveOfClubs, sevenOfHearts, queenOfSpades]);
+            game.dealer = playerOne;
+            game.nextPlayerInSequence = playerTwo;
+            game.giveToKitty(playerOne.name, new ItemCollection<BaseCard>([aceOfSpades, fourOfSpades]);
+            game.giveToKitty(playerTwo.name, new ItemCollection<BaseCard>([sevenOfHearts, queenOfSpades]);
+            game.cut = eightOfSpades;
+            game.playCard(playerTwo.name, nineOfHearts);
+            game.playCard(playerOne.name, nineOfClubs); // 2
+            game.playCard(playerTwo.name, kingOfDiamonds);
+            game.go(playerOne.name);
+            game.go(playerTwo.name); // 1
+            game.playCard(playerOne.name, eightOfDiamonds);
+            game.playCard(playerTwo.name, tenOfDiamonds);
+            game.playCard(playerOne.name, tenOfHearts); // 4
+            game.go(playerTwo.name);
+            game.go(playerOne.name); // 5
+            game.playCard(playerTwo.name, fiveOfClubs);
+            game.playCard(playerOne.name, jackOfDiamonds); // 8 (15 for 2, last card for 1)
+            // Player one should have  points -- exposes bug where only the 15 is given but not the last card
+            // Double run of 4 = 10, run of play = 8, kitty = 4, expected = 10 + 8 + 4 = 22
+            const expected = 22;
+            expect(game.findTeam(playerOne).countPoints()).toEqual(expected);
         });
     });
     describe("Test the run-of-play", function() {
