@@ -396,6 +396,9 @@ export module CribbageRoutes {
             if (!Router.verifyRequest(req, Routes.joinGame)) {
                 response = Router.VALIDATION_FAILED_RESPONSE;
             }
+            else if (this.currentGame.hasBegun) {
+                Router.sendResponse(Router.makeErrorResponse("The game has already begun!"), res);
+            }
             else {
                 try {
                     if (this.currentGame == null) {
