@@ -459,4 +459,32 @@ describe("Integration test the Cribbage game between two players", function() {
             ]);
         async.series(series, done);
     });
+
+    it("doesn't let players continue playing after the game is finished", function(done) {
+        var agent = request(this.app);
+        var series = joinGameAndBeginSeries(agent)
+            .concat(throwCardsSeries(agent))
+            .concat([
+                function (cb) {
+                    // Make one of the players have enough points to win
+                    cribRoutes.currentGame.players.findPlayer(PeterGriffin.name).points = 120;
+                    playCard(agent, HomerSimpson, sixOfDiamonds, cb);
+                },
+                function (cb) {
+                    // Should be game over
+                    playCard(agent, PeterGriffin, sixOfClubs, cb);
+                },
+                function (cb) {
+                    agent.post(makeRoute(CribbageRoutes.Routes.playCard))
+                        .type('json')
+                        .send(JSON.stringify({
+                            token: Tokens.playCard,
+                            user_name: HomerSimpson.name,
+                            text: sevenOfHearts.shortString()
+                        }))
+                        .expect(500, cb);
+                }
+            ]);
+        async.series(series, done);
+    });
 });
