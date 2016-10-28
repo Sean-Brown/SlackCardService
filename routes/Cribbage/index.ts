@@ -399,6 +399,9 @@ export module CribbageRoutes {
             else if (this.currentGame.hasBegun) {
                 Router.sendResponse(Router.makeErrorResponse("The game has already begun!"), res);
             }
+            else if (this.currentGame.winningTeam != null) {
+                response = Router.makeErrorResponse(CribbageStrings.ErrorStrings.GAME_OVER);
+            }
             else {
                 try {
                     if (this.currentGame == null) {
@@ -439,6 +442,9 @@ export module CribbageRoutes {
             }
             else if (!Router.verifyRequest(req, Routes.beginGame)) {
                 response = Router.VALIDATION_FAILED_RESPONSE;
+            }
+            else if (this.currentGame.winningTeam != null) {
+                response = Router.makeErrorResponse(CribbageStrings.ErrorStrings.GAME_OVER);
             }
             else {
                 try {
@@ -570,6 +576,9 @@ export module CribbageRoutes {
             if (!Router.verifyRequest(req, Routes.playCard)) {
                 response = Router.VALIDATION_FAILED_RESPONSE;
             }
+            else if (this.currentGame.winningTeam != null) {
+                response = Router.makeErrorResponse(CribbageStrings.ErrorStrings.GAME_OVER);
+            }
             else {
                 try {
                     var cards:Array<Card> = Router.parseCards(req.body.text);
@@ -606,6 +615,9 @@ export module CribbageRoutes {
                 catch (e) {
                     response = Router.makeErrorResponse(`Error! ${e}! Current player: ${this.currentGame.nextPlayerInSequence.name}`);
                 }
+            }
+            else if (this.currentGame.winningTeam != null) {
+                response = Router.makeErrorResponse(CribbageStrings.ErrorStrings.GAME_OVER);
             }
             if (cribRes && cribRes.sequenceOver) {
                 response.data.text += `\nYou're up ${this.currentGame.nextPlayerInSequence.name}`;
@@ -672,6 +684,9 @@ export module CribbageRoutes {
             var cribRes:CribbageReturn = null;
             if (!Router.verifyRequest(req, Routes.throwCard)) {
                 response = Router.VALIDATION_FAILED_RESPONSE;
+            }
+            else if (this.currentGame.winningTeam != null) {
+                response = Router.makeErrorResponse(CribbageStrings.ErrorStrings.GAME_OVER);
             }
             else {
                 try {
@@ -785,6 +800,9 @@ export module CribbageRoutes {
             var response = Router.makeResponse(200, `${player} says "go"`, SlackResponseType.in_channel);
             if (!Router.verifyRequest(req, Routes.go)) {
                 response = Router.VALIDATION_FAILED_RESPONSE;
+            }
+            else if (this.currentGame.winningTeam != null) {
+                response = Router.makeErrorResponse(CribbageStrings.ErrorStrings.GAME_OVER);
             }
             else {
                 try {

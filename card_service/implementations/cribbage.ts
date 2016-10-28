@@ -49,6 +49,7 @@ export module CribbageStrings {
         static get PLAYER_CAN_PLAY():string { return "You have a card you can still play"; }
         static get PLAYER_NOT_IN_PLAY():string { return "You've already said \"go\""; }
         static get GAME_HAS_ALREADY_BEGUN():string { return "The game has already begun!"; }
+        static get GAME_OVER():string { return "The game is already over!"; }
     }
 }
 
