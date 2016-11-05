@@ -29,13 +29,13 @@ export module CribbageStrings {
         static get GAME_OVER(): string { return "Game over!"; }
     }
     export class ErrorStrings {
-        static get NO_GAME():string { return "The game hasn't been created. Add some players first."; }
+        static get NO_GAME():string { return "The game hasn't been created. Add some playerIDs first."; }
         static get HAS_BEGUN():string { return "The game has already begun"; }
         static get INVALID_CARD_SYNTAX():string {
             return "Invalid syntax. Enter your card as (value)(suit), for example enter the five of hearts as 5H";
         }
         static get TOO_MANY_CARDS():string { return "You can only play one card!"; }
-        static get INVALID_NUMBER_OF_PLAYERS():string { return "Invalid number of players"; }
+        static get INVALID_NUMBER_OF_PLAYERS():string { return "Invalid number of playerIDs"; }
         static get INVALID_NUM_CARDS_THROWN_TO_KITTY():string { return "Invalid number of cards given to the kitty"; }
         static get DUPLICATE_CARD_THROWN_TO_KITTY():string { return "You must throw two UNIQUE cards to the kitty"; }
         static get INVALID_THROWER():string { return "You aren't allowed to throw any cards!"; }
@@ -108,19 +108,7 @@ export class Cribbage extends CardGame<CribbagePlayer, StandardDeck> {
         this.hasBegun = false;
     }
 
-    /**
-     * Initialize the game.
-     * - Set the game mode (team or free for all)
-     * - Create the teams
-     * @throws ErrorStrings.INVALID_NUMBER_OF_PLAYERS if there are too few or too many players
-     */
-    private initializeGame(): void {
-        this.numPlayers = this.players.countItems();
-        if (this.numPlayers < 2 || this.numPlayers > 6)
-            throw ErrorStrings.INVALID_NUMBER_OF_PLAYERS;
-        this.mode = (this.numPlayers == 4 || this.numPlayers == 6 ? Mode.Team : Mode.FFA);
-        // Remove the previous winners, if there were any
-        this.winningTeam = null;
+    public makeTeams(): void {
         if (this.mode == Mode.Team) {
             if (this.numPlayers == 4) {
                 this.teams = new Teams(new ItemCollection<CribbageTeam>([
@@ -149,6 +137,23 @@ export class Cribbage extends CardGame<CribbagePlayer, StandardDeck> {
                 this.teams.addTeam(new CribbageTeam(id, [this.players.itemAt(index)]));
             }
         }
+    }
+
+    /**
+     * Initialize the game.
+     * - Set the game mode (team or free for all)
+     * - Create the teams
+     * @throws ErrorStrings.INVALID_NUMBER_OF_PLAYERS if there are too few or too many playerIDs
+     */
+    private initializeGame(): void {
+        this.numPlayers = this.players.countItems();
+        if (this.numPlayers < 2 || this.numPlayers > 6)
+            throw ErrorStrings.INVALID_NUMBER_OF_PLAYERS;
+        this.mode = (this.numPlayers == 4 || this.numPlayers == 6 ? Mode.Team : Mode.FFA);
+        // Remove the previous winners, if there were any
+        this.winningTeam = null;
+        // Make the teams
+        this.makeTeams();
     }
 
     /**
@@ -428,7 +433,7 @@ export class Cribbage extends CardGame<CribbagePlayer, StandardDeck> {
             this.playersInPlay.removeItem(player);
         }
         if (this.playersInPlay.countItems() == 0) {
-            // No more players in play, the last player to play a point for a go
+            // No more playerIDs in play, the last player to play a point for a go
             var team = this.findTeam(this.lastPlayerToPlay);
             response.sequenceOver = true;
             response.message = `${this.lastPlayerToPlay.name} gets a point for a go`;
@@ -605,7 +610,7 @@ export class Cribbage extends CardGame<CribbagePlayer, StandardDeck> {
 
     /**
      * Function to reset the state of the game when the round is over
-     * @returns {string} the list of players hands and their scores
+     * @returns {string} the list of playerIDs hands and their scores
      */
     private roundOverResetState():string {
         var scores = this.countPoints().message;
@@ -617,7 +622,7 @@ export class Cribbage extends CardGame<CribbagePlayer, StandardDeck> {
     }
 
     /**
-     * Determine if the round is over by seeing if any of the players in play have cards left to play
+     * Determine if the round is over by seeing if any of the playerIDs in play have cards left to play
      * @returns {boolean}
      */
     private roundOver():boolean {
@@ -685,7 +690,7 @@ export class Cribbage extends CardGame<CribbagePlayer, StandardDeck> {
     }
 
     /**
-     * Remove the cards from each players hand
+     * Remove the cards from each playerIDs hand
      */
     private resetHands():void {
         for (var index = 0; index < this.numPlayers; index++) {
@@ -698,7 +703,7 @@ export class Cribbage extends CardGame<CribbagePlayer, StandardDeck> {
      * - remove all cards from the previous run of play
      * - reset the hands
      * - shuffle the cards
-     * - add the players back to the run of play
+     * - add the playerIDs back to the run of play
      * - deal the cards
      */
     private deal():void {
@@ -763,7 +768,7 @@ export class Cribbage extends CardGame<CribbagePlayer, StandardDeck> {
         this.lastPlayerToPlay = null;
         this.sequence.removeAll();
         this.playersInPlay.removeAll();
-        // Add back the players who have cards in their hands
+        // Add back the playerIDs who have cards in their hands
         for (var ix = 0; ix < this.numPlayers; ix++) {
             var cribPlayer = this.players.itemAt(ix);
             if (cribPlayer.hand.size() > 0) {
@@ -857,7 +862,7 @@ export class Cribbage extends CardGame<CribbagePlayer, StandardDeck> {
      * @param {CribbagePlayer} player the current player
      * @returns {CribbagePlayer} the next player
      */
-    private nextPlayerInOrder(player: CribbagePlayer):CribbagePlayer {
+    public nextPlayerInOrder(player: CribbagePlayer):CribbagePlayer {
         var index = this.players.indexOfItem(player);
         if ((index + 1) >= this.numPlayers) {
             index = 0;

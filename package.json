@@ -8,8 +8,8 @@
   },
   "homepage": "https://github.com/Sean-Brown/SlackCardSerevice#readme",
   "engines": {
-    "node": "4.0.0",
-    "npm": "2.14.2"
+    "node": "6.9.1",
+    "npm": "3.10.8"
   },
   "description": "Web service for playing card games",
   "main": "app.js",

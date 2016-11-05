@@ -13,7 +13,7 @@ import {
 
 "use strict";
 
-describe("Test a Cribbage game between two players", function() {
+describe("Test a Cribbage game between two playerIDs", function() {
     beforeEach(function() {
     });
     describe("Test various counting scenarios", function() {

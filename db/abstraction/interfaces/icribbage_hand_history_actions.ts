@@ -21,9 +21,32 @@ export interface ICribbageHandHistoryActions {
     remove(game_history_id:number):Q.Promise<CribbageHandHistoryReturn>;
 
     /**
-     * Get all the cribbage hands for a player in a game they played in
+     * Find the player's hands for the current game
+     * @param player_id
+     * @param game_history_id
+     */
+    findPlayerHandsInGame(player_id:number, game_history_id:number):Q.Promise<CribbageHandHistoryReturn>;
+
+    /**
+     * Get all the Cribbage hands for a player in a game they played in
      * @param player_id
      * @param game_history_id
      */
     all(player_id:number, game_history_id:number):Q.Promise<CribbageHandHistoryReturn>;
+
+    /**
+     * Set the 'played' boolean to 'true' for the player's latest hand in the given game
+     * @param player_id
+     * @param game_history_id
+     * @param points the total number of points the player has
+     */
+    setHandPlayed(player_id:number, game_history_id:number, points:number):Q.Promise<CribbageHandHistoryReturn>;
+
+    /**
+     * Get the player's points in the given game
+     * @param player_id
+     * @param game_history_id
+     */
+    getPoints(player_id:number, game_history_id:number): Q.Promise<CribbageHandHistoryReturn>;
+
 }

@@ -35,7 +35,7 @@ describe("Test the Cribbage Team's functionality", function() {
         team.addPoints(playerTwo, 7);
         expect(team.countPoints()).toEqual(9);
     });
-    it("knows what players it has", function () {
+    it("knows what playerIDs it has", function () {
         expect(team.hasPlayer(playerOne)).toBe(true);
         expect(team.hasPlayer(playerTwo)).toBe(true);
         expect(team.hasPlayer(new CribbagePlayer("Alice", new CribbageHand([])))).toBe(false);

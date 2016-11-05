@@ -5,6 +5,7 @@ export class Game extends BaseTable {
      * Unique
      */
     name:string;
+    public static get COL_NAME():string { return "name"; }
 
     constructor(id:number, name:string) {
         super(id);

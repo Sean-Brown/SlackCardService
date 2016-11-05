@@ -8,12 +8,14 @@ export class GameHistoryPlayerPivot extends BaseTable {
      * FK GameHistory.id
      */
     game_history_id:number;
+    public static get COL_GAME_HISTORY_ID():string { return "game_history_id"; }
 
     /**
      * The ID of the player
      * FK Player.id
      */
     player_id:number;
+    public static get COL_PLAYER_ID():string { return "player_id"; }
 
     constructor(id:number, player_id:number, game_history_id:number) {
         super(id);

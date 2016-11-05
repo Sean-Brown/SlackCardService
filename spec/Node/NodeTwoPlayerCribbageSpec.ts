@@ -45,7 +45,7 @@ var request = require("supertest"),
     spyOn   = expect.spyOn,
     Q       = require("q");
 
-describe("Integration test the Cribbage game between two players", function() {
+describe("Integration test the Cribbage game between two playerIDs", function() {
     var PeterGriffin:CribbagePlayer, pgID:number, HomerSimpson:CribbagePlayer, hsID:number,
         cribbageID:number, currentGameID:number;
     var pgHand, hsHand, crib;
@@ -243,7 +243,7 @@ describe("Integration test the Cribbage game between two players", function() {
                 // Intercept the dealing and assign our own hands
                 let currentGame = cribRoutes.currentGame;
                 spyOn(currentGame, "begin").andCall(() => {
-                    // Initialize the players and teams
+                    // Initialize the playerIDs and teams
                     addPlayersAndTeams();
                     // Assign the dealer
                     currentGame.dealer = PeterGriffin;
@@ -359,7 +359,7 @@ describe("Integration test the Cribbage game between two players", function() {
         ];
     }
 
-    it("lets players join the game and begin", function(done) {
+    it("lets playerIDs join the game and begin", function(done) {
         var agent = request(this.app);
         async.series(joinGameAndBeginSeries(agent), done);
     });
@@ -429,7 +429,7 @@ describe("Integration test the Cribbage game between two players", function() {
             .concat(throwCardsSeries(agent))
             .concat([
                 function (cb) {
-                    // Make one of the players have enough points to win
+                    // Make one of the playerIDs have enough points to win
                     cribRoutes.currentGame.players.findPlayer(PeterGriffin.name).points = 120;
                     playCard(agent, HomerSimpson, sixOfDiamonds, cb);
                 },
@@ -460,13 +460,13 @@ describe("Integration test the Cribbage game between two players", function() {
         async.series(series, done);
     });
 
-    it("doesn't let players continue playing after the game is finished", function(done) {
+    it("doesn't let playerIDs continue playing after the game is finished", function(done) {
         var agent = request(this.app);
         var series = joinGameAndBeginSeries(agent)
             .concat(throwCardsSeries(agent))
             .concat([
                 function (cb) {
-                    // Make one of the players have enough points to win
+                    // Make one of the playerIDs have enough points to win
                     cribRoutes.currentGame.players.findPlayer(PeterGriffin.name).points = 120;
                     playCard(agent, HomerSimpson, sixOfDiamonds, cb);
                 },

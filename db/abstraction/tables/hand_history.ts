@@ -2,7 +2,7 @@ import {BaseTable} from "./base_table";
 /**
  * Abstract table that "hand history" tables should derive from.
  * This assumes a hand has a least a string of cards, but in cases like
- * cribbage the hand also includes the cut card. Similarly, a game like
+ * Cribbage the hand also includes the cut card. Similarly, a game like
  * Texas Hold 'em could derive from HandHistory and include the flop,
  * turn, and river cards.
  */
@@ -12,12 +12,14 @@ export abstract class HandHistory extends BaseTable {
      * FK Player.id
      */
     player_id:number;
+    public static get COL_PLAYER_ID():string { return "player_id"; }
 
     /**
      * ID of the game this hand was in
      * FK GameHistory.ID
      */
     game_history_id:number;
+    public static get COL_GAME_HISTORY_ID():string { return "game_history_id"; }
 
     /**
      * The player's hand EXCLUDING the cut card
@@ -26,12 +28,14 @@ export abstract class HandHistory extends BaseTable {
      * "ten of clubs"-"king of hearts"-"queen of diamonds"
      */
     hand:string;
+    public static get COL_HAND():string { return "hand"; }
 
     /**
      * Date this hand was received, in the form of a number
      * Automatic
      */
     received:number;
+    public static get COL_RECEIVED():string { return "received"; }
 
     constructor(id:number, player_id:number, game_history_id:number, hand:string="") {
         super(id);

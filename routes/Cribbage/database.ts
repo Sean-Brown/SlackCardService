@@ -19,6 +19,7 @@ import {player_actions} from "../../db/implementation/postgres/player_actions";
 import {game_history_actions} from "../../db/implementation/postgres/game_history_actions";
 import {game_history_player_actions} from "../../db/implementation/postgres/game_history_player_actions";
 import {cribbage_hand_history_actions} from "../../db/implementation/postgres/cribbage_hand_history_actions";
+import {getTableName, DBTables} from "../../db/abstraction/tables/base_table";
 var Q = require("q");
 
 export module DBRoutes {
@@ -205,12 +206,12 @@ export module DBRoutes {
         }
 
         /**
-         * Reset the game, this entails removing the cribbage-hand-history entries.
+         * Reset the game, this entails removing the Cribbage-hand-history entries.
          * There's no reason to remove the GameHistory or GameHistoryPlayer records,
          * those can be re-used.
          * @note this method always resolves: check the boolean result to check for success.
          * @param game_history_id
-         * @returns {Q.Promise} whether or not resetting the cribbage-hand-history succeeds
+         * @returns {Q.Promise} whether or not resetting the Cribbage-hand-history succeeds
          */
         resetGame(game_history_id:number):Q.Promise<boolean> {
             var that = this;

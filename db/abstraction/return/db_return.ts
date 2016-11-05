@@ -5,6 +5,7 @@ import {CribbageHandHistory} from "../tables/cribbage_hand_history";
 import {Player} from "../tables/player";
 import {WinLossHistory} from "../tables/win_loss_history";
 import {PGQueryReturn} from "../../implementation/postgres/manager";
+import {Team} from "../tables/team";
 
 /**
  * The Database Return Status codes
@@ -76,4 +77,5 @@ export class GameReturn extends DBReturn<Game> { }
 export class GameHistoryReturn extends DBReturn<GameHistory> { }
 export class GameHistoryPlayerReturn extends DBReturn<GameHistoryPlayerPivot> { }
 export class PlayerReturn extends DBReturn<Player> { }
+export class TeamReturn extends DBReturn<Team> { }
 export class WinLossHistoryReturn extends DBReturn<WinLossHistory> { }

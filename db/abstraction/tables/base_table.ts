@@ -5,6 +5,7 @@ export enum DBTables {
     GameHistoryPlayer,
     HandHistory,
     Player,
+    Team,
     WinLossHistory
 }
 export function getTableName(table:DBTables):string {
@@ -21,6 +22,8 @@ export function getTableName(table:DBTables):string {
             return "hand_history";
         case DBTables.Player:
             return "player";
+        case DBTables.Team:
+            return "team";
         case DBTables.WinLossHistory:
             return "win_loss_history";
         default:
@@ -34,6 +37,7 @@ export abstract class BaseTable {
      * Primary key, auto-incrementing.
      */
     id:number;
+    public static get COL_ID():string { return "id"; }
 
     constructor(id:number) {
         this.id = id;

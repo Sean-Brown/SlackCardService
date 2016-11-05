@@ -4,7 +4,7 @@ import {PostgresTables} from "../../../../db/implementation/postgres/create_tabl
 import {game_actions} from "../../../../db/implementation/postgres/game_actions";
 import {readConfigFromEnv} from "./setEnv";
 import {deleteTables} from "./CreateTablesSpec";
-import {GameReturn, DBReturnStatus, DBReturn} from "../../../../db/abstraction/return/db_return";
+import {GameReturn} from "../../../../db/abstraction/return/db_return";
 import {Game} from "../../../../db/abstraction/tables/game";
 import {verifyReturn} from "../../../verifyReturn";
 var Q = require("q");
@@ -23,7 +23,7 @@ export function createGame(): Q.Promise<Game> {
                 resolve(ret.first());
             })
             .catch((ret: GameReturn) => {
-                expect(ret.first).toBeNull("Should have returned a null result");
+                expect(ret.first()).toBeNull("Should have returned a null result");
                 reject(null);
             });
     });
