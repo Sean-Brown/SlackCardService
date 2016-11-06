@@ -76,7 +76,7 @@ class CribbageHandHistoryActions implements ICribbageHandHistoryActions {
     }
     getPoints(player_id:number, game_history_id:number): Q.Promise<CribbageHandHistoryReturn> {
         var query = `
-            SELECT TOP ${CHH.COL_POINTS}
+            SELECT ${CHH.COL_POINTS}
             FROM ${CribbageHandHistoryActions.TABLE_NAME}
             WHERE ${CHH.COL_PLAYER_ID}=${player_id} AND ${CHH.COL_GAME_HISTORY_ID}=${game_history_id} AND ${CHH.COL_PLAYED}=true
             ORDER BY ${CribbageHandHistory.COL_ID} DESC

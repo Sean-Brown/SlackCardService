@@ -103,7 +103,7 @@ function findDealer(players:Map<string, number>, gameAssociation:GameAssociation
         var response = new CribbageServiceResponse();
         // This query finds the last dealer
         var query = `
-                SELECT TOP ${CribbageHandHistory.COL_PLAYER_ID}
+                SELECT ${CribbageHandHistory.COL_PLAYER_ID}
                 FROM ${getTableName(DBTables.CribbageHandHistory)}
                 WHERE ${CribbageHandHistory.COL_GAME_HISTORY_ID}=${gameAssociation.gameHistoryID} AND ${CribbageHandHistory.COL_IS_CRIB}=true
                 ORDER BY ${CribbageHandHistory.COL_ID} DESC
