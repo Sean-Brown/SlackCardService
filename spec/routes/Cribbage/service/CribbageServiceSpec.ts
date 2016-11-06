@@ -20,13 +20,13 @@ import {Player} from "../../../../db/abstraction/tables/player";
 import {ActiveGames} from "../../../../routes/Cribbage/service/lib/active_games";
 var Q = require("q");
 
-describe("Test the Cribbage Service", function() {
+describe("The Cribbage Service", function() {
     var cribbageID;
     var PeterGriffin:CribbagePlayer, pgID:number, HomerSimpson:CribbagePlayer, hsID:number;
     var gameHistories = [], winLossHistories = [];
     var cribbageService;
 
-    /*
+    /**
      Before all the tests run, make sure to create a fresh instance of the application
      in order to ensure the state of the server is reset between each test run. Also
      ensure that the database tables are created
@@ -195,17 +195,23 @@ describe("Test the Cribbage Service", function() {
             .finally(() => { done(); });
     });
 
-    describe("Test an initialized service", function() {
+    describe("when initialized", function() {
         /**
          * Before each test, initialize the cribbage service
          */
         beforeEach(function(done) {
-            initialize().then((error:string) => {
-                checkInitialization(error, done);
-            })
+            initialize()
+                .then((error:string) => {
+                    checkInitialization(error, done);
+                })
+                .finally(() => { done(); })
         });
 
-        it("describes the current game", function() {
+        it("can activate an unfinished game", function(done) {
+
+        });
+
+        it("describes the current active game", function() {
             let gameHistoryID = gameHistories[0];
             let result = cribbageService.describe(gameHistoryID);
             expect(result.length).toBeGreaterThan(0);
