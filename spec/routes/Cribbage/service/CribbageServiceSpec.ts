@@ -213,94 +213,91 @@ describe("The Cribbage Service", function() {
                 .finally(() => { done(); })
         });
 
-        it("returns an error if describing a non-existant game", function() {
-            let ghid = -1;
-            let result = cribbageService.describe(ghid);
-            expect(result.message.length).toBeGreaterThan(0);
-            expect(result.message).toEqual(ActiveGames.gameNotFoundError(ghid));
+        describe("joining a game", function() {
+            it("doesn't throw an error if the same player tries to join the new game more than once", function(done) {
+                cribbageService.joinGame(PeterGriffin.name)
+                    .then((result:CribbageServiceResponse) => {
+                        expect(result.status).toEqual(DBReturnStatus.ok, result.message);
+                    })
+                    .finally(() => { done(); });
+            });
+
+            it("joins a player to a new game", function(done) {
+                let name = PeterGriffin.name;
+                cribbageService.joinGame(name)
+                    .then((result:CribbageServiceResponse) => {
+                        expect(result.status).toEqual(DBReturnStatus.ok, result.message);
+                        expect(cribbageService.newGame.players.findPlayer(name)).not.toBeNull(`Expected ${name} to be in the game`);
+                    })
+                    .finally(() => { done(); });
+            });
+
+            it("adds an player to the database when they join the new game", function(done) {
+                let name = "Zaphod";
+                cribbageService.joinGame(name)
+                    .then((result:CribbageServiceResponse) => {
+                        expect(result.status).toEqual(DBReturnStatus.ok, result.message);
+                        expect(cribbageService.newGame.players.findPlayer(name)).not.toBeNull(`Expected ${name} to be in the game`);
+                    })
+                    .finally(() => { done(); });
+            });
+
+            it("joins a player to an unfinished game", function(done) {
+                cribbageService.getUnfinishedGames(PeterGriffin.name)
+                    .then((result:GetUnfinishedGamesResponse) => {
+                        expect(result.status).toEqual(DBReturnStatus.ok, result.message);
+                        return cribbageService.joinGame(PeterGriffin.name, result.gameHistoryIDs[0]);
+                    })
+                    .then((result:CribbageServiceResponse) => {
+                        expect(result.status).toEqual(DBReturnStatus.ok);
+                    })
+                    .finally(() => { done(); });
+            });
         });
 
-        it("joins a player to a new game", function(done) {
-            let name = PeterGriffin.name;
-            cribbageService.joinGame(name)
-                .then((result:CribbageServiceResponse) => {
-                    expect(result.status).toEqual(DBReturnStatus.ok, result.message);
-                    expect(cribbageService.newGame.players.findPlayer(name)).not.toBeNull(`Expected ${name} to be in the game`);
-                })
-                .finally(() => { done(); });
-        });
+        describe("getting unfinished games", function() {
+            it("can get a player's unfinished games", function(done) {
+                cribbageService.getUnfinishedGames(PeterGriffin.name)
+                    .then((result:GetUnfinishedGamesResponse) => {
+                        expect(result.status).toEqual(DBReturnStatus.ok, result.message);
+                        expect(result.gameHistoryIDs.length).toEqual(2);
+                    })
+                    .finally(() => { done(); });
+            });
 
-        it("doesn't throw an error if the same player tries to join the new game more than once", function(done) {
-            cribbageService.joinGame(PeterGriffin.name)
-                .then((result:CribbageServiceResponse) => {
-                    expect(result.status).toEqual(DBReturnStatus.ok, result.message);
-                })
-                .finally(() => { done(); });
-        });
+            it("adds an unknown player to the database if trying to get the unfinished games of an unknown player", function(done) {
+                cribbageService.getUnfinishedGames("Zaphod")
+                    .then((result:GetUnfinishedGamesResponse) => {
+                        expect(result.status).toEqual(DBReturnStatus.ok);
+                        expect(result.gameHistoryIDs.length).toEqual(0);
+                    })
+                    .finally(() => { done(); });
+            });
 
-        it("adds an player to the database when they join the new game", function(done) {
-            let name = "Zaphod";
-            cribbageService.joinGame(name)
-                .then((result:CribbageServiceResponse) => {
-                    expect(result.status).toEqual(DBReturnStatus.ok, result.message);
-                    expect(cribbageService.newGame.players.findPlayer(name)).not.toBeNull(`Expected ${name} to be in the game`);
-                })
-                .finally(() => { done(); });
-        });
+            it("gets only the players from a given game", function(done) {
+                var player = "Sven", pid = CribbageService.INVALID_ID;
+                createPlayer(player)
+                    .then((id:number) => {
+                        pid = id;
+                        return cribbageService.getUnfinishedGames(PeterGriffin.name);
+                    })
+                    .then((result:GetUnfinishedGamesResponse) => {
+                        expect(result.status).toEqual(DBReturnStatus.ok);
+                        return cribbageService.getGamePlayers(result.gameHistoryIDs[0]);
+                    })
+                    .then((players:Array<Player>) => {
+                        expect(players.length).toEqual(2);
+                    })
+                    .finally(() => { done(); });
+            });
 
-        it("can get a player's unfinished games", function(done) {
-            cribbageService.getUnfinishedGames(PeterGriffin.name)
-                .then((result:GetUnfinishedGamesResponse) => {
-                    expect(result.status).toEqual(DBReturnStatus.ok, result.message);
-                    expect(result.gameHistoryIDs.length).toEqual(2);
-                })
-                .finally(() => { done(); });
-        });
-
-        it("adds an unknown player to the database if trying to get the unfinished games of an unknown player", function(done) {
-            cribbageService.getUnfinishedGames("Zaphod")
-                .then((result:GetUnfinishedGamesResponse) => {
-                    expect(result.status).toEqual(DBReturnStatus.ok);
-                    expect(result.gameHistoryIDs.length).toEqual(0);
-                })
-                .finally(() => { done(); });
-        });
-
-        it("gets only the players from a given game", function(done) {
-            var player = "Sven", pid = CribbageService.INVALID_ID;
-            createPlayer(player)
-                .then((id:number) => {
-                    pid = id;
-                    return cribbageService.getUnfinishedGames(PeterGriffin.name);
-                })
-                .then((result:GetUnfinishedGamesResponse) => {
-                    expect(result.status).toEqual(DBReturnStatus.ok);
-                    return cribbageService.getGamePlayers(result.gameHistoryIDs[0]);
-                })
-                .then((players:Array<Player>) => {
-                    expect(players.length).toEqual(2);
-                })
-                .finally(() => { done(); });
-        });
-
-        it("returns an empty array if getting the players from a non-existant game", function(done) {
-            cribbageService.getGamePlayers(-1)
-                .then((players:Array<Player>) => {
-                    expect(players.length).toEqual(0);
-                })
-                .finally(() => { done(); });
-        });
-
-        it("joins a player to an unfinished game", function(done) {
-            cribbageService.getUnfinishedGames(PeterGriffin.name)
-                .then((result:GetUnfinishedGamesResponse) => {
-                    expect(result.status).toEqual(DBReturnStatus.ok, result.message);
-                    return cribbageService.joinGame(PeterGriffin.name, result.gameHistoryIDs[0]);
-                })
-                .then((result:CribbageServiceResponse) => {
-                    expect(result.status).toEqual(DBReturnStatus.ok);
-                })
-                .finally(() => { done(); });
+            it("returns an empty array if getting the players from a non-existant game", function(done) {
+                cribbageService.getGamePlayers(-1)
+                    .then((players:Array<Player>) => {
+                        expect(players.length).toEqual(0);
+                    })
+                    .finally(() => { done(); });
+            });
         });
 
         describe("with players in the new game", function() {
@@ -381,6 +378,13 @@ describe("The Cribbage Service", function() {
                     expect(result.message).not.toEqual(ActiveGames.gameNotFoundError(ghid));
                     expect(result.message).toContain(PeterGriffin.name);
                     expect(result.message).toContain(HomerSimpson.name);
+                });
+
+                it("returns an error if describing a non-existant game", function() {
+                    let ghid = -1;
+                    let result = cribbageService.describe(ghid);
+                    expect(result.message.length).toBeGreaterThan(0);
+                    expect(result.message).toEqual(ActiveGames.gameNotFoundError(ghid));
                 });
             });
 
