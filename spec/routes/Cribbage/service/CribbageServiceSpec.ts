@@ -13,11 +13,15 @@ import {PostgresTables} from "../../../../db/implementation/postgres/create_tabl
 import createTables = PostgresTables.createTables;
 import {
     CribbageServiceResponse, GetUnfinishedGamesResponse,
-    GameAssociationResponse
+    GameAssociationResponse, CribbageReturnResponse
 } from "../../../../routes/Cribbage/service/lib/response";
 import {game_history_player_actions} from "../../../../db/implementation/postgres/game_history_player_actions";
 import {Player} from "../../../../db/abstraction/tables/player";
 import {ActiveGames} from "../../../../routes/Cribbage/service/lib/active_games";
+import {
+    sixOfDiamonds, tenOfSpades, sixOfClubs, fiveOfHearts, fourOfSpades,
+    fiveOfDiamonds, tenOfHearts, jackOfDiamonds, jackOfSpades, queenOfClubs, sevenOfHearts, sevenOfClubs, eightOfClubs
+} from "../../../StandardCards";
 var Q = require("q");
 
 describe("The Cribbage Service", function() {
@@ -32,6 +36,8 @@ describe("The Cribbage Service", function() {
      ensure that the database tables are created
      */
     beforeEach(function(done) {
+        gameHistories = [];
+        winLossHistories = [];
         deleteTables()
             .then(() => {
                 return createTables();
@@ -207,22 +213,11 @@ describe("The Cribbage Service", function() {
                 .finally(() => { done(); })
         });
 
-        it("can activate an unfinished game", function(done) {
-
-        });
-
-        it("describes the current active game", function() {
-            let gameHistoryID = gameHistories[0];
-            let result = cribbageService.describe(gameHistoryID);
-            expect(result.length).toBeGreaterThan(0);
-            expect(result).not.toEqual(ActiveGames.gameNotFoundError(gameHistoryID));
-        });
-
         it("returns an error if describing a non-existant game", function() {
             let ghid = -1;
             let result = cribbageService.describe(ghid);
-            expect(result.length).toBeGreaterThan(0);
-            expect(result).toEqual(ActiveGames.gameNotFoundError(ghid));
+            expect(result.message.length).toBeGreaterThan(0);
+            expect(result.message).toEqual(ActiveGames.gameNotFoundError(ghid));
         });
 
         it("joins a player to a new game", function(done) {
@@ -271,20 +266,8 @@ describe("The Cribbage Service", function() {
                 .finally(() => { done(); });
         });
 
-        it("joins a player to an unfinished game", function(done) {
-            cribbageService.getUnfinishedGames(PeterGriffin.name)
-                .then((result:GetUnfinishedGamesResponse) => {
-                    expect(result.status).toEqual(DBReturnStatus.ok, result.message);
-                    return cribbageService.joinGame(PeterGriffin.name, result.gameHistoryIDs[0]);
-                })
-                .then((result:CribbageServiceResponse) => {
-                    expect(result.status).toEqual(DBReturnStatus.ok);
-                })
-                .finally(() => { done(); });
-        });
-
         it("gets only the players from a given game", function(done) {
-            var player = "Sven", pid = 0;
+            var player = "Sven", pid = CribbageService.INVALID_ID;
             createPlayer(player)
                 .then((id:number) => {
                     pid = id;
@@ -308,7 +291,23 @@ describe("The Cribbage Service", function() {
                 .finally(() => { done(); });
         });
 
-        describe("Test an initialized service with players in the new game", function() {
+        it("joins a player to an unfinished game", function(done) {
+            cribbageService.getUnfinishedGames(PeterGriffin.name)
+                .then((result:GetUnfinishedGamesResponse) => {
+                    expect(result.status).toEqual(DBReturnStatus.ok, result.message);
+                    return cribbageService.joinGame(PeterGriffin.name, result.gameHistoryIDs[0]);
+                })
+                .then((result:CribbageServiceResponse) => {
+                    expect(result.status).toEqual(DBReturnStatus.ok);
+                })
+                .finally(() => { done(); });
+        });
+
+        it("returns an error if playing a card in a non-active game", function(done) {
+             done();
+        });
+
+        describe("with players in the new game", function() {
             /**
              * Before each test, add players to the game
              */
@@ -341,11 +340,74 @@ describe("The Cribbage Service", function() {
                     .finally(() => { done(); });
             });
 
-            it("only resets the game if the correct secret was given", function() {
+            it("only resets the new game if the correct secret was given", function() {
                 let result = cribbageService.resetGame("wrong-secret");
                 expect(result.status).toEqual(DBReturnStatus.error);
                 result = cribbageService.resetGame(process.env.CRIB_RESET_SECRET);
                 expect(result.status).toEqual(DBReturnStatus.ok);
+            });
+        });
+
+        describe("with players in an active game", function() {
+            var ghid = 0;
+            const   pgHand = new CribbageHand([fourOfSpades, fiveOfHearts, sixOfClubs, tenOfSpades]),
+                    hsHand = new CribbageHand([tenOfHearts, jackOfDiamonds, jackOfSpades, queenOfClubs]),
+                    kitty = new CribbageHand([sixOfDiamonds, sevenOfHearts, sevenOfClubs, eightOfClubs]),
+                    cut = fiveOfDiamonds;
+            /**
+             * Before each test, add the players to an unfinished game
+             */
+            beforeEach(function(done) {
+                ghid = gameHistories[0];
+                cribbageService.joinGame(PeterGriffin.name, ghid)
+                    .then((result:CribbageServiceResponse) => {
+                        expect(result.status).toEqual(DBReturnStatus.ok, result.message);
+                        return cribbageService.joinGame(HomerSimpson.name, ghid);
+                    })
+                    .then((result:CribbageServiceResponse) => {
+                        expect(result.status).toEqual(DBReturnStatus.ok, result.message);
+                        // Replace each player's hand
+                        let gameAssociation = cribbageService.activeGames.activeGames.get(ghid);
+                        expect(gameAssociation).not.toBeNull();
+                        expect(gameAssociation.game.players.countItems()).toEqual(2);
+                        gameAssociation.game.players.findPlayer(PeterGriffin.name).hand = pgHand;
+                        gameAssociation.game.players.findPlayer(HomerSimpson.name).hand = hsHand;
+                        gameAssociation.game.kitty = kitty;
+                        gameAssociation.game.cut = cut;
+                    })
+                    .finally(() => { done(); });
+            });
+
+            it("describes the current active game", function() {
+                let result = cribbageService.describe(ghid);
+                expect(result.message.length).toBeGreaterThan(0);
+                expect(result.message).not.toEqual(ActiveGames.gameNotFoundError(ghid));
+                expect(result.message).toContain(PeterGriffin.name);
+                expect(result.message).toContain(HomerSimpson.name);
+            });
+
+            it("lets the next player play a card", function(done) {
+                cribbageService.playCard(HomerSimpson.name, jackOfDiamonds)
+                    .then((result:CribbageReturnResponse) => {
+                        expect(result.status).toEqual(DBReturnStatus.ok);
+                    })
+                    .finally(() => { done(); });
+            });
+
+            it("returns an error if the next player plays a card they do not have", function(done) {
+                cribbageService.playCard(HomerSimpson.name, fourOfSpades)
+                    .then((result:CribbageReturnResponse) => {
+                        expect(result.status).toEqual(DBReturnStatus.error);
+                    })
+                    .finally(() => { done(); });
+            });
+
+            it("returns an error if a player playing a card is not the next player", function(done) {
+                cribbageService.playCard(PeterGriffin.name, fourOfSpades)
+                    .then((result:CribbageReturnResponse) => {
+                        expect(result.status).toEqual(DBReturnStatus.error);
+                    })
+                    .finally(() => { done(); });
             });
         });
     });
