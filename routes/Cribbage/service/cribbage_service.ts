@@ -439,6 +439,9 @@ export class CribbageService {
             this.getPlayerID(player)
                 .then((playerID:number) => {
                     resolve(that.activeGames.go(playerID, player));
+                })
+                .catch((e) => {
+                    resolve(makeErrorResponse(e));
                 });
         });
     }
