@@ -22,10 +22,10 @@ export class GetUnfinishedGamesResponse extends CribbageServiceResponse {
     constructor(public gameHistoryIDs:Array<number>) { super(); }
 }
 /**
- * Class that's returned from the "find playerIDs" method
+ * Class that's returned from the "find players" method
  */
 export class FindPlayersResponse extends CribbageServiceResponse {
-    constructor(public playerIDs:Array<Player> = []) { super(); }
+    constructor(public players:Array<Player> = []) { super(); }
 }
 /**
  * Class that's returned from the "find dealer" method

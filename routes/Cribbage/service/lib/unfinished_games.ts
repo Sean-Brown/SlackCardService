@@ -20,8 +20,34 @@ export class UnfinishedGames {
      * @param gameHistoryID
      * @returns {boolean}
      */
-    public isUnfinished(gameHistoryID:number):boolean {
-        return this.unfinishedGames.has(gameHistoryID);
+    public isUnfinished(gameHistoryID:number):Q.Promise<boolean> {
+        return new Q.Promise((resolve) => {
+            let isUnfinished = this.unfinishedGames.has(gameHistoryID);
+            if (!isUnfinished) {
+                // Check in the database
+                let query = `
+                    SELECT ${GameHistory.COL_ID}
+                    FROM ${getTableName(DBTables.GameHistory)}
+                    WHERE ${GameHistory.COL_ID} IN (
+                        SELECT DISTINCT ${WinLossHistory.COL_GAME_HISTORY_ID}
+                        FROM ${getTableName(DBTables.WinLossHistory)}
+                        WHERE ${WinLossHistory.COL_GAME_HISTORY_ID}=${gameHistoryID}
+                    );
+                `.trim();
+                pg_mgr.runQuery(query)
+                    .then((result:PGQueryReturn) => {
+                        if (result.error.length > 0) {
+                            resolve(false);
+                        }
+                        else {
+                            resolve(result.value.rowCount > 0);
+                        }
+                    });
+            }
+            else {
+                resolve(isUnfinished);
+            }
+        });
     }
 
     /**
@@ -29,7 +55,9 @@ export class UnfinishedGames {
      * @param gameHistoryID
      */
     public addUnfinishedGame(gameHistoryID:number):void {
-        this.unfinishedGames.add(gameHistoryID);
+        if (!this.unfinishedGames.has(gameHistoryID)) {
+            this.unfinishedGames.add(gameHistoryID);
+        }
     }
 
     /**
@@ -59,9 +87,10 @@ export class UnfinishedGames {
             pg_mgr.runQuery(query)
                 .then((result:PGQueryReturn) => {
                     if (result.error.length == 0) {
-                        gameHistoryIDs = result.value.rows;
-                        gameHistoryIDs.forEach((gameHistoryID:number) => {
-                            that.unfinishedGames.add(gameHistoryID);
+                        let gameHistories = result.value.rows;
+                        gameHistories.forEach((gh:GameHistory) => {
+                            gameHistoryIDs.push(gh.id);
+                            that.addUnfinishedGame(gh.id);
                         });
                     }
                     else {
@@ -90,7 +119,7 @@ export class UnfinishedGames {
                         result.value.rows.forEach((gameHistoryPlayer:GameHistoryPlayerPivot) => {
                             let ghid = gameHistoryPlayer.game_history_id;
                             gameHistoryIDs.push(ghid);
-                            that.unfinishedGames.add(ghid);
+                            that.addUnfinishedGame(ghid);
                         });
                     }
                     else {

@@ -15,21 +15,29 @@ import {GameAssociation} from "./game_association";
 import {CribbageHandHistoryReturn, DBReturnStatus, PlayerReturn} from "../../../../db/abstraction/return/db_return";
 import {getTableName, DBTables, BaseTable} from "../../../../db/abstraction/tables/base_table";
 import {pg_mgr, PGQueryReturn} from "../../../../db/implementation/postgres/manager";
+import {CribbageService} from "../cribbage_service";
+import {Player} from "../../../../db/abstraction/tables/player";
 var Q = require("q");
+
+class FindPlayersInGameComposite {
+    constructor(public player_id:number, public name:string) { }
+}
 
 /**
  * Find all the playerIDs that were part of a game
+ * @param players the map of a player's name to their id, potentially fill this map out with missing players
  * @param gameHistoryID the game the playerIDs were in
  * @returns {Q.Promise} if successful, a response with the player IDs in order, otherwise an error message
  */
-function findPlayersInGame(gameHistoryID:number): Q.Promise<FindPlayersInGameResponse> {
+function findPlayersInGame(players:Map<string, number>, gameHistoryID:number): Q.Promise<FindPlayersInGameResponse> {
     return new Q.Promise((resolve) => {
         var response = new FindPlayersInGameResponse();
         var query = `
-                SELECT ${GameHistoryPlayerPivot.COL_PLAYER_ID}
-                FROM ${getTableName(DBTables.GameHistoryPlayer)}
-                WHERE ${GameHistoryPlayerPivot.COL_GAME_HISTORY_ID}=${gameHistoryID}
-                ORDER BY ${GameHistoryPlayerPivot.COL_ID} ASC;
+                SELECT ghp.${GameHistoryPlayerPivot.COL_PLAYER_ID}, p.${Player.COL_NAME}
+                FROM ${getTableName(DBTables.GameHistoryPlayer)} ghp, ${getTableName(DBTables.Player)} p
+                WHERE ghp.${GameHistoryPlayerPivot.COL_GAME_HISTORY_ID}=${gameHistoryID} AND 
+                      ghp.${GameHistoryPlayerPivot.COL_PLAYER_ID}=p.${Player.COL_ID}
+                ORDER BY ghp.${GameHistoryPlayerPivot.COL_ID} ASC;
             `.trim();
         pg_mgr.runQuery(query)
             .then((result:PGQueryReturn) => {
@@ -39,8 +47,9 @@ function findPlayersInGame(gameHistoryID:number): Q.Promise<FindPlayersInGameRes
                 }
                 else {
                     // Add the playerIDs
-                    result.value.rows.forEach((ghp:GameHistoryPlayerPivot) => {
-                        response.playerIDs.push(ghp.player_id);
+                    result.value.rows.forEach((composite:FindPlayersInGameComposite) => {
+                        CribbageService.setPlayer(players, composite.name, composite.player_id);
+                        response.playerIDs.push(composite.player_id);
                     });
                 }
                 resolve(response);
@@ -80,7 +89,7 @@ function findPlayers(playerIDs:Array<number>): Q.Promise<FindPlayersResponse> {
                         }
                         else if (player.id == playerID) {
                             // Found the player!
-                            response.playerIDs.push(player);
+                            response.players.push(player);
                             break;
                         }
                     }
@@ -100,7 +109,6 @@ function findPlayers(playerIDs:Array<number>): Q.Promise<FindPlayersResponse> {
  */
 function findDealer(players:Map<string, number>, gameAssociation:GameAssociation): Q.Promise<FindDealerResponse> {
     return new Q.Promise((resolve) => {
-        var response = new CribbageServiceResponse();
         // This query finds the last dealer
         var query = `
                 SELECT ${CribbageHandHistory.COL_PLAYER_ID}
@@ -111,19 +119,27 @@ function findDealer(players:Map<string, number>, gameAssociation:GameAssociation
             `.trim();
         pg_mgr.runQuery(query)
             .then((result:PGQueryReturn) => {
+                var response = new FindDealerResponse(CribbageService.INVALID_ID);
                 if (result.error.length > 0) {
-                    response = makeErrorResponse(result.error);
+                    response = <FindDealerResponse>makeErrorResponse(result.error);
                 }
-                if (result.value.rowCount == 0) {
+                else if (result.value.rowCount == 0) {
                     // No rows means that no hands have been played yet, so use the first player as the dealer
-                    resolve(players.get((<CribbagePlayer>gameAssociation.game.players.itemAt(0)).name))
+                    let gamePlayers = gameAssociation.game.players;
+                    if (gamePlayers.countItems() > 0) {
+                        let dealer = <CribbagePlayer>gameAssociation.game.players.itemAt(0);
+                        response.dealerID = players.get(dealer.name);
+                    }
+                    else {
+                        response.dealerID = CribbageService.INVALID_ID;
+                    }
                 }
                 else {
                     // Found the dealer, now find out who the next dealer should be
-                    resolve(result.value.rows[0]);
+                    response.dealerID = result.value.rows[0];
                 }
+                resolve(response);
             });
-        resolve(response);
     });
 }
 
@@ -134,7 +150,7 @@ function findDealer(players:Map<string, number>, gameAssociation:GameAssociation
  * @returns string the name of the player
  */
 function findPlayerName(players:Map<string, number>, playerID:number): string {
-    let playerName = "";
+    var playerName = "";
     players.forEach((value:number /* id */, key:string /* name */) => {
         if (value == playerID) {
             playerName = key;
@@ -163,13 +179,15 @@ function setDealerAndNextPlayer(players:Map<string, number>, gameAssociation:Gam
                 let game = gameAssociation.game;
                 let gamePlayers = gameAssociation.game.players;
                 for (let ix = 0; ix < gamePlayers.countItems(); ix++) {
-                    let player = <CribbagePlayer>gamePlayers[ix];
+                    let player = <CribbagePlayer>gamePlayers.itemAt(ix);
                     if (player.name == dealerName) {
                         // Found the dealer, now set the dealer and the next player
                         game.dealer = player;
                         game.nextPlayerInSequence = game.nextPlayerInOrder(player);
+                        break;
                     }
                 }
+                resolve(new CribbageServiceResponse());
             });
     });
 }
@@ -217,7 +235,8 @@ function setPlayerPoints(players:Map<string, number>, gameAssociation:GameAssoci
                 else {
                     // Set the player's points in the game
                     let playerName = findPlayerName(players, result.playerID);
-                    gameAssociation.game.players.findPlayer(playerName).points = result.points;
+                    let player = gameAssociation.game.players.findPlayer(playerName);
+                    player.points = result.points;
                 }
             });
             let message = getErrorMessage(errors);
@@ -243,7 +262,7 @@ export function recreateGame(players:Map<string, number>, gameHistoryID:number):
         var response = new GameAssociationResponse();
         let gameAssociation = new GameAssociation(new Cribbage(new Players([])), gameHistoryID);
         // Find the playerIDs in the game
-        findPlayersInGame(gameHistoryID)
+        findPlayersInGame(players, gameHistoryID)
             .then((result: FindPlayersInGameResponse) => {
                 checkResponse(result, resolve);
                 // Set the playerIDs in the association
@@ -257,11 +276,12 @@ export function recreateGame(players:Map<string, number>, gameHistoryID:number):
                 checkResponse(result, resolve);
                 // Create CribbagePlayer items and add them to the game in the association
                 let cribbagePlayers = [];
-                for (let ix = 0; ix < result.playerIDs.length; ix++) {
-                    let player = result.playerIDs[ix];
+                for (let ix = 0; ix < result.players.length; ix++) {
+                    let player = result.players[ix];
                     cribbagePlayers.push(new CribbagePlayer(player.name, new CribbageHand([])));
                 }
                 gameAssociation.game.players = new Players(cribbagePlayers);
+                gameAssociation.game.numPlayers = gameAssociation.game.players.countItems();
                 // Set the dealer and next player
                 return setDealerAndNextPlayer(players, gameAssociation);
             })
@@ -274,6 +294,8 @@ export function recreateGame(players:Map<string, number>, gameHistoryID:number):
                 checkResponse(result, resolve);
                 // Make the teams
                 gameAssociation.game.makeTeams();
+                // Deal the cards
+                gameAssociation.game.deal();
                 // Set the game as 'begun'
                 gameAssociation.game.hasBegun = true;
                 // Set the association
