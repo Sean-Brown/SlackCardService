@@ -125,7 +125,7 @@ export module DBRoutes {
                 var gameHistory:GameHistory = null;
                 that.init()
                     .then(() => {
-                        game_history_actions.create(game_history_id)
+                        resolve(game_history_actions.create(game_history_id)
                             .then((result:GameHistoryReturn) => {
                                 if (result.status != DBReturnStatus.ok) {
                                     console.error(result.message);
@@ -149,7 +149,7 @@ export module DBRoutes {
                                             }
                                         });
                                 }
-                            });
+                            }));
                     })
                     .catch((err:string) => {
                         console.log(err);
