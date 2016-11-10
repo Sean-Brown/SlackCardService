@@ -17,7 +17,7 @@ import {WinLossHistory} from "../../db/abstraction/tables/win_loss_history";
 import {CribbageService} from "./service/cribbage_service";
 import {
     CribbageServiceResponse, GameAssociationResponse, CribbageReturnResponse,
-    CurrentGameResponse, CribbageHandResponse
+    CurrentGameResponse, CribbageHandResponse, GetUnfinishedGamesResponse
 } from "./service/lib/response";
 import {Player} from "../../db/abstraction/tables/player";
 var Q = require("q");
@@ -82,6 +82,7 @@ export module CribbageRoutes {
         public static get playCard() { return process.env.ST_PLAY_CARD; }
         public static get throwCard() { return process.env.ST_THROW_CARD; }
         public static get go() { return process.env.ST_GO; }
+        public static get unfinishedGames() { return process.env.ST_UNFINISHED_GAMES; }
     }
 
     export class Routes {
@@ -93,6 +94,7 @@ export module CribbageRoutes {
         public static get playCard() { return "/playCard"; }
         public static get throwCard() { return "/throw"; }
         public static get go() { return "/go"; }
+        public static get unfinishedGames() { return "/unfinishedGames"; }
     }
 
     function removeSpaces(str:string):string {
@@ -366,6 +368,37 @@ export module CribbageRoutes {
          */
 
         /* ***** ROUTES ***** */
+
+        /* ***** Getting unfinished games ***** */
+
+        getUnfinishedGames(req:Request, res:Response) {
+            if (!Router.verifyRequest(req, Routes.unfinishedGames)) {
+                Router.sendResponse(Router.VALIDATION_FAILED_RESPONSE, res);
+            }
+            else {
+                try {
+                    let player = Router.getPlayerName(req);
+                    this.cribbage_service.getUnfinishedGames(player)
+                        .then((result:GetUnfinishedGamesResponse) => {
+                            if (result.status != DBReturnStatus.ok) {
+                                Router.sendResponse(Router.makeErrorResponse(result.message), res);
+                            }
+                            else {
+                                Router.sendResponse(
+                                    Router.makeResponse(
+                                        200,
+                                        result.gameHistoryIDs.join(", ")
+                                    ),
+                                    res
+                                );
+                            }
+                        });
+                }
+                catch (e) {
+                    Router.sendResponse(Router.makeErrorResponse(e), res);
+                }
+            }
+        }
 
         /* ***** Initializing the Game ***** */
 
@@ -832,5 +865,6 @@ export module CribbageRoutes {
             }
             Router.sendResponse(response, res);
         }
+
     }
 }
