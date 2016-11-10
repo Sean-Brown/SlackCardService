@@ -42,7 +42,12 @@ export class CribbageService {
      */
     private cribbageID: number;
 
-    private static get INVALID_ID():number { return -1; }
+    /**
+     * An invalid playerID
+     * @returns {number}
+     * @constructor
+     */
+    public static get INVALID_ID():number { return -1; }
 
     public constructor() {
         this.activeGames = new ActiveGames();
@@ -66,12 +71,24 @@ export class CribbageService {
                     return that.unfinishedGames.getUnfinishedGames()
                 })
                 .then((gameHistoryIDs: Array<number>) => {
-                    for (let ix = 0; ix < gameHistoryIDs.length; ix++) {
-                        that.unfinishedGames.addUnfinishedGame(gameHistoryIDs[ix]);
-                    }
+                    gameHistoryIDs.forEach((ghid:number) => {
+                        that.unfinishedGames.addUnfinishedGame(ghid);
+                    });
                     resolve("");
                 });
         });
+    }
+
+    /**
+     * Set a player in the players map if the player doesn't already exist
+     * @param players the map of players to set the player in
+     * @param player
+     * @param id
+     */
+    public static setPlayer(players:Map<string, number>, player:string, id:number): void {
+        if (!players.has(player)) {
+            players.set(player, id);
+        }
     }
 
     /**
@@ -89,29 +106,35 @@ export class CribbageService {
                 // The player is part of a game already
                 resolve(makeErrorResponse(`You're already a in game, leave that one first before joining another game.`));
             }
-            else if (!that.unfinishedGames.isUnfinished(gameHistoryID)) {
-                // The game isn't one of the unfinished games
-                resolve(makeErrorResponse(`Game ${gameHistoryID} is not one of the unfinished games`));
-            }
             else {
-                // Make sure the player was in the game to begin with
-                that.activeGames.playerWasInGame(playerID, gameHistoryID)
-                    .then((result: PlayerInGameResponse) => {
-                        checkResponse(result, resolve);
-                        if (!result.partOfGame) {
-                            resolve(makeErrorResponse(`You're not part of ${gameHistoryID}`));
+                that.unfinishedGames.isUnfinished(gameHistoryID)
+                    .then((isUnfinished:boolean) => {
+                        if (!isUnfinished) {
+                            // The game isn't one of the unfinished games
+                            resolve(makeErrorResponse(`Game ${gameHistoryID} is not one of the unfinished games`));
                         }
                         else {
-                            // Let the player rejoin the game, first get the GameAssociation object
-                            return that.activeGames.getActiveGame(that.players, gameHistoryID);
+                            // Make sure the player was in the game to begin with
+                            that.activeGames.playerWasInGame(playerID, gameHistoryID)
+                                .then((result: PlayerInGameResponse) => {
+                                    checkResponse(result, resolve);
+                                    if (!result.partOfGame) {
+                                        resolve(makeErrorResponse(`You're not part of ${gameHistoryID}`));
+                                    }
+                                    else {
+                                        // Let the player rejoin the game, first get the GameAssociation object
+                                        return that.activeGames.getActiveGame(that.players, gameHistoryID);
+                                    }
+                                })
+                                .then((result: GameAssociationResponse) => {
+                                    checkResponse(result, resolve);
+                                    // Set the player to game-history assocation
+                                    that.activeGames.setPlayerGame(playerID, gameHistoryID);
+                                    // Set the game as an active game
+                                    that.activeGames.setGameHistoryAssociation(gameHistoryID, result.gameAssociation);
+                                    resolve(new CribbageServiceResponse());
+                                });
                         }
-                    })
-                    .then((result: GameAssociationResponse) => {
-                        checkResponse(result, resolve);
-                        // Set the player to game-history assocation
-                        that.activeGames.setPlayerGame(playerID, gameHistoryID);
-                        // Set the game as an active game
-                        that.activeGames.setGameHistoryAssociation(gameHistoryID, result.gameAssociation);
                     });
             }
         });
@@ -134,7 +157,7 @@ export class CribbageService {
             }
             else if (gameHistoryID != 0) {
                 // The player is not part of the new game, add them to the existing game
-                return this.joinPlayerToUnfinishedGame(playerID, player, gameHistoryID);
+                resolve(that.joinPlayerToUnfinishedGame(playerID, player, gameHistoryID));
             }
             else {
                 // The player is not part of the new game, add them to the new game
@@ -161,9 +184,10 @@ export class CribbageService {
                         }
                         else if (result.result.length == 0) {
                             // Player not in the database yet, add them
-                            DBRoutes.router.addPlayer(player)
-                                .then((dbPlayer: Player) => {
-                                    resolve(dbPlayer.id);
+                            player_actions.create(player)
+                                .then((result:PlayerReturn) => {
+                                    checkResponse(result, resolve);
+                                    resolve(result.first().id);
                                 })
                                 .catch(() => {
                                     console.log(`Failed to add player ${player} to the database`);
@@ -171,25 +195,17 @@ export class CribbageService {
                                 });
                         }
                         else {
-                            resolve(result.first().id);
+                            let playerID = result.first().id;
+                            CribbageService.setPlayer(that.players, player, playerID);
+                            resolve(playerID);
                         }
                     })
             }
             else {
+                CribbageService.setPlayer(that.players, player, playerID);
                 resolve(playerID);
             }
         });
-    }
-
-    /**
-     * Check the player's ID, if it's invalid then resolve with an error response
-     * @param playerID
-     * @param resolve
-     */
-    private static checkPlayerID(playerID:number, resolve:Function): void {
-        if (playerID == CribbageService.INVALID_ID) {
-            resolve(<CribbageHandResponse>makeErrorResponse("Unable to find you in the database"));
-        }
     }
 
     /**
@@ -262,6 +278,7 @@ export class CribbageService {
      * @param playerID
      */
     public getPlayerName(playerID:number): Q.Promise<string> {
+        var that = this;
         return new Q.Promise((resolve) => {
             let player = "";
             this.players.forEach((pid:number, strPlayer:string) => {
@@ -278,7 +295,9 @@ export class CribbageService {
                             resolve("");
                         }
                         else {
-                            resolve(result.first().name);
+                            let name = result.first().name;
+                            CribbageService.setPlayer(that.players, name, playerID);
+                            resolve(name);
                         }
                     });
             }
@@ -297,12 +316,11 @@ export class CribbageService {
         var that = this;
         return new Q.Promise((resolve) => {
             that.getPlayerID(player)
-                .then((result:number) => {
-                    CribbageService.checkPlayerID(result, resolve);
-                    that.unfinishedGames.playerUnfinishedGames(result)
-                        .then((gameHistoryIDs:Array<number>) => {
-                            resolve(new GetUnfinishedGamesResponse(gameHistoryIDs));
-                        });
+                .then((playerID:number) => {
+                    return that.unfinishedGames.playerUnfinishedGames(playerID)
+                })
+                .then((gameHistoryIDs:Array<number>) => {
+                    resolve(new GetUnfinishedGamesResponse(gameHistoryIDs));
                 });
         });
     }
@@ -317,10 +335,9 @@ export class CribbageService {
         var that = this;
         return new Q.Promise((resolve) => {
             that.getPlayerID(player)
-                .then((result:number) => {
-                    CribbageService.checkPlayerID(result, resolve);
+                .then((playerID:number) => {
                     // Join the player to the game
-                    resolve(that.joinPlayerToGame(result, player, gameHistoryID));
+                    resolve(that.joinPlayerToGame(playerID, player, gameHistoryID));
                 });
         });
     }
@@ -360,9 +377,8 @@ export class CribbageService {
     public getPlayerHand(player: string): Q.Promise<CribbageHandResponse> {
         return new Q.Promise((resolve) => {
             this.getPlayerID(player)
-                .then((result:number) => {
-                    CribbageService.checkPlayerID(result, resolve);
-                    resolve(this.activeGames.getPlayerHand(result, player));
+                .then((playerID:number) => {
+                    resolve(this.activeGames.getPlayerHand(playerID, player));
                 });
         });
     }
@@ -375,9 +391,11 @@ export class CribbageService {
     public playCard(player: string, card: BaseCard): Q.Promise<CribbageReturnResponse> {
         return new Q.Promise((resolve) => {
             this.getPlayerID(player)
-                .then((result:number) => {
-                    CribbageService.checkPlayerID(result, resolve);
-                    resolve(this.activeGames.playCard(result, player, card));
+                .then((playerID:number) => {
+                    resolve(this.activeGames.playCard(playerID, player, card));
+                })
+                .catch((e) => {
+                    resolve(makeErrorResponse(e));
                 });
         });
     }
@@ -390,9 +408,8 @@ export class CribbageService {
         var that = this;
         return new Q.Promise((resolve) => {
             this.getPlayerID(player)
-                .then((result:number) => {
-                    CribbageService.checkPlayerID(result, resolve);
-                    resolve(that.activeGames.getPlayerGame(result));
+                .then((playerID:number) => {
+                    resolve(that.activeGames.getPlayerGame(playerID));
                 });
         });
     }
@@ -406,9 +423,8 @@ export class CribbageService {
         var that = this;
         return new Q.Promise((resolve) => {
             this.getPlayerID(player)
-                .then((result:number) => {
-                    CribbageService.checkPlayerID(result, resolve);
-                    resolve(that.activeGames.giveToKitty(result, player, cards));
+                .then((playerID:number) => {
+                    resolve(that.activeGames.giveToKitty(playerID, player, cards));
                 });
         });
     }
@@ -421,9 +437,8 @@ export class CribbageService {
         var that = this;
         return new Q.Promise((resolve) => {
             this.getPlayerID(player)
-                .then((result:number) => {
-                    CribbageService.checkPlayerID(result, resolve);
-                    resolve(that.activeGames.go(result, player));
+                .then((playerID:number) => {
+                    resolve(that.activeGames.go(playerID, player));
                 });
         });
     }
