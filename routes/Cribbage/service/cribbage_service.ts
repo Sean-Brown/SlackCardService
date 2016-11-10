@@ -394,8 +394,8 @@ export class CribbageService {
                 .then((playerID:number) => {
                     resolve(this.activeGames.playCard(playerID, player, card));
                 })
-                .catch((e) => {
-                    resolve(makeErrorResponse(e));
+                .catch((error:string) => {
+                    resolve(makeErrorResponse(error));
                 });
         });
     }
@@ -425,6 +425,9 @@ export class CribbageService {
             this.getPlayerID(player)
                 .then((playerID:number) => {
                     resolve(that.activeGames.giveToKitty(playerID, player, cards));
+                })
+                .catch((error:string) => {
+                    resolve(makeErrorResponse(error));
                 });
         });
     }
@@ -440,8 +443,8 @@ export class CribbageService {
                 .then((playerID:number) => {
                     resolve(that.activeGames.go(playerID, player));
                 })
-                .catch((e) => {
-                    resolve(makeErrorResponse(e));
+                .catch((error:string) => {
+                    resolve(makeErrorResponse(error));
                 });
         });
     }
