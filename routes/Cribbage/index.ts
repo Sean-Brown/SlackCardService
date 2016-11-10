@@ -171,7 +171,7 @@ export module CribbageRoutes {
         private static getRequestInt(req:Request):number {
             let ret = parseInt(req.body.text ? req.body.text : req.query.text ? req.query.text : 0);
             if (!ret) {
-                ret = 0;
+                ret = CribbageService.INVALID_ID;
             }
             return ret;
         }
