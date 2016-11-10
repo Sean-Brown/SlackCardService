@@ -383,16 +383,18 @@ export module CribbageRoutes {
                 try {
                     let player = Router.getPlayerName(req);
                     let override = Router.getRequestText(req);
-                    this.cribbage_service.getUnfinishedGames((override.length > 0) ? override : player)
+                    let playerToUse = ((override.length > 0) ? override : player);
+                    this.cribbage_service.getUnfinishedGames(playerToUse)
                         .then((result:GetUnfinishedGamesResponse) => {
                             if (result.status != DBReturnStatus.ok) {
                                 Router.sendResponse(Router.makeErrorResponse(result.message), res);
                             }
                             else {
+                                let ghids = result.gameHistoryIDs;
                                 Router.sendResponse(
                                     Router.makeResponse(
                                         200,
-                                        result.gameHistoryIDs.join(", ")
+                                        ((ghids.length > 0) ? ghids.join(", ") : `${playerToUse} has no unfinished games`)
                                     ),
                                     res
                                 );
