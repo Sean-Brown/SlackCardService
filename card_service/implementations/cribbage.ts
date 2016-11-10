@@ -706,7 +706,7 @@ export class Cribbage extends CardGame<CribbagePlayer, StandardDeck> {
      * - add the playerIDs back to the run of play
      * - deal the cards
      */
-    private deal():void {
+    public deal():void {
         this.kitty.removeAll();
         this.resetHands();
         this.shuffle();
