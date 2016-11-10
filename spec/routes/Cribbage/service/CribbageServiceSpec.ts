@@ -447,6 +447,43 @@ describe("The Cribbage Service", function() {
                         .finally(() => { done(); });
                 });
             });
+
+            describe("throwing to the kitty", function() {
+                beforeEach(() => {
+                    let gameAssociation = cribbageService.activeGames.activeGames.get(ghid);
+                    let pg = gameAssociation.game.players.findPlayer(PeterGriffin.name);
+                    pg.hand.takeCard(sixOfDiamonds);
+                    pg.hand.takeCard(sevenOfHearts);
+                    let hs = gameAssociation.game.players.findPlayer(HomerSimpson.name);
+                    hs.hand.takeCard(sevenOfClubs);
+                    hs.hand.takeCard(eightOfClubs);
+                    gameAssociation.game.kitty.removeAll();
+                });
+
+                it("allows a player to throw to the kitty", function(done) {
+                    cribbageService.giveToKitty(PeterGriffin.name, [sixOfDiamonds, sevenOfHearts])
+                        .then((result:CribbageReturnResponse) => {
+                            expect(result.status).toEqual(DBReturnStatus.ok);
+                        })
+                        .finally(() => { done(); });
+                });
+
+                it("doesn't let a player throw cards they don't have", function(done) {
+                    cribbageService.giveToKitty(PeterGriffin.name, [sixOfDiamonds, sevenOfClubs])
+                        .then((result:CribbageReturnResponse) => {
+                            expect(result.status).toEqual(DBReturnStatus.error);
+                        })
+                        .finally(() => { done(); });
+                });
+
+                it("doesn't allow a random player to throw cards", function(done) {
+                    cribbageService.giveToKitty("Zaphod", [sixOfDiamonds, sevenOfClubs])
+                        .then((result:CribbageReturnResponse) => {
+                            expect(result.status).toEqual(DBReturnStatus.error);
+                        })
+                        .finally(() => { done(); });
+                });
+            });
         });
     });
 });
