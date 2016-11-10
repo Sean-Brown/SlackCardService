@@ -155,7 +155,7 @@ export class CribbageService {
                 // The player is already part of the new game
                 resolve(makeErrorResponse("You're already part of a new game"));
             }
-            else if (gameHistoryID != 0) {
+            else if (gameHistoryID != CribbageService.INVALID_ID) {
                 // The player is not part of the new game, add them to the existing game
                 resolve(that.joinPlayerToUnfinishedGame(playerID, player, gameHistoryID));
             }
