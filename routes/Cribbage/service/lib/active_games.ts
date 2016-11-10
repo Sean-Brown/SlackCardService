@@ -104,7 +104,7 @@ export class ActiveGames {
             }
             else {
                 // The active game hasn't yet been created, so make it and then add the player to it
-                return recreateGame(players, gameHistoryID);
+                resolve(recreateGame(players, gameHistoryID));
             }
         });
     }
