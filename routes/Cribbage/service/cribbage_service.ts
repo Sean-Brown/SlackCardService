@@ -375,8 +375,9 @@ export class CribbageService {
      * @returns {CribbageHandResponse}
      */
     public getPlayerHand(player: string): Q.Promise<CribbageHandResponse> {
+        let that = this;
         return new Q.Promise((resolve) => {
-            this.getPlayerID(player)
+            that.getPlayerID(player)
                 .then((playerID:number) => {
                     resolve(this.activeGames.getPlayerHand(playerID, player));
                 });
@@ -389,8 +390,9 @@ export class CribbageService {
      * @param card
      */
     public playCard(player: string, card: BaseCard): Q.Promise<CribbageReturnResponse> {
+        let that = this;
         return new Q.Promise((resolve) => {
-            this.getPlayerID(player)
+            that.getPlayerID(player)
                 .then((playerID:number) => {
                     resolve(this.activeGames.playCard(playerID, player, card));
                 })
@@ -407,7 +409,7 @@ export class CribbageService {
     public getPlayerGame(player: string): Q.Promise<CurrentGameResponse> {
         var that = this;
         return new Q.Promise((resolve) => {
-            this.getPlayerID(player)
+            that.getPlayerID(player)
                 .then((playerID:number) => {
                     resolve(that.activeGames.getPlayerGame(playerID));
                 });
@@ -422,7 +424,7 @@ export class CribbageService {
     public giveToKitty(player: string, cards: Array<BaseCard>): Q.Promise<CribbageReturnResponse> {
         var that = this;
         return new Q.Promise((resolve) => {
-            this.getPlayerID(player)
+            that.getPlayerID(player)
                 .then((playerID:number) => {
                     resolve(that.activeGames.giveToKitty(playerID, player, cards));
                 })
@@ -439,7 +441,7 @@ export class CribbageService {
     public go(player: string): Q.Promise<CribbageReturnResponse> {
         var that = this;
         return new Q.Promise((resolve) => {
-            this.getPlayerID(player)
+            that.getPlayerID(player)
                 .then((playerID:number) => {
                     resolve(that.activeGames.go(playerID, player));
                 })
