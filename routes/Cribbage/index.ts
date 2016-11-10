@@ -168,12 +168,16 @@ export module CribbageRoutes {
             return (req.body.user_name ? req.body.user_name : req.query.user_name ? req.query.user_name : "Unknown Player");
         }
 
-        private static getGameHistoryID(req:Request):number {
+        private static getRequestInt(req:Request):number {
             let ret = parseInt(req.body.text ? req.body.text : req.query.text ? req.query.text : 0);
             if (!ret) {
                 ret = 0;
             }
             return ret;
+        }
+
+        private static getRequestText(req:Request):string {
+            return req.body.text ? req.body.text : req.query.text ? req.query.text : "";
         }
 
         private static getResponseUrl(req:Request):string {
@@ -378,7 +382,8 @@ export module CribbageRoutes {
             else {
                 try {
                     let player = Router.getPlayerName(req);
-                    this.cribbage_service.getUnfinishedGames(player)
+                    let override = Router.getRequestText(req);
+                    this.cribbage_service.getUnfinishedGames((override.length > 0) ? override : player)
                         .then((result:GetUnfinishedGamesResponse) => {
                             if (result.status != DBReturnStatus.ok) {
                                 Router.sendResponse(Router.makeErrorResponse(result.message), res);
@@ -409,7 +414,7 @@ export module CribbageRoutes {
             else {
                 try {
                     let player = Router.getPlayerName(req);
-                    this.cribbage_service.joinGame(player, Router.getGameHistoryID(req))
+                    this.cribbage_service.joinGame(player, Router.getRequestInt(req))
                         .then((result:CribbageServiceResponse) => {
                             if (result.status != DBReturnStatus.ok) {
                                 Router.sendResponse(Router.makeErrorResponse(result.message), res);
@@ -498,7 +503,7 @@ export module CribbageRoutes {
                 Router.sendResponse(Router.VALIDATION_FAILED_RESPONSE, res);
             }
             else {
-                let result = this.cribbage_service.describe(Router.getGameHistoryID(req));
+                let result = this.cribbage_service.describe(Router.getRequestInt(req));
                 Router.sendResponse(Router.makeResponse(200, result.message), res);
             }
         }
