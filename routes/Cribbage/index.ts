@@ -83,6 +83,7 @@ export module CribbageRoutes {
         public static get throwCard() { return process.env.ST_THROW_CARD; }
         public static get go() { return process.env.ST_GO; }
         public static get unfinishedGames() { return process.env.ST_UNFINISHED_GAMES; }
+        public static get leaveGame() { return process.env.ST_LEAVE_GAME; }
     }
 
     export class Routes {
@@ -95,6 +96,7 @@ export module CribbageRoutes {
         public static get throwCard() { return "/throw"; }
         public static get go() { return "/go"; }
         public static get unfinishedGames() { return "/unfinishedGames"; }
+        public static get leaveGame() { return "/leaveGame"; }
     }
 
     function removeSpaces(str:string):string {
@@ -102,7 +104,7 @@ export module CribbageRoutes {
     }
 
     export class Router {
-        private cribbage_service:CribbageService = new CribbageService();
+        public cribbage_service:CribbageService = new CribbageService();
 
         // Initialize the router by getting data that it needs
         public init():Q.Promise<void> {
@@ -114,7 +116,7 @@ export module CribbageRoutes {
                         reject();
                     }
                     else {
-                        return that.cribbage_service.init();
+                        resolve(that.cribbage_service.init());
                     }
                 });
             });
@@ -440,9 +442,8 @@ export module CribbageRoutes {
         }
 
         beginGame(req:Request, res:Response) {
-            var response = Router.makeResponse(200, CribbageStrings.MessageStrings.FMT_START_GAME, SlackResponseType.in_channel);
             if (!Router.verifyRequest(req, Routes.beginGame)) {
-                response = Router.VALIDATION_FAILED_RESPONSE;
+                Router.sendResponse(Router.VALIDATION_FAILED_RESPONSE, res);
             }
             else {
                 try {
@@ -456,6 +457,7 @@ export module CribbageRoutes {
                             }
                             else {
                                 let ga = result.gameAssociation;
+                                var response = Router.makeResponse(200, CribbageStrings.MessageStrings.FMT_START_GAME, SlackResponseType.in_channel);
                                 response.data.text = `${CribbageStrings.MessageStrings.FMT_START_GAME}${ga.game.dealer.name}'s crib.`;
                                 response.data.attachments.push(
                                     new CribbageResponseAttachment(`Players: ${ga.game.printPlayers()}`)
@@ -499,6 +501,35 @@ export module CribbageRoutes {
 
 
         /* ***** Run of play ***** */
+
+        leaveGame(req:Request, res:Response) {
+            if (!Router.verifyRequest(req, Routes.joinGame)) {
+                Router.sendResponse(Router.VALIDATION_FAILED_RESPONSE, res);
+            }
+            else {
+                try {
+                    let player = Router.getPlayerName(req);
+                    this.cribbage_service.leaveGame(player)
+                        .then((result:CribbageServiceResponse) => {
+                            if (result.status != DBReturnStatus.ok) {
+                                Router.sendResponse(Router.makeErrorResponse(result.message), res);
+                            }
+                            else {
+                                Router.sendResponse(
+                                    Router.makeResponse(
+                                        200,
+                                        result.message
+                                    ),
+                                    res
+                                );
+                            }
+                        });
+                }
+                catch (e) {
+                    Router.sendResponse(Router.makeErrorResponse(e), res);
+                }
+            }
+        }
 
         describe(req:Request, res:Response) {
             if (!Router.verifyRequest(req, Routes.describe)) {
