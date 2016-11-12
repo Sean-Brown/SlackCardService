@@ -23,7 +23,7 @@ export class CribbageService {
     /**
      * The active games manager
      */
-    private activeGames: ActiveGames;
+    public activeGames: ActiveGames;
 
     /**
      * The unfinished games manager
@@ -35,7 +35,7 @@ export class CribbageService {
      * will help keep the class from constantly having to find the ID of a
      * player based on the player name
      */
-    private players: Map<string, number>;
+    public players: Map<string, number>;
 
     /**
      * The ID of the Cribbage game in the database
@@ -187,7 +187,9 @@ export class CribbageService {
                             player_actions.create(player)
                                 .then((result:PlayerReturn) => {
                                     checkResponse(result, resolve);
-                                    resolve(result.first().id);
+                                    let playerID = result.first().id;
+                                    CribbageService.setPlayer(that.players, player, playerID);
+                                    resolve(playerID);
                                 })
                                 .catch(() => {
                                     console.log(`Failed to add player ${player} to the database`);
@@ -331,7 +333,7 @@ export class CribbageService {
      * @param gameHistoryID the game-history ID, or 0 if they want to join a new game
      * @returns {Q.Promise}
      */
-    public joinGame(player: string, gameHistoryID: number = 0): Q.Promise<CribbageServiceResponse> {
+    public joinGame(player: string, gameHistoryID: number = CribbageService.INVALID_ID): Q.Promise<CribbageServiceResponse> {
         var that = this;
         return new Q.Promise((resolve) => {
             that.getPlayerID(player)
@@ -340,6 +342,22 @@ export class CribbageService {
                     resolve(that.joinPlayerToGame(playerID, player, gameHistoryID));
                 });
         });
+    }
+
+    /**
+     * Let the given player leave the game they're in
+      * @param player
+     * @returns {Q.Promise}
+     */
+    public leaveGame(player: string): Q.Promise<CribbageServiceResponse> {
+        let that = this;
+        return new Q.Promise((resolve) => {
+            that.getPlayerID(player)
+                .then((playerID:number) => {
+                    // Let the player leave the game
+                    resolve(that.activeGames.leaveGame(playerID, player));
+                });
+        })
     }
 
     /**
