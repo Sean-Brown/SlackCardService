@@ -125,31 +125,31 @@ export module DBRoutes {
                 var gameHistory:GameHistory = null;
                 that.init()
                     .then(() => {
-                        resolve(game_history_actions.create(game_history_id)
-                            .then((result:GameHistoryReturn) => {
-                                if (result.status != DBReturnStatus.ok) {
-                                    console.error(result.message);
-                                    reject(null);
-                                }
-                                else {
-                                    // Save the game history object
-                                    gameHistory = result.first();
-                                    // Associate the players with the game
-                                    game_history_player_actions.createAssociations(player_ids, game_history_id)
-                                        .then((result:GameHistoryPlayerReturn) => {
-                                            if (result.status != DBReturnStatus.ok) {
-                                                // Something went wrong
-                                                console.log(result.message);
-                                                reject(null);
-                                            }
-                                            else {
-                                                // Success! Resolve on the GameHistory object that was created
-                                                console.log(`Added ${player_ids} to the game history`);
-                                                resolve(gameHistory)
-                                            }
-                                        });
-                                }
-                            }));
+                        return game_history_actions.create(game_history_id)
+                    })
+                    .then((result:GameHistoryReturn) => {
+                        if (result.status != DBReturnStatus.ok) {
+                            console.error(result.message);
+                            reject(null);
+                        }
+                        else {
+                            // Save the game history object
+                            gameHistory = result.first();
+                            // Associate the players with the game
+                            return game_history_player_actions.createAssociations(player_ids, game_history_id);
+                        }
+                    })
+                    .then((result:GameHistoryPlayerReturn) => {
+                        if (result.status != DBReturnStatus.ok) {
+                            // Something went wrong
+                            console.log(result.message);
+                            reject(null);
+                        }
+                        else {
+                            // Success! Resolve on the GameHistory object that was created
+                            console.log(`Added ${player_ids} to the game history`);
+                            resolve(gameHistory)
+                        }
                     })
                     .catch((err:string) => {
                         console.log(err);
