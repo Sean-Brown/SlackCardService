@@ -33,11 +33,11 @@ export class ActiveGames {
     /**
      * Associate a game-history ID with a GameAssociation
      */
-    private activeGames: Map<number, GameAssociation>;
+    public activeGames: Map<number, GameAssociation>;
     /**
      * A new Cribbage game that players can join
      */
-    private newGame: Cribbage;
+    public newGame: Cribbage;
 
     private static get PLAYER_NOT_IN_GAME():string { return "You're not part of an active game"; }
 
@@ -166,6 +166,36 @@ export class ActiveGames {
     }
 
     /**
+     * Let the player leave their current active game
+     * @param playerID
+     * @param player
+     */
+    public leaveGame(playerID:number, player:string): Q.Promise<CribbageServiceResponse> {
+        let that = this;
+        return new Q.Promise((resolve) => {
+            let activeGameID = that.playerGame.get(playerID);
+            if (activeGameID) {
+                // Disassociate them from the active game
+                that.playerGame.delete(playerID);
+                resolve(new CribbageServiceResponse(DBReturnStatus.ok, `Removed you from ${activeGameID}`))
+            }
+            else {
+                // Check the new game
+                let gamePlayer = that.newGame.players.findPlayer(player);
+                if (gamePlayer) {
+                    // Remove them from the new game
+                    that.newGame.players.removeItem(gamePlayer);
+                    resolve(new CribbageServiceResponse(DBReturnStatus.ok, "Removed you from the new game"));
+                }
+                else {
+                    // They're not part of any game
+                    resolve(new CribbageServiceResponse(DBReturnStatus.ok, "You're not part of any game"));
+                }
+            }
+        });
+    }
+
+    /**
      * Begin the new game
      * @param refPlayer the player beginning the game -- they must be part of the new game to begin it
      * @param cribbageID the ID of the Cribbage game in the database
@@ -197,23 +227,29 @@ export class ActiveGames {
                 if (!playerIDs.has(playerID)) {
                     resolve(makeErrorResponse(`Player ${refPlayer} is not part of the new game`));
                 }
-                // Begin the new game
-                that.newGame.begin();
-                // Add a row for the new game in the database and create the associations with each player in the game
-                DBRoutes.router.createGameHistory(cribbageID, Array.from(playerIDs))
-                    .then((gameHistory: GameHistory) => {
-                        // Add to the map of active games
-                        let gameHistoryID = gameHistory.id;
-                        let gameAssociation = new GameAssociation(that.newGame, gameHistoryID, playerIDs);
-                        that.activeGames.set(gameHistoryID, gameAssociation);
-                        // Create a fresh game for players to join
-                        that.newGame = new Cribbage(new Players([]));
-                        // Resolve
-                        resolve(new GameAssociationResponse(gameAssociation));
-                    })
-                    .catch(() => {
-                        resolve(makeErrorResponse("Unable to create the game-history record in the database"));
-                    });
+                else {
+                    // Begin the new game
+                    that.newGame.begin();
+                    // Add a row for the new game in the database and create the associations with each player in the game
+                    return DBRoutes.router.createGameHistory(cribbageID, Array.from(playerIDs))
+                        .then((gameHistory: GameHistory) => {
+                            // Add to the map of active games
+                            let gameHistoryID = gameHistory.id;
+                            let gameAssociation = new GameAssociation(that.newGame, gameHistoryID, playerIDs);
+                            that.activeGames.set(gameHistoryID, gameAssociation);
+                            // Set the player game association
+                            playerIDs.forEach((playerID:number) => {
+                                that.playerGame.set(playerID, gameHistoryID);
+                            });
+                            // Create a fresh game for players to join
+                            that.newGame = new Cribbage(new Players([]));
+                            // Resolve
+                            resolve(new GameAssociationResponse(gameAssociation));
+                        })
+                        .catch(() => {
+                            resolve(makeErrorResponse("Unable to create the game-history record in the database"));
+                        });
+                }
             }
         });
     }
