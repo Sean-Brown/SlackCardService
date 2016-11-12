@@ -213,6 +213,15 @@ describe("The Cribbage Service", function() {
                 .finally(() => { done(); })
         });
 
+        it("doesn't return an error if a player tries to leave a game they're not in", function(done) {
+            cribbageService.leaveGame("Zaphod")
+                .then((result:CribbageServiceResponse) => {
+                    expect(result.status).toEqual(DBReturnStatus.ok);
+                    expect(result.message).not.toContain("Removed");
+                })
+                .finally(() => { done(); });
+        });
+
         describe("joining a game", function() {
             it("doesn't throw an error if the same player tries to join the new game more than once", function(done) {
                 cribbageService.joinGame(PeterGriffin.name)
@@ -227,17 +236,18 @@ describe("The Cribbage Service", function() {
                 cribbageService.joinGame(name)
                     .then((result:CribbageServiceResponse) => {
                         expect(result.status).toEqual(DBReturnStatus.ok, result.message);
-                        expect(cribbageService.newGame.players.findPlayer(name)).not.toBeNull(`Expected ${name} to be in the game`);
+                        expect(cribbageService.activeGames.newGame.players.findPlayer(name)).not.toBeNull(`Expected ${name} to be in the game`);
                     })
                     .finally(() => { done(); });
             });
 
-            it("adds an player to the database when they join the new game", function(done) {
+            it("adds an player to the database and the service's map of players when the new player joins the new game", function(done) {
                 let name = "Zaphod";
                 cribbageService.joinGame(name)
                     .then((result:CribbageServiceResponse) => {
                         expect(result.status).toEqual(DBReturnStatus.ok, result.message);
-                        expect(cribbageService.newGame.players.findPlayer(name)).not.toBeNull(`Expected ${name} to be in the game`);
+                        expect(cribbageService.activeGames.newGame.players.findPlayer(name)).not.toBeNull(`Expected ${name} to be in the game`);
+                        expect(cribbageService.players.has(name)).toBeTruthy();
                     })
                     .finally(() => { done(); });
             });
@@ -312,7 +322,7 @@ describe("The Cribbage Service", function() {
                     })
                     .then((result:CribbageServiceResponse) => {
                         expect(result.status).toEqual(DBReturnStatus.ok, result.message);
-                        expect(cribbageService.newGame.players.countItems()).toEqual(2);
+                        expect(cribbageService.activeGames.newGame.players.countItems()).toEqual(2);
                     })
                     .finally(() => { done(); });
             });
@@ -322,13 +332,16 @@ describe("The Cribbage Service", function() {
                 cribbageService.beginGame(player)
                     .then((result:GameAssociationResponse) => {
                         expect(result.status).toEqual(DBReturnStatus.error);
-                        expect(cribbageService.newGame.hasBegun).toBeFalsy("The new game should not have begun yet");
+                        expect(cribbageService.activeGames.newGame.hasBegun).toBeFalsy("The new game should not have begun yet");
                         return cribbageService.beginGame(HomerSimpson.name);
                     })
                     .then((result:GameAssociationResponse) => {
                         expect(result.status).toEqual(DBReturnStatus.ok);
                         expect(result.gameAssociation).not.toBeNull("Expected a game association object");
                         expect(result.gameAssociation.playerIDs.size).toEqual(2);
+                        expect(cribbageService.activeGames.activeGames.has(result.gameAssociation.gameHistoryID)).toBeTruthy("The game should've been set as an active game");
+                        expect(cribbageService.activeGames.playerGame.has(pgID)).toBeTruthy(`Couldn't find ${pgID} in the newly active game`);
+                        expect(cribbageService.activeGames.playerGame.has(hsID)).toBeTruthy(`Couldn't find ${hsID} in the newly active game`);
                     })
                     .finally(() => { done(); });
             });
@@ -338,6 +351,15 @@ describe("The Cribbage Service", function() {
                 expect(result.status).toEqual(DBReturnStatus.error);
                 result = cribbageService.resetGame(process.env.CRIB_RESET_SECRET);
                 expect(result.status).toEqual(DBReturnStatus.ok);
+            });
+
+            it("lets a player leave the new game if they're in it", function(done) {
+                cribbageService.leaveGame(PeterGriffin.name)
+                    .then((result:CribbageServiceResponse) => {
+                        expect(result.message.length).toBeGreaterThan(0);
+                        expect(result.message).toContain("Removed");
+                    })
+                    .finally(() => { done(); });
             });
         });
 
@@ -367,6 +389,15 @@ describe("The Cribbage Service", function() {
                         gameAssociation.game.kitty =
                             new CribbageHand([sixOfDiamonds, sevenOfHearts, sevenOfClubs, eightOfClubs]);
                         gameAssociation.game.cut = cut;
+                    })
+                    .finally(() => { done(); });
+            });
+
+            it("lets a player leave the active game", function(done) {
+                cribbageService.leaveGame(PeterGriffin.name)
+                    .then((result:CribbageServiceResponse) => {
+                        expect(result.status).toEqual(DBReturnStatus.ok);
+                        expect(result.message).toContain("Removed");
                     })
                     .finally(() => { done(); });
             });
