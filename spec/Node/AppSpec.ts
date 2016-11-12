@@ -1,8 +1,8 @@
 /// <reference path="../../typings/index.d.ts" />
 
-import {createNewServer} from "./setup";
-
 "use strict";
+
+import {createNewServer} from "./setup";
 import {deleteTables} from "../db/postgres/integration/CreateTablesSpec";
 
 var request = require("supertest"),
