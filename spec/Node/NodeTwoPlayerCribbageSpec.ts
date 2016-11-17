@@ -1,9 +1,6 @@
 /// <reference path="../../typings/index.d.ts" />
-/// <reference path="../../card_service/base_classes/collections/hand.ts" />
-/// <reference path="../../card_service/implementations/cribbage_player.ts" />
-/// <reference path="../../card_service/implementations/cribbage_team.ts" />
-/// <reference path="../../card_service/implementations/cribbage.ts" />
-/// <reference path="../../card_service/base_classes/card_game.ts" />
+
+"use strict";
 
 import {CribbagePlayer} from "../../card_service/implementations/cribbage_player";
 import {CribbageGameDescription, CribbageStrings, Cribbage} from "../../card_service/implementations/cribbage";
@@ -14,7 +11,6 @@ import {CribbageRoutes} from "../../routes/Cribbage/index";
 import Response = Express.Response;
 import CribbageResponseData = CribbageRoutes.CribbageResponseData;
 
-"use strict";
 import {deleteTables} from "../db/postgres/integration/CreateTablesSpec";
 import {player_actions} from "../../db/implementation/postgres/player_actions";
 import {
@@ -50,12 +46,12 @@ describe("Integration test the Cribbage game between two playerIDs", function() 
         cribbageID:number, currentGameID:number;
     var pgHand, hsHand, crib;
     var cut = sevenOfDiamonds;
-    var cribRoutes;
+    var cribRoutes:Router;
 
     /*
-       Before all the tests run, make sure to create a fresh instance of the application
-       in order to ensure the state of the server is reset between each test run. Also
-       ensure that the database tables are created
+     Before all the tests run, make sure to create a fresh instance of the application
+     in order to ensure the state of the server is reset between each test run. Also
+     ensure that the database tables are created
      */
     beforeEach(function(done) {
         var that = this;
@@ -92,15 +88,20 @@ describe("Integration test the Cribbage game between two playerIDs", function() 
         deleteTables().finally(() => { done(); });
     });
 
-    function joinGameJson(player:CribbagePlayer, token:string): string {
-        return JSON.stringify({
-            user_name: `${player.name}`,
-            token:`${token}`
-        });
+    function getJson(token:string, user_name:string="", text:string="") {
+        return {
+            token:token,
+            user_name:user_name,
+            text:text
+        };
+    }
+
+    function joinGameJson(player:CribbagePlayer, token:string) {
+        return getJson(token, player.name);
     }
 
     function addPlayersAndTeams() {
-        let currentGame = cribRoutes.currentGame;
+        let currentGame = cribRoutes.cribbage_service.activeGames.newGame;
         currentGame.players.removeAll();
         currentGame.players.addPlayer(PeterGriffin);
         currentGame.players.addPlayer(HomerSimpson);
@@ -119,21 +120,14 @@ describe("Integration test the Cribbage game between two playerIDs", function() 
     function playCard(agent:any, player:CribbagePlayer, card:BaseCard, cb:Function) {
         agent.post(makeRoute(CribbageRoutes.Routes.playCard))
             .type('json')
-            .send(JSON.stringify({
-                token: Tokens.playCard,
-                user_name: player.name,
-                text: card.shortString()
-            }))
+            .send(getJson(Tokens.playCard, player.name, card.shortString()))
             .expect(200, cb);
     }
 
     function go(agent:any, player:CribbagePlayer, cb:Function) {
         agent.post(makeRoute(CribbageRoutes.Routes.go))
             .type('json')
-            .send(JSON.stringify({
-                token: Tokens.go,
-                user_name: player.name
-            }))
+            .send(getJson(Tokens.go, player.name))
             .expect(200, cb);
     }
 
@@ -216,50 +210,56 @@ describe("Integration test the Cribbage game between two playerIDs", function() 
             .finally(() => { cb(); });
     }
 
+    function getCurrentGame():Cribbage {
+        let ga = cribRoutes.cribbage_service.activeGames.activeGames.get(currentGameID);
+        if (ga) {
+            return ga.game;
+        }
+        else {
+            return null;
+        }
+    }
+
     function joinGameAndBeginSeries(agent) {
         return [
-            function(cb) {
-                // Reset the game
-                agent.post(makeRoute(CribbageRoutes.Routes.resetGame))
-                    .type('json')
-                    .send(JSON.stringify({text:"secret", token:Tokens.resetGame}))
-                    .expect(200, cb);
-            },
             function(cb) {
                 // Peter Griffin joins the game
                 agent.post(makeRoute(CribbageRoutes.Routes.joinGame))
                     .type('json')
                     .send(joinGameJson(PeterGriffin, Tokens.joinGame))
-                    .expect(200, cb);
+                    .expect(200)
+                    .end(cb);
             },
             function(cb) {
                 // Homer Simpson joins the game
                 agent.post(makeRoute(CribbageRoutes.Routes.joinGame))
                     .type('json')
                     .send(joinGameJson(HomerSimpson, Tokens.joinGame))
-                    .expect(200, cb);
+                    .expect(200)
+                    .end(cb);
             },
             function(cb) {
                 // Intercept the dealing and assign our own hands
-                let currentGame = cribRoutes.currentGame;
-                spyOn(currentGame, "begin").andCall(() => {
+                let newGame = cribRoutes.cribbage_service.activeGames.newGame;
+                spyOn(newGame, "begin").andCall(() => {
                     // Initialize the playerIDs and teams
                     addPlayersAndTeams();
                     // Assign the dealer
-                    currentGame.dealer = PeterGriffin;
-                    currentGame.nextPlayerInSequence = HomerSimpson;
+                    newGame.dealer = PeterGriffin;
+                    newGame.nextPlayerInSequence = HomerSimpson;
                     // Assign the hands
                     PeterGriffin.hand = pgHand;
                     HomerSimpson.hand = hsHand;
                 });
                 // Begin the game
-                agent.get(makeRoute(CribbageRoutes.Routes.beginGame))
-                    .query({token: `${Tokens.beginGame}`})
+                agent.post(makeRoute(CribbageRoutes.Routes.beginGame))
+                    .send(getJson(Tokens.beginGame, PeterGriffin.name))
                     .expect(200)
                     .expect((res) => {
                         var response = <CribbageResponseData>JSON.parse(res.text);
-                        if (response.text.indexOf(CribbageStrings.MessageStrings.FMT_START_GAME) == -1)
+                        if (response.text.indexOf(CribbageStrings.MessageStrings.FMT_START_GAME) == -1) {
                             return true; // Return true to indicate an error, see the SuperTest documentation
+                        }
                     })
                     .end(cb);
             },
@@ -267,8 +267,10 @@ describe("Integration test the Cribbage game between two playerIDs", function() 
                 // Find the game, game_history, and player in the database
                 findGameInDatabase()
                     .then(() => { return findPlayerInDatabase(PeterGriffin); })
-                    .then((playerID:number) => { pgID = playerID; })
-                    .then(() => { return findPlayerInDatabase(HomerSimpson); })
+                    .then((playerID:number) => {
+                        pgID = playerID;
+                        return findPlayerInDatabase(HomerSimpson);
+                    })
                     .then((playerID:number) => { hsID = playerID; })
                     .finally(() => { cb(); });
             }
@@ -281,18 +283,14 @@ describe("Integration test the Cribbage game between two playerIDs", function() 
                 // throw cards
                 agent.post(makeRoute(CribbageRoutes.Routes.throwCard))
                     .type('json')
-                    .send(JSON.stringify({
-                        token:Tokens.throwCard,
-                        user_name: PeterGriffin.name,
-                        text: `${tenOfSpades.shortString()} ${jackOfClubs.shortString()}`
-                    }))
+                    .send(getJson(Tokens.throwCard, PeterGriffin.name, `${tenOfSpades.shortString()} ${jackOfClubs.shortString()}`))
                     .expect(200, () => {
                         crib.addItems([tenOfSpades, jackOfClubs]);
                         cb();
                     });
             },
             function (cb) {
-                let currentGame = cribRoutes.currentGame;
+                let currentGame = getCurrentGame();
                 spyOn(currentGame, "cutTheDeck").andCall(() => {
                     // Set the cut card
                     currentGame.cut = cut;
@@ -300,11 +298,7 @@ describe("Integration test the Cribbage game between two playerIDs", function() 
                 // throw cards
                 agent.post(makeRoute(CribbageRoutes.Routes.throwCard))
                     .type('json')
-                    .send(JSON.stringify({
-                        token:Tokens.throwCard,
-                        user_name: HomerSimpson.name,
-                        text: `${nineOfSpades.shortString()} ${tenOfHearts.shortString()}`
-                    }))
+                    .send(getJson(Tokens.throwCard, HomerSimpson.name, `${nineOfSpades.shortString()} ${tenOfHearts.shortString()}`))
                     .expect(200, () => {
                         crib.addItems([nineOfSpades, tenOfHearts]);
                         cb();
@@ -359,7 +353,23 @@ describe("Integration test the Cribbage game between two playerIDs", function() 
         ];
     }
 
-    it("lets playerIDs join the game and begin", function(done) {
+    it("lets any player reset the new game", function(done) {
+        var agent = request(this.app);
+        var series = joinGameAndBeginSeries(agent).concat(
+            function(cb) {
+                // Reset the game
+                agent.post(makeRoute(CribbageRoutes.Routes.resetGame))
+                    .send(getJson(Tokens.resetGame))
+                    .expect(200)
+                    .expect(function(res) {
+                        expect(res.text).toContain("game was reset");
+                    })
+                    .end(cb);
+            });
+        async.series(series, done);
+    });
+
+    it("lets players join the game and begin", function(done) {
         var agent = request(this.app);
         async.series(joinGameAndBeginSeries(agent), done);
     });
@@ -368,9 +378,9 @@ describe("Integration test the Cribbage game between two playerIDs", function() 
         var agent = request(this.app);
         var series = joinGameAndBeginSeries(agent).concat(
             function(cb) {
-                //Get the description
-                agent.get(makeRoute(CribbageRoutes.Routes.describe))
-                    .query({token: `${Tokens.describe}`})
+                // Get the description
+                agent.post(makeRoute(CribbageRoutes.Routes.describe))
+                    .send(getJson(Tokens.describe, PeterGriffin.name, `${currentGameID}`))
                     .expect(200)
                     .expect(function(res) {
                         var response = <CribbageResponseData>JSON.parse(res.text);
@@ -383,25 +393,19 @@ describe("Integration test the Cribbage game between two playerIDs", function() 
         async.series(series, done);
     });
 
-    it("is able to show a player's cards", function(done) {
-        // Disable the test by default since I don't want the test to download card images
-        var runShowHands = false;
-        if (runShowHands) {
-            var agent = request(this.app);
-            var series = joinGameAndBeginSeries(agent).concat(
-                function (cb) {
-                    // Show player one's hand
-                    agent.get(makeRoute(CribbageRoutes.Routes.showHand))
-                        .query({token: `${Tokens.showHand}`, user_name: PeterGriffin.name})
-                        .expect(200)
-                        .end(cb);
-                });
-            async.series(series, done);
-        }
-        else {
-            done();
-        }
-    });
+    // Disable the test by default since I don't want the test to download card images
+    // it("is able to show a player's cards", function(done) {
+    //     var agent = request(this.app);
+    //     var series = joinGameAndBeginSeries(agent).concat(
+    //         function (cb) {
+    //             // Show player one's hand
+    //             agent.post(makeRoute(CribbageRoutes.Routes.showHand))
+    //                 .send(getJson(Tokens.showHand, PeterGriffin.name))
+    //                 .expect(200)
+    //                 .end(cb);
+    //         });
+    //     async.series(series, done);
+    // });
 
     it("is able to play and store a round of play", function(done) {
         var agent = request(this.app);
@@ -430,7 +434,7 @@ describe("Integration test the Cribbage game between two playerIDs", function() 
             .concat([
                 function (cb) {
                     // Make one of the playerIDs have enough points to win
-                    cribRoutes.currentGame.players.findPlayer(PeterGriffin.name).points = 120;
+                    getCurrentGame().players.findPlayer(PeterGriffin.name).points = 120;
                     playCard(agent, HomerSimpson, sixOfDiamonds, cb);
                 },
                 function (cb) {
@@ -460,31 +464,86 @@ describe("Integration test the Cribbage game between two playerIDs", function() 
         async.series(series, done);
     });
 
-    it("doesn't let playerIDs continue playing after the game is finished", function(done) {
-        var agent = request(this.app);
-        var series = joinGameAndBeginSeries(agent)
-            .concat(throwCardsSeries(agent))
-            .concat([
-                function (cb) {
-                    // Make one of the playerIDs have enough points to win
-                    cribRoutes.currentGame.players.findPlayer(PeterGriffin.name).points = 120;
-                    playCard(agent, HomerSimpson, sixOfDiamonds, cb);
-                },
-                function (cb) {
-                    // Should be game over
-                    playCard(agent, PeterGriffin, sixOfClubs, cb);
-                },
-                function (cb) {
-                    agent.post(makeRoute(CribbageRoutes.Routes.playCard))
-                        .type('json')
-                        .send(JSON.stringify({
-                            token: Tokens.playCard,
-                            user_name: HomerSimpson.name,
-                            text: sevenOfHearts.shortString()
-                        }))
-                        .expect(500, cb);
-                }
-            ]);
+    it("lets a player leave the new game", function(done) {
+        let agent = request(this.app);
+        let series = [
+            function(cb) {
+                // Peter Griffin joins the game
+                agent.post(makeRoute(CribbageRoutes.Routes.joinGame))
+                    .type('json')
+                    .send(joinGameJson(PeterGriffin, Tokens.joinGame))
+                    .expect(200)
+                    .expect(() => {
+                        expect(cribRoutes.cribbage_service.players.size).toEqual(1);
+                    })
+                    .end(cb);
+            },
+            function(cb) {
+                // Leave the game
+                agent.post(makeRoute(CribbageRoutes.Routes.leaveGame))
+                    .send(getJson(Tokens.leaveGame, PeterGriffin.name))
+                    .expect(200, cb);
+            }
+        ];
+        async.series(series, done);
+    });
+
+    it("lets a player leave from a game that has begun", function(done) {
+        let agent = request(this.app);
+        let series = joinGameAndBeginSeries(agent).concat(
+            function(cb) {
+                // Leave the game
+                agent.post(makeRoute(CribbageRoutes.Routes.leaveGame))
+                    .send(getJson(Tokens.leaveGame, PeterGriffin.name))
+                    .expect(200, cb);
+            });
+        async.series(series, done);
+    });
+
+    it("gets the players unfinished game", function(done) {
+        let agent = request(this.app);
+        let series = joinGameAndBeginSeries(agent).concat(
+            function(cb) {
+                // get the unfinished games
+                agent.post(makeRoute(CribbageRoutes.Routes.unfinishedGames))
+                    .send(getJson(Tokens.unfinishedGames, PeterGriffin.name))
+                    .expect(200)
+                    .expect((res) => {
+                        expect(res.body.text).toContain(`${currentGameID}`);
+                    })
+                    .end(cb);
+            });
+        async.series(series, done);
+    });
+
+    it("gets the players unfinished games", function(done) {
+        let agent = request(this.app);
+        let series = joinGameAndBeginSeries(agent).concat(
+            function(cb) {
+                // leave the game
+                agent.post(makeRoute(CribbageRoutes.Routes.leaveGame))
+                    .send(getJson(Tokens.unfinishedGames, PeterGriffin.name))
+                    .expect(200, cb);
+            },
+            function(cb) {
+                // leave the game
+                agent.post(makeRoute(CribbageRoutes.Routes.leaveGame))
+                    .send(getJson(Tokens.unfinishedGames, HomerSimpson.name))
+                    .expect(200, cb);
+            });
+        series = series.concat(joinGameAndBeginSeries(agent));
+        series = series.concat(
+            function(cb) {
+                // get the unfinished games
+                agent.post(makeRoute(CribbageRoutes.Routes.unfinishedGames))
+                    .send(getJson(Tokens.unfinishedGames, PeterGriffin.name))
+                    .expect(200)
+                    .expect((res) => {
+                        expect(res.body.text).toContain(`${currentGameID}`);
+                        expect(res.body.text.length).toBeGreaterThan(2); // Two games should've been returned
+                    })
+                    .end(cb);
+            });
         async.series(series, done);
     });
 });
