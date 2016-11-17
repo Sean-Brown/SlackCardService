@@ -4,7 +4,7 @@ import {CribbageRoutes} from "../../index";
 import CribbageResponse = CribbageRoutes.CribbageResponse;
 import {
     PlayerInGameResponse, makeErrorResponse, GameAssociationResponse, CribbageServiceResponse,
-    CribbageHandResponse, CribbageReturnResponse, CurrentGameResponse
+    CribbageHandResponse, CribbageReturnResponse, CurrentGameResponse, checkResponse
 } from "./response";
 import {game_history_player_actions} from "../../../../db/implementation/postgres/game_history_player_actions";
 import {GameHistoryPlayerReturn, DBReturnStatus} from "../../../../db/abstraction/return/db_return";
@@ -231,16 +231,23 @@ export class ActiveGames {
                     // Begin the new game
                     that.newGame.begin();
                     // Add a row for the new game in the database and create the associations with each player in the game
+                    let gameAssociation = null;
                     return DBRoutes.router.createGameHistory(cribbageID, Array.from(playerIDs))
                         .then((gameHistory: GameHistory) => {
                             // Add to the map of active games
                             let gameHistoryID = gameHistory.id;
-                            let gameAssociation = new GameAssociation(that.newGame, gameHistoryID, playerIDs);
+                            gameAssociation = new GameAssociation(that.newGame, gameHistoryID, playerIDs);
                             that.activeGames.set(gameHistoryID, gameAssociation);
-                            // Set the player game association
+                            // Set the player game associations
+                            let pids = [];
                             playerIDs.forEach((playerID:number) => {
                                 that.playerGame.set(playerID, gameHistoryID);
+                                pids.push(playerID);
                             });
+                            return game_history_player_actions.createAssociations(pids, gameHistoryID);
+                        })
+                        .then((result: GameHistoryPlayerReturn) => {
+                            checkResponse(result, resolve);
                             // Create a fresh game for players to join
                             that.newGame = new Cribbage(new Players([]));
                             // Resolve
@@ -320,11 +327,16 @@ export class ActiveGames {
             // Find the game the player is in
             let gameHistoryID = this.playerGame.get(playerID);
             let ga = this.activeGames.get(gameHistoryID);
-            let result = ga.game.playCard(player, card);
-            if (result.gameOver) {
-                this.removeGameAssociation(ga, gameHistoryID);
+            if (ga) {
+                let result = ga.game.playCard(player, card);
+                if (result.gameOver) {
+                    this.removeGameAssociation(ga, gameHistoryID);
+                }
+                return new CribbageReturnResponse(result, ga.game, ga.gameHistoryID);
             }
-            return new CribbageReturnResponse(result, ga.game, ga.gameHistoryID);
+            else {
+                return <CribbageReturnResponse>makeErrorResponse("You're not in a game");
+            }
         }
     }
 
