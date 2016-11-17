@@ -451,6 +451,25 @@ describe("The Cribbage Service", function() {
                         })
                         .finally(() => { done(); });
                 });
+
+                it("doesn't let play continue if the game has ended", function(done) {
+                    cribbageService.activeGames.activeGames.get(ghid).game.players.findPlayer(PeterGriffin.name).points = 120;
+                    cribbageService.playCard(HomerSimpson.name, jackOfDiamonds)
+                        .then((result:CribbageReturnResponse) => {
+                            expect(result.status).toEqual(DBReturnStatus.ok);
+                            return cribbageService.playCard(PeterGriffin.name, fiveOfHearts);
+                        })
+                        .then((result:CribbageReturnResponse) => {
+                            expect(result.status).toEqual(DBReturnStatus.ok);
+                            // The game should be over
+                            expect(cribbageService.activeGames.activeGames.get(ghid)).toBeUndefined();
+                            return cribbageService.playCard(HomerSimpson.name, jackOfSpades);
+                        })
+                        .then((result:CribbageReturnResponse) => {
+                            expect(result.status).toEqual(DBReturnStatus.error);
+                        })
+                        .finally(() => { done(); });
+                });
             });
 
             describe("when trying to 'go'", function() {
