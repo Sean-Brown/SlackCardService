@@ -205,6 +205,8 @@ export module CribbageRoutes {
                 case Routes.playCard: verified = (token == Tokens.playCard); break;
                 case Routes.throwCard: verified = (token == Tokens.throwCard); break;
                 case Routes.go: verified = (token == Tokens.go); break;
+                case Routes.leaveGame: verified = (token == Tokens.leaveGame); break;
+                case Routes.unfinishedGames: verified = (token == Tokens.unfinishedGames); break;
             }
             return verified;
         }
@@ -503,7 +505,7 @@ export module CribbageRoutes {
         /* ***** Run of play ***** */
 
         leaveGame(req:Request, res:Response) {
-            if (!Router.verifyRequest(req, Routes.joinGame)) {
+            if (!Router.verifyRequest(req, Routes.leaveGame)) {
                 Router.sendResponse(Router.VALIDATION_FAILED_RESPONSE, res);
             }
             else {
@@ -591,7 +593,7 @@ export module CribbageRoutes {
             var responseUrl = Router.getResponseUrl(req);
             var card:Card = null;
             let cribRes:CribbageReturn = null;
-            let playerGame = null;
+            let playerGame:Cribbage = null;
             if (!Router.verifyRequest(req, Routes.playCard)) {
                 Router.sendResponse(Router.VALIDATION_FAILED_RESPONSE, res);
             }
@@ -622,7 +624,7 @@ export module CribbageRoutes {
                                     that.cribbage_service.getGamePlayers(result.gameHistoryID)
                                         .then((players: Array<Player>) => {
                                             Router.checkPlayersResult(players, result.gameHistoryID, () => {
-                                                this.recordResult(req, result.gameHistoryID, result.game, players);
+                                                that.recordResult(req, result.gameHistoryID, result.game, players);
                                                 // Send the result
                                                 Router.sendResponse(Router.makeResponse(200, cribRes.message, SlackResponseType.in_channel), res);
                                             });
@@ -645,8 +647,59 @@ export module CribbageRoutes {
                                     }
                                     else {
                                         // Prepend Cribbage game's response
-                                        response.data.text = `${responseText}\n${response.data.text}`;
+                                        response.data.text += `${responseText}\n${response.data.text}`;
                                         Router.resetSequenceImages();
+                                    }
+                                }
+                                if (response.status == 200 && cribRes.gameOver) {
+                                    if (playerGame.sequence.length() > 0) {
+                                        // Show the playerIDs the current sequence and the count
+                                        Router.IMAGE_MANAGER.createSequenceImageAsync(playerGame.sequence)
+                                            .done(function (handUrl: string) {
+                                                Router.sendDelayedResponse(
+                                                    new CribbageResponseData(
+                                                        SlackResponseType.in_channel,
+                                                        "",
+                                                        [new CribbageResponseAttachment(`${player} played the ${card.toString()}. The cards in play are:`, "", handUrl)]
+                                                    ),
+                                                    responseUrl,
+                                                    1000
+                                                );
+                                                Router.sendDelayedResponse(
+                                                    new CribbageResponseData(
+                                                        SlackResponseType.in_channel,
+                                                        `The count is at ${playerGame.count}.\n` +
+                                                        `You're up, ${playerGame.nextPlayerInSequence.name}.`
+                                                    ),
+                                                    responseUrl,
+                                                    1500
+                                                );
+                                            });
+                                    }
+                                    if (!cribRes.gameOver && !cribRes.roundOver) {
+                                        // Tell the player what cards they have
+                                        var theirHand: CribbageHand = playerGame.getPlayerHand(Router.getPlayerName(req));
+                                        var hasHand = (theirHand.size() > 0);
+                                        var delayedData = new CribbageResponseData(SlackResponseType.ephemeral);
+                                        if (!hasHand)
+                                            delayedData.text = "You have no more cards!";
+                                        else {
+                                            Router.IMAGE_MANAGER.createPlayerHandImageAsync(player, theirHand)
+                                                .done(function (handUrl: string) {
+                                                    delayedData.attachments = [
+                                                        new CribbageResponseAttachment(
+                                                            `${Router.PLAYER_HAND_EMOJI}  ${player}, your remaining cards are:`,
+                                                            "",
+                                                            handUrl
+                                                        )
+                                                    ];
+                                                    Router.sendDelayedResponse(
+                                                        delayedData,
+                                                        responseUrl,
+                                                        2000
+                                                    );
+                                                });
+                                        }
                                     }
                                 }
                             }
@@ -656,61 +709,7 @@ export module CribbageRoutes {
                         Router.sendResponse(Router.makeErrorResponse(`Error! ${e}! Current player: ${playerGame.nextPlayerInSequence.name}`), res);
                     }
             }
-            if (cribRes && cribRes.sequenceOver) {
-                response.data.text += `\nYou're up ${playerGame.nextPlayerInSequence.name}`;
-            }
             Router.sendResponse(response, res);
-            if (response.status == 200) {
-                if (playerGame.sequence.length() > 0) {
-                    // Show the playerIDs the current sequence and the count
-                    Router.IMAGE_MANAGER.createSequenceImageAsync(playerGame.sequence)
-                        .done(function (handUrl: string) {
-                            Router.sendDelayedResponse(
-                                new CribbageResponseData(
-                                    SlackResponseType.in_channel,
-                                    "",
-                                    [new CribbageResponseAttachment(`${player} played the ${card.toString()}. The cards in play are:`, "", handUrl)]
-                                ),
-                                responseUrl,
-                                1000
-                            );
-                            Router.sendDelayedResponse(
-                                new CribbageResponseData(
-                                    SlackResponseType.in_channel,
-                                    `The count is at ${playerGame.count}.\n` +
-                                    `You're up, ${playerGame.nextPlayerInSequence.name}.`
-                                ),
-                                responseUrl,
-                                1500
-                            );
-                        });
-                }
-                if (!cribRes.gameOver && !cribRes.roundOver) {
-                    // Tell the player what cards they have
-                    var theirHand: CribbageHand = playerGame.getPlayerHand(Router.getPlayerName(req));
-                    var hasHand = (theirHand.size() > 0);
-                    var delayedData = new CribbageResponseData(SlackResponseType.ephemeral);
-                    if (!hasHand)
-                        delayedData.text = "You have no more cards!";
-                    else {
-                        Router.IMAGE_MANAGER.createPlayerHandImageAsync(player, theirHand)
-                            .done(function (handUrl: string) {
-                                delayedData.attachments = [
-                                    new CribbageResponseAttachment(
-                                        `${Router.PLAYER_HAND_EMOJI}  ${player}, your remaining cards are:`,
-                                        "",
-                                        handUrl
-                                    )
-                                ];
-                                Router.sendDelayedResponse(
-                                    delayedData,
-                                    responseUrl,
-                                    2000
-                                );
-                            });
-                    }
-                }
-            }
         }
 
         throwCard(req:Request, res:Response) {
