@@ -12,7 +12,7 @@ var bodyParser  = require("body-parser"),
     express     = require("express"),
     port        = process.env.PORT || 5029;
 
-export var CribbageRoutePrefix = "/cribbage";
+export const CribbageRoutePrefix = "/cribbage";
 
 export function setup(app: Express):Q.Promise<Express> {
     return new Q.Promise((resolve, reject) => {
@@ -43,14 +43,16 @@ export function setup(app: Express):Q.Promise<Express> {
                     res.status(200).send("Hello world!");
                 });
                 // Cribbage Routes
-                app.get(CribbageRoutePrefix + CribbageRoutes.Routes.beginGame, routes.beginGame.bind(routes));
-                app.get(CribbageRoutePrefix + CribbageRoutes.Routes.describe, routes.describe.bind(routes));
-                app.get(CribbageRoutePrefix + CribbageRoutes.Routes.showHand, routes.showHand.bind(routes));
+                app.post(CribbageRoutePrefix + CribbageRoutes.Routes.beginGame, routes.beginGame.bind(routes));
+                app.post(CribbageRoutePrefix + CribbageRoutes.Routes.describe, routes.describe.bind(routes));
+                app.post(CribbageRoutePrefix + CribbageRoutes.Routes.showHand, routes.showHand.bind(routes));
                 app.post(CribbageRoutePrefix + CribbageRoutes.Routes.go, routes.go.bind(routes));
                 app.post(CribbageRoutePrefix + CribbageRoutes.Routes.playCard, routes.playCard.bind(routes));
                 app.post(CribbageRoutePrefix + CribbageRoutes.Routes.joinGame, routes.joinGame.bind(routes));
                 app.post(CribbageRoutePrefix + CribbageRoutes.Routes.resetGame, routes.resetGame.bind(routes));
                 app.post(CribbageRoutePrefix + CribbageRoutes.Routes.throwCard, routes.throwCard.bind(routes));
+                app.post(CribbageRoutePrefix + CribbageRoutes.Routes.leaveGame, routes.leaveGame.bind(routes));
+                app.post(CribbageRoutePrefix + CribbageRoutes.Routes.unfinishedGames, routes.getUnfinishedGames.bind(routes));
                 // All other routes send back a "request not found"
                 app.get("*", function(req: Request, res: Response) {
                     res.status(404).send("Unknown request");
