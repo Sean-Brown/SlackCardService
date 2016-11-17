@@ -106,7 +106,7 @@ export class UnfinishedGames {
         return new Q.Promise((resolve) => {
             let gameHistoryIDs = [];
             var query = `
-                SELECT ${GameHistoryPlayerPivot.COL_GAME_HISTORY_ID}
+                SELECT DISTINCT ${GameHistoryPlayerPivot.COL_GAME_HISTORY_ID}
                 FROM ${getTableName(DBTables.GameHistoryPlayer)}
                 WHERE ${GameHistoryPlayerPivot.COL_PLAYER_ID}=${playerID} AND ${GameHistoryPlayerPivot.COL_GAME_HISTORY_ID} NOT IN (
                     SELECT DISTINCT ${WinLossHistory.COL_GAME_HISTORY_ID}
