@@ -21,7 +21,7 @@ import {
 
 "use strict";
 
-describe("Test a Cribbage game between three playerIDs", function() {
+describe("Test a Cribbage game between three players", function() {
 	var game, playerOne, playerTwo, playerThree;
     beforeEach(function() {
         playerOne = new CribbagePlayer("Alice", new CribbageHand([]));
@@ -30,7 +30,7 @@ describe("Test a Cribbage game between three playerIDs", function() {
         game = new Cribbage(new Players<CribbagePlayer>([playerOne, playerTwo, playerThree]));
         game.initializeGame();
     });
-    it("doesn't allow duplicate playerIDs", function() {
+    it("doesn't allow duplicate players", function() {
        expect(function() { game.addPlayer(playerOne); }).toThrow(ErrorStrings.PLAYER_ALREADY_IN_GAME);
     });
     it("cuts a random dealer", function () {
@@ -71,16 +71,16 @@ describe("Test a Cribbage game between three playerIDs", function() {
     });
     it("deals the right number of cards and assigns a dealer", function () {
         expect(game.dealer).toBeNull();
-        expect(game.playerIDs.itemAt(0).numCards()).toEqual(0);
-        expect(game.playerIDs.itemAt(1).numCards()).toEqual(0);
-        expect(game.playerIDs.itemAt(2).numCards()).toEqual(0);
+        expect(game.players.itemAt(0).numCards()).toEqual(0);
+        expect(game.players.itemAt(1).numCards()).toEqual(0);
+        expect(game.players.itemAt(2).numCards()).toEqual(0);
         game.cutForDealer();
         expect(game.dealer).toBeDefined();
         expect(game.nextPlayerInSequence).toBeDefined();
         game.deal();
-        expect(game.playerIDs.itemAt(0).numCards()).toEqual(5);
-        expect(game.playerIDs.itemAt(1).numCards()).toEqual(5);
-        expect(game.playerIDs.itemAt(2).numCards()).toEqual(5);
+        expect(game.players.itemAt(0).numCards()).toEqual(5);
+        expect(game.players.itemAt(1).numCards()).toEqual(5);
+        expect(game.players.itemAt(2).numCards()).toEqual(5);
         expect(game.kitty.countItems()).toEqual(1);
     });
     function copyHand(cards: Array<BaseCard>) {
@@ -113,22 +113,22 @@ describe("Test a Cribbage game between three playerIDs", function() {
     it("deals random cards each time", function () {
         game.cutForDealer();
         game.deal();
-        var handOne = copyHand(game.playerIDs.itemAt(0).hand.items);
-        var handTwo = copyHand(game.playerIDs.itemAt(1).hand.items);
+        var handOne = copyHand(game.players.itemAt(0).hand.items);
+        var handTwo = copyHand(game.players.itemAt(1).hand.items);
         game.deal();
-        var handOneAgain = copyHand(game.playerIDs.itemAt(0).hand.items);
-        var handTwoAgain = copyHand(game.playerIDs.itemAt(1).hand.items);
+        var handOneAgain = copyHand(game.players.itemAt(0).hand.items);
+        var handTwoAgain = copyHand(game.players.itemAt(1).hand.items);
         expect(handsAreDistinct(handOne, handOneAgain)).toBe(true);
         expect(handsAreDistinct(handTwo, handTwoAgain)).toBe(true);
     });
-    it("waits for the kitty to be full before letting playerIDs play", function () {
+    it("waits for the kitty to be full before letting players play", function () {
         expect(function() { game.playCard(playerTwo.name); }).toThrow(ErrorStrings.KITTY_NOT_READY);
     });
     //it("doesn't let a player throw the same card twice", function () {
     //    game.cutForDealer();
     //    game.deal();
-    //    // get the first playerIDs first card
-    //    var firstPlayer = game.playerIDs.itemAt(0);
+    //    // get the first players first card
+    //    var firstPlayer = game.players.itemAt(0);
     //    var firstCard = playerOne.hand.itemAt(0);
     //    expect(function() { game.giveToKitty(firstPlayer.name, new ItemCollection([firstCard, firstCard])) })
     //        .toThrow(ErrorStrings.DUPLICATE_CARD_THROWN_TO_KITTY);
@@ -147,7 +147,7 @@ describe("Test a Cribbage game between three playerIDs", function() {
         game.giveToKitty(playerThree.name, new ItemCollection<BaseCard>([tenOfClubs]));
         game.kitty.takeCard(fourOfClubs);
         game.cut = new BaseCard(Suit.Spades, Value.King);
-        game.playersInPlay.addItems(game.playerIDs.items);
+        game.playersInPlay.addItems(game.players.items);
         game.playCard(playerTwo.name, queenOfHearts);
         game.playCard(playerThree.name, fiveOfClubs);
         game.playCard(playerOne.name, aceOfClubs);
@@ -180,9 +180,9 @@ describe("Test a Cribbage game between three playerIDs", function() {
             game.giveToKitty(playerThree.name, new ItemCollection<BaseCard>([threeOfHearts]));
             game.kitty.takeCard(fourOfClubs);
             game.cut = kingOfSpades;
-            game.playersInPlay.addItems(game.playerIDs.items);
+            game.playersInPlay.addItems(game.players.items);
         });
-        it("takes cards from the playerIDs hands when they give to the kitty", function () {
+        it("takes cards from the players hands when they give to the kitty", function () {
             expect(playerOne.hand.size()).toEqual(4);
             expect(playerTwo.hand.size()).toEqual(4);
             expect(playerThree.hand.size()).toEqual(4);
@@ -191,7 +191,7 @@ describe("Test a Cribbage game between three playerIDs", function() {
         it("doesn't let a player play a card they don't have", function () {
             expect(function() { game.playCard(playerTwo.name, tenOfClubs); }).toThrow(`${ErrorStrings.FMT_PLAYER_DOESNT_HAVE_CARD} the ${tenOfClubs.toString()}!`);
         });
-        it("ensures playerIDs play in order", function () {
+        it("ensures players play in order", function () {
             expect(function() { game.playCard(playerOne.name, sevenOfSpades); }).toThrow(ErrorStrings.FMT_NOT_NEXT_PLAYER + playerTwo.name);
         });
         it("knows how to count points in round 2", function () {
@@ -236,7 +236,7 @@ describe("Test a Cribbage game between three playerIDs", function() {
             game.giveToKitty(playerThree.name, new ItemCollection([threeOfHearts]));
             game.kitty.takeCard(fourOfClubs);
             game.cut = new BaseCard(Suit.Spades, Value.King);
-            game.playersInPlay.addItems(game.playerIDs.items);
+            game.playersInPlay.addItems(game.players.items);
             game.playCard(playerTwo.name, nineOfHearts);
             game.playCard(playerThree.name, twoOfDiamonds);
             game.playCard(playerOne.name, eightOfHearts);
@@ -277,7 +277,7 @@ describe("Test a Cribbage game between three playerIDs", function() {
             game.giveToKitty(playerThree.name, new ItemCollection([threeOfHearts]));
             game.kitty.takeCard(fourOfClubs);
             game.cut = new BaseCard(Suit.Spades, Value.Two);
-            game.playersInPlay.addItems(game.playerIDs.items);
+            game.playersInPlay.addItems(game.players.items);
             game.playCard(playerTwo.name, tenOfDiamonds);
             game.playCard(playerThree.name, queenOfClubs);
             game.playCard(playerOne.name, queenOfDiamonds);
@@ -299,7 +299,7 @@ describe("Test a Cribbage game between three playerIDs", function() {
             game.dealer = playerOne;
             game.nextPlayerInSequence = playerTwo;
             game.cut = queenOfClubs;
-            game.playersInPlay.addItems(game.playerIDs.items);
+            game.playersInPlay.addItems(game.players.items);
         });
         it("sets the next player correctly", function () {
             game.giveToKitty(playerOne.name, new ItemCollection([tenOfClubs]));
@@ -360,7 +360,7 @@ describe("Test a Cribbage game between three playerIDs", function() {
             game.go(playerTwo.name);
             game.go(playerThree.name);
             game.playCard(playerOne.name, aceOfSpades);
-            expect(game.count).toEqual(0); // The round should restart because there will be no playerIDs left in play
+            expect(game.count).toEqual(0); // The round should restart because there will be no players left in play
             expect(game.nextPlayerInSequence.equalsOther(playerTwo)).toBe(true);
         });
         it("sets the next player correctly after one scores 31", function() {

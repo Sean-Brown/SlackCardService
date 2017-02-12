@@ -153,7 +153,9 @@ export class CribbageService {
             // Find if the player is in the new game
             if (that.activeGames.playerIsInGame(playerID, player)) {
                 // The player is already part of the new game
-                resolve(makeErrorResponse("You're already part of a new game"));
+                let game = that.activeGames.getPlayerGame(playerID);
+                let message = game ? `You're already playing game #${game.gameID}` : "You're already in the new, unbegun game";
+                resolve(makeErrorResponse(message));
             }
             else if (gameHistoryID != CribbageService.INVALID_ID) {
                 // The player is not part of the new game, add them to the existing game
@@ -328,13 +330,40 @@ export class CribbageService {
     }
 
     /**
+     * Get the given player's current game
+     * @param player
+     * @returns {Q.Promise} the player's current game ID or -1 if the player is not in a game
+     */
+    public getCurrentGame(player:string): Q.Promise<number> {
+        let that = this;
+        return new Q.Promise((resolve) => {
+            that.getPlayerID(player)
+                .then((playerID:number) => {
+                    let response = that.activeGames.getPlayerGame(playerID);
+                    if (response.status != DBReturnStatus.ok) {
+                        // the player isn't in a game
+                        resolve(-1);
+                    }
+                    else if (that.activeGames.newGame.players.findPlayer(player) != null) {
+                        // the player is in the new game, return 0
+                        resolve(0);
+                    }
+                    else {
+                        // return the game ID
+                        resolve(response.gameID);
+                    }
+                });
+        });
+    }
+
+    /**
      * Join a player to a game
      * @param player the name of the player
      * @param gameHistoryID the game-history ID, or 0 if they want to join a new game
      * @returns {Q.Promise}
      */
     public joinGame(player: string, gameHistoryID: number = CribbageService.INVALID_ID): Q.Promise<CribbageServiceResponse> {
-        var that = this;
+        let that = this;
         return new Q.Promise((resolve) => {
             that.getPlayerID(player)
                 .then((playerID:number) => {

@@ -4,7 +4,7 @@ import {CribbageHandHistory} from "../../../../db/abstraction/tables/cribbage_ha
 import {cribbage_hand_history_actions} from "../../../../db/implementation/postgres/cribbage_hand_history_actions";
 import {
     CribbageServiceResponse, makeErrorResponse, GetPlayerPointsResponse, GameAssociationResponse,
-    FindPlayersInGameResponse, checkResponse, FindPlayersResponse, FindDealerResponse
+    FindPlayersInGameResponse, checkResponse, FindPlayersResponse, FindDealerResponse, SetPlayerHandsResponse
 } from "./response";
 import {getErrorMessage} from "../../../lib";
 import {Cribbage} from "../../../../card_service/implementations/cribbage";
@@ -13,10 +13,12 @@ import {CribbagePlayer} from "../../../../card_service/implementations/cribbage_
 import {CribbageHand} from "../../../../card_service/implementations/cribbage_hand";
 import {GameAssociation} from "./game_association";
 import {CribbageHandHistoryReturn, DBReturnStatus, PlayerReturn} from "../../../../db/abstraction/return/db_return";
-import {getTableName, DBTables, BaseTable} from "../../../../db/abstraction/tables/base_table";
+import {getTableName, DBTables} from "../../../../db/abstraction/tables/base_table";
 import {pg_mgr, PGQueryReturn} from "../../../../db/implementation/postgres/manager";
 import {CribbageService} from "../cribbage_service";
 import {Player} from "../../../../db/abstraction/tables/player";
+import {CribbageRoutes} from "../../index";
+import {BaseCard} from "../../../../card_service/base_classes/items/card";
 var Q = require("q");
 
 class FindPlayersInGameComposite {
@@ -102,6 +104,38 @@ function findPlayers(playerIDs:Array<number>): Q.Promise<FindPlayersResponse> {
 }
 
 /**
+ * Find who the last dealer in the game was, if there was one
+ * @param gameHistoryID
+ * @returns the name of the last dealer, or an empty string if there was no last dealer
+ */
+function findLastDealer(gameHistoryID:number): Q.Promise<string> {
+    return new Q.Promise((resolve) => {
+        let query = `
+            SELECT ${Player.COL_NAME}
+            FROM ${getTableName(DBTables.Player)}
+            WHERE ${Player.COL_ID}=(
+                SELECT ${CribbageHandHistory.COL_PLAYER_ID}
+                FROM ${getTableName(DBTables.CribbageHandHistory)}
+                WHERE ${CribbageHandHistory.COL_GAME_HISTORY_ID}=${gameHistoryID} AND ${CribbageHandHistory.COL_IS_CRIB}=true 
+                ORDER BY ${CribbageHandHistory.COL_ID} DESC
+                LIMIT 1
+            );
+        `.trim();
+        pg_mgr.runQuery(query)
+            .then((result:PGQueryReturn) => {
+                let player = "";
+                if (result.error.length > 0) {
+                    console.error(result.error);
+                }
+                else if (result.value.rowCount > 0) {
+                    player = result.value.rows[0].name;
+                }
+                resolve(player);
+            });
+    });
+}
+
+/**
  * Find the dealer based on the hand history
  * @param players the association between a player name and a player ID
  * @param gameAssociation
@@ -110,10 +144,10 @@ function findPlayers(playerIDs:Array<number>): Q.Promise<FindPlayersResponse> {
 function findDealer(players:Map<string, number>, gameAssociation:GameAssociation): Q.Promise<FindDealerResponse> {
     return new Q.Promise((resolve) => {
         // This query finds the last dealer
-        var query = `
+        let query = `
                 SELECT ${CribbageHandHistory.COL_PLAYER_ID}
                 FROM ${getTableName(DBTables.CribbageHandHistory)}
-                WHERE ${CribbageHandHistory.COL_GAME_HISTORY_ID}=${gameAssociation.gameHistoryID} AND ${CribbageHandHistory.COL_IS_CRIB}=true
+                WHERE ${CribbageHandHistory.COL_GAME_HISTORY_ID}=${gameAssociation.gameHistoryID} AND ${CribbageHandHistory.COL_IS_CRIB}=true AND ${CribbageHandHistory.COL_PLAYED}=false
                 ORDER BY ${CribbageHandHistory.COL_ID} DESC
                 LIMIT 1;
             `.trim();
@@ -124,19 +158,33 @@ function findDealer(players:Map<string, number>, gameAssociation:GameAssociation
                     response = <FindDealerResponse>makeErrorResponse(result.error);
                 }
                 else if (result.value.rowCount == 0) {
-                    // No rows means that no hands have been played yet, so use the first player as the dealer
-                    let gamePlayers = gameAssociation.game.players;
-                    if (gamePlayers.countItems() > 0) {
-                        let dealer = <CribbagePlayer>gameAssociation.game.players.itemAt(0);
-                        response.dealerID = players.get(dealer.name);
-                    }
-                    else {
-                        response.dealerID = CribbageService.INVALID_ID;
-                    }
+                    // No rows means that no hands have been played yet, find who the last dealer was
+                    findLastDealer(gameAssociation.gameHistoryID)
+                        .then((prevDealerName:string) => {
+                            let game = gameAssociation.game;
+                            if (prevDealerName.length > 0) {
+                                // Find the next dealer based on the previous dealer
+                                let prevDealer = game.players.findPlayer(prevDealerName);
+                                let nextDealer = game.nextPlayerInOrder(prevDealer);
+                                response.dealerID = players.get(nextDealer.name);
+                            }
+                            else {
+                                // Set the dealer to the first player
+                                let gamePlayers = game.players;
+                                if (gamePlayers.countItems() > 0) {
+                                    let dealer = <CribbagePlayer>game.players.itemAt(0);
+                                    response.dealerID = players.get(dealer.name);
+                                }
+                                else {
+                                    response.dealerID = CribbageService.INVALID_ID;
+                                    response.status = DBReturnStatus.error;
+                                }
+                            }
+                        });
                 }
                 else {
                     // Found the dealer, now find out who the next dealer should be
-                    response.dealerID = result.value.rows[0];
+                    response.dealerID = result.value.rows[0].player_id;
                 }
                 resolve(response);
             });
@@ -250,6 +298,64 @@ function setPlayerPoints(players:Map<string, number>, gameAssociation:GameAssoci
     });
 }
 
+function getPlayerUnplayedHand(playerID:number, gameHistoryID:number): Q.Promise<SetPlayerHandsResponse> {
+    return new Q.Promise((resolve) => {
+        cribbage_hand_history_actions.getLastHand(playerID, gameHistoryID)
+            .then((chh:CribbageHandHistoryReturn) => {
+                checkResponse(chh, resolve);
+                // Parse the cards into a hand
+                let cards:Array<BaseCard> = CribbageRoutes.Router.parseCards(chh.first().hand);
+                resolve(new SetPlayerHandsResponse(playerID, new CribbageHand(cards)));
+            });
+    });
+}
+
+function setPlayerHands(players:Map<string, number>, gameAssociation:GameAssociation): Q.Promise<CribbageServiceResponse> {
+    return new Q.Promise((resolve) => {
+        cribbage_hand_history_actions.hasUnplayedHands(gameAssociation.gameHistoryID)
+            .then((hasUnplayedHands:boolean) => {
+                if (hasUnplayedHands) {
+                    // Load the unplayed hands
+                    let promises = [];
+                    let gameHistoryID = gameAssociation.gameHistoryID;
+                    gameAssociation.playerIDs.forEach((playerID:number) => {
+                        promises.push(getPlayerUnplayedHand(playerID, gameHistoryID));
+                    });
+                    return Q.Promise.all(promises).then((results:Array<SetPlayerHandsResponse>) => {
+                        let errors = [];
+                        results.forEach((result:SetPlayerHandsResponse) => {
+                            if (result.status != DBReturnStatus.ok) {
+                                errors.push(result.message);
+                            }
+                            else {
+                                // Set the player's hand in the game
+                                let playerName = findPlayerName(players, result.playerID);
+                                let player = <CribbagePlayer>gameAssociation.game.players.findPlayer(playerName);
+                                player.hand = result.hand;
+                                // Remove the cards from the game's deck
+                                for (let ix = 0; ix < player.hand.countItems(); ix++) {
+                                    gameAssociation.game.deck.removeItem(player.hand.itemAt(ix));
+                                }
+                            }
+                        });
+                        let message = getErrorMessage(errors);
+                        if (message.length > 0) {
+                            resolve(makeErrorResponse(message));
+                        }
+                        else {
+                            resolve(new CribbageServiceResponse());
+                        }
+                    });
+                }
+                else {
+                    // Just deal the cards
+                    gameAssociation.game.deal();
+                    resolve(new CribbageServiceResponse());
+                }
+            });
+    });
+}
+
 /**
  * Recreate the game given the game-history ID number
  * @param players the association between a player name and a player ID -- this variable is used as reference to
@@ -294,8 +400,11 @@ export function recreateGame(players:Map<string, number>, gameHistoryID:number):
                 checkResponse(result, resolve);
                 // Make the teams
                 gameAssociation.game.makeTeams();
-                // Deal the cards
-                gameAssociation.game.deal();
+                // Set the player hands
+                return setPlayerHands(players, gameAssociation);
+            })
+            .then((result: CribbageServiceResponse) => {
+                checkResponse(result, resolve);
                 // Set the game as 'begun'
                 gameAssociation.game.hasBegun = true;
                 // Set the association

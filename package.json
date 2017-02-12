@@ -19,7 +19,7 @@
     "start": "node app.js",
     "test": "node -v && npm -v && npm run test-node && npm run test-service",
     "test-node": "mocha -c -b --reporter spec spec/Node/*.js",
-    "test-service": "jasmine-node --color --test-dir ./spec/SlackCardService/"
+    "test-service": "jasmine-node ./spec/SlackCardService/"
   },
   "typescript": {
     "definition": "typings/index.d.ts"
@@ -42,7 +42,7 @@
     "q": "^1.4.1",
     "request": "^2.67.0",
     "typescript": "2.0.3",
-    "typings": "1.4"
+    "typings": "^1.4"
   },
   "devDependencies": {
     "jasmine-node": "^2.0.0-beta4",

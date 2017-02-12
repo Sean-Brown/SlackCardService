@@ -17,9 +17,15 @@ export class CribbageServiceResponse {
 export class FindPlayersInGameResponse extends CribbageServiceResponse {
     constructor(public playerIDs:Array<number> = []) { super(); }
 }
-/* Class that's returned from the "get unfinished games" method */
+/** Class that's returned from the "get unfinished games" method */
 export class GetUnfinishedGamesResponse extends CribbageServiceResponse {
     constructor(public gameHistoryIDs:Array<number>) { super(); }
+}
+/**
+ * Class that's returned from the "get current game" method
+ */
+export class GetCurrentGameResponse extends CribbageServiceResponse {
+    constructor(public gameID:number) { super(); }
 }
 /**
  * Class that's returned from the "find players" method
@@ -46,6 +52,12 @@ export class GetPlayerPointsResponse extends CribbageServiceResponse {
     constructor(public playerID:number, public points:number) { super(); }
 }
 /**
+ * Class that's returned from the "setPlayerHands" method
+ */
+export class SetPlayerHandsResponse extends CribbageServiceResponse {
+    constructor(public playerID:number, public hand:CribbageHand) { super(); }
+}
+/**
  * Class that's returned from the "player in game" method
  */
 export class PlayerInGameResponse extends CribbageServiceResponse {
@@ -67,7 +79,7 @@ export class CribbageReturnResponse extends CribbageServiceResponse {
  * Class that's returned from the "get player game" method
  */
 export class CurrentGameResponse extends CribbageServiceResponse {
-    constructor(public game:Cribbage) { super(); }
+    constructor(public gameID:Cribbage) { super(); }
 }
 
 /**

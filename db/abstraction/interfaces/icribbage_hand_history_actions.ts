@@ -49,4 +49,16 @@ export interface ICribbageHandHistoryActions {
      */
     getPoints(player_id:number, game_history_id:number): Q.Promise<CribbageHandHistoryReturn>;
 
+    /**
+     * Get the player's last hand in the game, or null if they didn't have one
+     * @param player_id
+     * @param game_history_id
+     */
+    getLastHand(player_id:number, game_history_id:number): Q.Promise<CribbageHandHistoryReturn>;
+
+    /**
+     * Says whether or not the given game has unfinished hands to resume play from
+     * @param game_history_id
+     */
+    hasUnplayedHands(game_history_id:number): Q.Promise<boolean>;
 }
