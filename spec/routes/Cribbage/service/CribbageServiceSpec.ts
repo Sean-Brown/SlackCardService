@@ -1,7 +1,6 @@
 import * as expect from 'expect';
 import { CribbageHand } from '../../../../card_service/implementations/cribbage_hand';
 import { CribbagePlayer } from '../../../../card_service/implementations/cribbage_player';
-import { CribbageHandHistoryActions } from '../../../../db/actions/cribbage_hand_history_actions';
 import { GameActions } from '../../../../db/actions/game_actions';
 import { GameHistoryActions } from '../../../../db/actions/game_history_actions';
 import { GameHistoryPlayerActions } from '../../../../db/actions/game_history_player_actions';

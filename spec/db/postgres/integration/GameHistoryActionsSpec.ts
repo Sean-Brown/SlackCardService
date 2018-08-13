@@ -3,8 +3,6 @@ import { GameHistoryActions } from '../../../../db/actions/game_history_actions'
 import { GameHistoryPlayerActions } from '../../../../db/actions/game_history_player_actions';
 import { Game } from '../../../../db/models/game';
 import { GameHistory } from '../../../../db/models/game_history';
-import { Player } from '../../../../db/models/player';
-import { ResponseCode } from '../../../../routes/response_code';
 import { readConfigFromEnv } from '../../setEnv';
 import { createGame } from './GameActionsSpec';
 import { fail } from './helpers';

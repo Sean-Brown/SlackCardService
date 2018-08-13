@@ -4,7 +4,6 @@ import { Game } from '../../../../db/models/game';
 import { GameHistory } from '../../../../db/models/game_history';
 import { Player } from '../../../../db/models/player';
 import { WinLossHistory } from '../../../../db/models/win_loss_history';
-import { ResponseCode } from '../../../../routes/response_code';
 import { readConfigFromEnv } from '../../setEnv';
 import { createGame } from './GameActionsSpec';
 import { createGameHistory } from './GameHistoryActionsSpec';
