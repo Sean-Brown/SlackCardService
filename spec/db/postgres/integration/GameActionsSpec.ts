@@ -1,79 +1,53 @@
-/// <reference path="../../../../typings/index.d.ts" />
-
-import {PostgresTables} from "../../../../db/implementation/postgres/create_tables";
-import {game_actions} from "../../../../db/implementation/postgres/game_actions";
-import {readConfigFromEnv} from "./setEnv";
-import {deleteTables} from "./CreateTablesSpec";
-import {GameReturn} from "../../../../db/abstraction/return/db_return";
-import {Game} from "../../../../db/abstraction/tables/game";
-import {verifyReturn} from "../../../verifyReturn";
-var Q = require("q");
+import * as expect from 'expect';
+import { GameActions } from '../../../../db/actions/game_actions';
+import { Game } from '../../../../db/models/game';
+import { readConfigFromEnv } from '../../setEnv';
+import { fail } from './helpers';
+import truncate from './truncate';
 
 // Create an entry in the game table
-export const game = "cribbage";
+export const CribbageGameName = 'cribbage';
 /**
  * Create a row for the game in the database
  * @returns the Game object for that row
  */
-export function createGame(): Q.Promise<Game> {
-    return new Q.Promise((resolve, reject) => {
-        game_actions.create(game)
-            .then((ret: GameReturn) => {
-                verifyReturn(ret, "Expected a result from creating a game");
-                resolve(ret.first());
-            })
-            .catch((ret: GameReturn) => {
-                expect(ret.first()).toBeNull("Should have returned a null result");
-                reject(null);
-            });
-    });
+export async function createGame(): Promise<Game> {
+    return GameActions.create(CribbageGameName);
 }
-describe("Test the 'game' actions", function() {
-    beforeEach(function(done) {
+describe('Test the \'game\' actions', function () {
+    beforeEach(async function (done) {
         readConfigFromEnv();
-        PostgresTables.createTables().finally(() => { done(); });
+        done();
     });
-    afterEach(function(done) {
+    afterEach(async (done) => {
         // Drop the tables
-        deleteTables().finally(() => { done(); });
+        await truncate();
+        done();
     });
-    it("can create a new game entry", function(done) {
-        createGame()
-            .catch(() => {
-                // fail the test
-                fail("Test should have succeeded");
-            })
-            .finally(() => { done(); });
+    it('can create a new game entry', async function (done) {
+        try {
+            await createGame();
+        }
+        catch (e) {
+            // fail the test
+            fail(`Test should have succeeded. Error: ${e}`);
+        }
+        finally {
+            done();
+        }
     });
-    it("can find a created game entry", function(done) {
-        createGame()
-            .then((result:Game) => {
-                return game_actions.find(result.id);
-            })
-            .then((result:GameReturn) => {
-                verifyReturn(result, "Expected a result from finding a game");
-                expect(result.first().name).toBe(game);
-            })
-            .catch(() => {
-                // fail the test
-                fail("Test should have succeeded");
-            })
-            .finally(() => { done(); });
+    it('can find a created game by name', async function (done) {
+        try {
+            const game = await createGame();
+            const gameReturn = await GameActions.findByName(game.name);
+            expect(gameReturn.name).toBe(CribbageGameName);
+        }
+        catch (e) {
+            // fail the test
+            fail(`Test should have succeeded. Error: ${e}`);
+        }
+        finally {
+            done();
+        }
     });
-    it("can find a created game by name", function(done) {
-        createGame()
-            .then((result:Game) => {
-                return game_actions.findByName(result.name);
-            })
-            .then((result:GameReturn) => {
-                verifyReturn(result, "Expected a result from finding a game by name");
-                expect(result.first().name).toBe(game);
-            })
-            .catch(() => {
-                // fail the test
-                fail("Test should have succeeded");
-            })
-            .finally(() => { done(); });
-    });
-    // TODO test error cases
 });

@@ -1,60 +1,53 @@
-import {pg_mgr, PGQueryReturn} from "../../../../db/implementation/postgres/manager";
-import {DBTables, getTableName, BaseTable} from "../../../../db/abstraction/tables/base_table";
-import {WinLossHistory} from "../../../../db/abstraction/tables/win_loss_history";
-import {GameHistoryPlayerPivot} from "../../../../db/abstraction/tables/game_history_player";
-import {GameHistory} from "../../../../db/abstraction/tables/game_history";
-var Q = require("q");
+import { Manager as DbManager } from '../../../../db/manager';
+import { GameHistory } from '../../../../db/models/game_history';
+import { GameHistoryPlayer } from '../../../../db/models/game_history_player';
+import { WinLossHistory } from '../../../../db/models/win_loss_history';
 
 export class UnfinishedGames {
     /**
      * The a set of the unfinished game-history IDs
      */
-    private unfinishedGames:Set<number>;
+    private unfinishedGames: Set<number>;
+    /**
+     * The database manager
+     */
+    private readonly dbManager: DbManager;
 
-    constructor() {
+    constructor(dbManager: DbManager) {
+        this.dbManager = dbManager;
         this.unfinishedGames = new Set();
     }
 
     /**
      * Find out if the given game is unfinished
-     * @param gameHistoryID
+     * @param gameHistoryId
      * @returns {boolean}
      */
-    public isUnfinished(gameHistoryID:number):Q.Promise<boolean> {
-        return new Q.Promise((resolve) => {
-            let isUnfinished = this.unfinishedGames.has(gameHistoryID);
-            if (!isUnfinished) {
-                // Check in the database
-                let query = `
-                    SELECT ${GameHistory.COL_ID}
-                    FROM ${getTableName(DBTables.GameHistory)}
-                    WHERE ${GameHistory.COL_ID} IN (
-                        SELECT DISTINCT ${WinLossHistory.COL_GAME_HISTORY_ID}
-                        FROM ${getTableName(DBTables.WinLossHistory)}
-                        WHERE ${WinLossHistory.COL_GAME_HISTORY_ID}=${gameHistoryID}
-                    );
-                `.trim();
-                pg_mgr.runQuery(query)
-                    .then((result:PGQueryReturn) => {
-                        if (result.error.length > 0) {
-                            resolve(false);
-                        }
-                        else {
-                            resolve(result.value.rowCount > 0);
-                        }
-                    });
+    public async isUnfinished(gameHistoryId: number): Promise<boolean> {
+        const isUnfinished = this.unfinishedGames.has(gameHistoryId);
+        if (!isUnfinished) {
+            // Check in the database
+            const result = await WinLossHistory.findOne({
+                attributes: ['gameHistoryId'],
+                where: { gameHistoryId }
+            });
+            if (result) {
+                return false;
             }
             else {
-                resolve(isUnfinished);
+                return true;
             }
-        });
+        }
+        else {
+            return isUnfinished;
+        }
     }
 
     /**
      * Add the game to the set of unfinished games
      * @param gameHistoryID
      */
-    public addUnfinishedGame(gameHistoryID:number):void {
+    public addUnfinishedGame(gameHistoryID: number): void {
         if (!this.unfinishedGames.has(gameHistoryID)) {
             this.unfinishedGames.add(gameHistoryID);
         }
@@ -70,63 +63,54 @@ export class UnfinishedGames {
 
     /**
      * Run a query returning the IDs of the all the unfinished game-history rows
-     * @returns {Q.Promise<Array<number>>}
+     * @returns {Promise<Array<number>>}
      */
-    public getUnfinishedGames():Q.Promise<Array<number>> {
-        var that = this;
-        return new Q.Promise((resolve) => {
-            let gameHistoryIDs = [];
-            var query = `
-                SELECT ${GameHistory.COL_ID}
-                FROM ${getTableName(DBTables.GameHistory)}
-                WHERE ${GameHistory.COL_ID} NOT IN (
-                    SELECT DISTINCT ${WinLossHistory.COL_GAME_HISTORY_ID}
-                    FROM ${getTableName(DBTables.WinLossHistory)}
-                );
-            `.trim();
-            pg_mgr.runQuery(query)
-                .then((result:PGQueryReturn) => {
-                    if (result.error.length == 0) {
-                        let gameHistories = result.value.rows;
-                        gameHistories.forEach((gh:GameHistory) => {
-                            gameHistoryIDs.push(gh.id);
-                            that.addUnfinishedGame(gh.id);
-                        });
+    public async getUnfinishedGames(): Promise<Array<number>> {
+        const gameHistoryIDs = [];
+        try {
+            // const winLossHistories = await WinLossHistory.findAll({
+            //     attributes: ['gameHistoryId']
+            // }).map((wlh: WinLossHistory) => wlh.gameHistoryId);
+            const result = await GameHistory.findAll({
+                attributes: ['id'],
+                where: {
+                    id: {
+                        $notIn: `(${this.dbManager.sequelize.literal(`SELECT id FROM win_loss_history`)})`
                     }
-                    else {
-                        console.log(result.error);
-                    }
-                    resolve(gameHistoryIDs);
-                });
-        });
+                }
+            });
+            result.forEach((gh: GameHistory) => {
+                gameHistoryIDs.push(gh.id);
+                this.addUnfinishedGame(gh.id);
+            });
+        }
+        catch (e) {
+            console.log(`error getting the unfinished games`);
+        }
+        return gameHistoryIDs;
     }
 
-    public playerUnfinishedGames(playerID:number):Q.Promise<Array<number>> {
-        let that = this;
-        return new Q.Promise((resolve) => {
-            let gameHistoryIDs = [];
-            var query = `
-                SELECT DISTINCT ${GameHistoryPlayerPivot.COL_GAME_HISTORY_ID}
-                FROM ${getTableName(DBTables.GameHistoryPlayer)}
-                WHERE ${GameHistoryPlayerPivot.COL_PLAYER_ID}=${playerID} AND ${GameHistoryPlayerPivot.COL_GAME_HISTORY_ID} NOT IN (
-                    SELECT DISTINCT ${WinLossHistory.COL_GAME_HISTORY_ID}
-                    FROM ${getTableName(DBTables.WinLossHistory)}
-                );
-            `.trim();
-            pg_mgr.runQuery(query)
-                .then((result:PGQueryReturn) => {
-                    if (result.error.length == 0) {
-                        result.value.rows.forEach((gameHistoryPlayer:GameHistoryPlayerPivot) => {
-                            let ghid = gameHistoryPlayer.game_history_id;
-                            gameHistoryIDs.push(ghid);
-                            that.addUnfinishedGame(ghid);
-                        });
+    public async playerUnfinishedGames(playerId: number): Promise<Array<number>> {
+        const gameHistoryIDs = [];
+        try {
+            const result = await GameHistoryPlayer.findAll({
+                attributes: ['gameHistoryId'],
+                where: {
+                    playerId,
+                    id: {
+                        $notIn: `(${this.dbManager.sequelize.literal(`SELECT DISTINCT game_history_id FROM win_loss_history`)})`
                     }
-                    else {
-                        console.log(result.error);
-                    }
-                    resolve(gameHistoryIDs);
-                });
-        });
+                }
+            });
+            result.forEach((gameHistoryPlayer: GameHistoryPlayer) => {
+                const ghid = gameHistoryPlayer.gameHistoryId;
+                gameHistoryIDs.push(ghid);
+                this.addUnfinishedGame(ghid);
+            });
+        }
+        catch (e) {
+            console.log(`error getting the unfinished games for player ${playerId}`);
+        }
+        return gameHistoryIDs;
     }
 }

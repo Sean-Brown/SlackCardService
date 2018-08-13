@@ -1,32 +1,20 @@
-/// <reference path="../../../typings/index.d.ts" />
-/// <reference path="../../../card_service/interfaces/iitem" />
-/// <reference path="../../../card_service/base_classes/collections/item_collection" />
-/// <reference path="../../../card_service/implementations/cribbage.ts" />
-/// <reference path="../../../card_service/implementations/cribbage_hand.ts" />
-/// <reference path="../../../card_service/implementations/cribbage_player.ts" />
-/// <reference path="../../../card_service/base_classes/card_game.ts" />
+import * as fs  from 'fs';
+import * as images from 'images';
+import {sep} from 'path';
+import * as request from 'request';
+import {Sequence} from '../../../card_service/base_classes/card_game';
+import {ItemCollection} from '../../../card_service/base_classes/collections/item_collection';
+import {BaseCard as Card} from '../../../card_service/base_classes/items/card';
+import {CribbageHand} from '../../../card_service/implementations/cribbage_hand';
+import {CribbagePlayer} from '../../../card_service/implementations/cribbage_player';
+import {IItem} from '../../../card_service/interfaces/iitem';
 
-import request = require("request");
-import fs = require("fs");
-//if (process.env.NODE_ENV != "Production")
-//require('promise/lib/rejection-tracking').enable();
-import images = require("images");
-import {IItem} from "../../../card_service/interfaces/iitem";
-import {CribbageHand} from "../../../card_service/implementations/cribbage_hand";
-import {BaseCard as Card} from "../../../card_service/base_classes/items/card";
-import {ItemCollection} from "../../../card_service/base_classes/collections/item_collection";
-import {Sequence} from "../../../card_service/base_classes/card_game";
-import {sep} from "path";
-import {CribbagePlayer} from "../../../card_service/implementations/cribbage_player";
-var Q = require("q");
-
-
-function mkdirSync(path:string):void {
-    var dirs = path.split(sep);
-    var root = "";
+function mkdirSync(path: string): void {
+    const dirs = path.split(sep);
+    let root = '';
     while (dirs.length > 0) {
-        var dir = dirs.shift();
-        if (dir == "") {
+        const dir = dirs.shift();
+        if (dir === '') {
             // If directory starts with a /, the first path will be an empty string.
             root = sep;
         }
@@ -37,19 +25,21 @@ function mkdirSync(path:string):void {
     }
 }
 
-function endWithSlash(str:string):string {
-    if (str.indexOf("/", str.length - 1) == -1)
-        return str.concat("/");
-    else
+function endWithSlash(str: string): string {
+    if (str.indexOf('/', str.length - 1) === -1) {
+        return str.concat('/');
+    }
+    else {
         return str;
+    }
 }
 
-module ImageConvert {
-    var cardsPath = process.env.TMP_CARDS_PATH || "public/cards/";
+namespace ImageConvert {
+    let cardsPath = process.env.TMP_CARDS_PATH || 'public/cards/';
     cardsPath = endWithSlash(cardsPath);
 
-    export function makeLocalUrlPath(imagePath:string):string {
-        var path = `${process.env.APP_HOST_URL}/${imagePath}`;
+    export function makeLocalUrlPath(imagePath: string): string {
+        const path = `${process.env.APP_HOST_URL}/${imagePath}`;
         console.log(`returning local url path ${path}`);
         return path;
     }
@@ -61,8 +51,9 @@ module ImageConvert {
      * @param deckType
      * @returns {*}
      */
-    export function getCardImageUrl(card:Card, deckType:string="Default"): string {
-        var cardUrlStr = card.toUrlString(), cardFilePath = `${cardsPath}${cardUrlStr}`;
+    export function getCardImageUrl(card: Card, deckType = 'Default'): string {
+        const cardUrlStr = card.toUrlString();
+        let cardFilePath = `${cardsPath}${cardUrlStr}`;
         if (fs.existsSync(cardFilePath)) {
             // Give the url to the card on the heroku server
             cardFilePath = makeLocalUrlPath(cardFilePath);
@@ -74,8 +65,8 @@ module ImageConvert {
         return cardFilePath;
     }
 
-    var download = function(uri:string, filename:string, successCallback:any, failureCallback:any){
-        request.head(uri, function(err, res, body){
+    const download = function (uri: string, filename: string, successCallback: any, failureCallback: any) {
+        request.head(uri, function (err, res, body) {
             if (err) {
                 console.error(`Error downloading ${filename} from ${uri}: ${err}`);
                 failureCallback(err);
@@ -86,9 +77,9 @@ module ImageConvert {
         });
     };
 
-    function downloadCard(card:Card): Q.Promise<string> {
-        return new Q.Promise((resolve, reject) => {
-            var cardFilePath = `${cardsPath}${card.toUrlString()}`;
+    function downloadCard(card: Card): Promise<string> {
+        return new Promise((resolve, reject) => {
+            const cardFilePath = `${cardsPath}${card.toUrlString()}`;
             if (fs.existsSync(cardFilePath)) {
                 console.log(`getting the ${card.toString()} from cache`);
                 // Resolve right away, no need to download again
@@ -100,16 +91,20 @@ module ImageConvert {
                 download(
                     getCardImageUrl(card),
                     cardFilePath,
-                    function () { resolve(cardFilePath); },
-                    function(err:string) { reject(err); }
+                    function () {
+                        resolve(cardFilePath);
+                    },
+                    function (err: string) {
+                        reject(err);
+                    }
                 );
             }
         });
     }
 
-    function generateUniqueName(player:string, type:PlayerImageType):string {
-        var date = new Date();
-        var year = date.getFullYear(),
+    function generateUniqueName(player: string, type: PlayerImageType): string {
+        const date = new Date();
+        const year = date.getFullYear(),
             month = date.getMonth(),
             day = date.getDay(),
             hour = date.getHours(),
@@ -127,60 +122,59 @@ module ImageConvert {
      * @param sortCards
      * @returns {string} the local path to the image
      */
-    export function makeHandImageAsync(player:string, hand:CribbageHand, type:PlayerImageType, imagesPath:string, sortCards:boolean=true):Q.Promise<string> {
+    export async function makeHandImageAsync(player: string, hand: CribbageHand, type: PlayerImageType, imagesPath: string, sortCards = true): Promise<string> {
         console.log(`Making the hand image at ${imagesPath}`);
-        return new Q.Promise(function(resolve, reject) {
-            var playerHandPath = "";
-            imagesPath = endWithSlash(imagesPath);
-            if (!fs.existsSync(imagesPath)) {
-                console.log(`Creating directory ${imagesPath}`);
-                mkdirSync(imagesPath);
+        let playerHandPath = '';
+        imagesPath = endWithSlash(imagesPath);
+        if (!fs.existsSync(imagesPath)) {
+            console.log(`Creating directory ${imagesPath}`);
+            mkdirSync(imagesPath);
+        }
+        if (sortCards) {
+            hand.sortCards();
+        }
+        const promises: Array<Promise<string>> = [];
+        console.log('downloading the cards');
+        for (let ix = 0; ix < hand.size(); ix++) {
+            // Download all the cards asynchronously
+            promises.push(downloadCard(hand.itemAt(ix)));
+        }
+        try {
+            const values = await Promise.all(promises);
+            console.log('Finished downloading the cards, now create the final image');
+            // Merge together all the downloaded images
+            playerHandPath = `${imagesPath}${generateUniqueName(player, type)}.png`;
+            let width = 0, maxHeight = 0;
+            for (let jx = 0; jx < values.length; jx++) {
+                const cardFilePath = values[jx];
+                width += images(cardFilePath).width();
+                const height = images(cardFilePath).height();
+                if (height > maxHeight) {
+                    maxHeight = height;
+                }
             }
-            if (sortCards)
-                hand.sortCards();
-            var promises:Array<Q.Promise<string>> = [];
-            console.log("downloading the cards");
-            for (var ix = 0; ix < hand.size(); ix++) {
-                // Download all the cards asynchronously
-                promises.push(downloadCard(hand.itemAt(ix)));
+            let playerHandImage = images(width, maxHeight);
+            let xOffset = 0;
+            width = 0;
+            for (let kx = 0; kx < values.length; kx++) {
+                const filePath = values[kx];
+                width += images(filePath).width();
+                playerHandImage = playerHandImage.draw(images(filePath), xOffset, 0);
+                xOffset = width;
             }
-            Q.Promise.all(promises)
-                .then(function (values) {
-                    console.log("Finished downloading the cards, now create the final image");
-                    // Merge together all the downloaded images
-                    playerHandPath = `${imagesPath}${generateUniqueName(player, type)}.png`;
-                    var width = 0, maxHeight = 0;
-                    for (var jx = 0; jx < values.length; jx++) {
-                        var cardFilePath = values[jx];
-                        width += images(cardFilePath).width();
-                        var height = images(cardFilePath).height();
-                        if (height > maxHeight) {
-                            maxHeight = height;
-                        }
-                    }
-                    var playerHandImage = images(width, maxHeight);
-                    var xOffset = 0;
-                    width = 0;
-                    for (var kx = 0; kx < values.length; kx++) {
-                        var filePath = values[kx];
-                        width += images(filePath).width();
-                        playerHandImage = playerHandImage.draw(images(filePath), xOffset, 0);
-                        xOffset = width;
-                    }
-                    console.log("Creating the final image...");
-                    try {
-                        playerHandImage.save(playerHandPath);
-                    }
-                    catch (e) {
-                        reject(e);
-                    }
-                    resolve(playerHandPath);
-                })
-                .catch((err:any) => {
-                    console.error(`Q.Promise.all() rejected with ${err}`);
-                    reject(err);
-                });
-        });
+            console.log('Creating the final image...');
+            try {
+                playerHandImage.save(playerHandPath);
+            }
+            catch (e) {
+                return e;
+            }
+            return playerHandPath;
+        }
+        catch (err) {
+            console.error(`Promise.all() rejected with ${err}`);
+            return err;
+        }
     }
 }
 
@@ -191,48 +185,54 @@ enum PlayerImageType {
 }
 
 class PlayerImage implements IItem {
-    constructor(public path:string, public type:PlayerImageType) {
+    constructor(public path: string, public type: PlayerImageType) {
     }
-    equalsOther(other:PlayerImage):boolean {
-        return (this.path == other.path);
+
+    equalsOther(other: PlayerImage): boolean {
+        return (this.path === other.path);
     }
 }
 
 class Stack<T extends IItem> extends ItemCollection<T> {
-    push(t:T) {
+    push(t: T) {
         this.items.unshift(t);
     }
-    pop():T {
+
+    pop(): T {
         return this.items.shift();
     }
 }
 
 class PlayerImages implements IItem {
-    constructor(public player:string, protected images:Stack<PlayerImage>) {
+    constructor(public player: string, protected images: Stack<PlayerImage>) {
     }
+
     /**
      * Add the image to the head of the list
      * @param {string} imagePath the local path to the image
      * @param {PlayerImageType} type the type of image
      */
-    pushImage(imagePath:string, type:PlayerImageType): void {
+    pushImage(imagePath: string, type: PlayerImageType): void {
         this.images.push(new PlayerImage(imagePath, type));
     }
+
     getLatestImage(): string {
-        return (this.imageCount() > 0 ? this.images.itemAt(0).path : "");
+        return (this.imageCount() > 0 ? this.images.itemAt(0).path : '');
     }
+
     imageCount(): number {
         return this.images.countItems();
     }
-    clearAll():void {
+
+    clearAll(): void {
         // Delete all the image files -- delay this by a few seconds so clients
         // have time to download the image files
-        let store = [];
+        const store = [];
         for (let ix = 0; ix < this.images.countItems(); ix++) {
-            var playerImage = this.images.itemAt(ix);
+            const playerImage = this.images.itemAt(ix);
             if (fs.existsSync(playerImage.path)) {
                 store.push(playerImage.path);
-                //fs.unlinkSync(playerImage.path);
+                // fs.unlinkSync(playerImage.path);
             }
         }
         // Clear the array
@@ -240,31 +240,33 @@ class PlayerImages implements IItem {
         // Remove the images after a time delay
         setTimeout(() => {
             for (let ix = 0; ix < store.length; ix++) {
-                let image = store[ix];
+                const image = store[ix];
                 fs.unlinkSync(image);
             }
-        }, 5000)
+        }, 5000);
     }
-    equalsOther(other:PlayerImages): boolean {
-        return (this.player == other.player);
+
+    equalsOther(other: PlayerImages): boolean {
+        return (this.player === other.player);
     }
 }
 
 export class ImageManager {
-    static HANDS_PATH:string = process.env.TMP_HANDS_PATH || "public/hands";
-    static SEQUENCE_NAME:string = "sequence";
-    constructor(protected playerImages:ItemCollection<PlayerImages>=null) {
+    static HANDS_PATH: string = process.env.TMP_HANDS_PATH || 'public/hands';
+    static readonly SEQUENCE_NAME = 'sequence';
+
+    constructor(protected playerImages: ItemCollection<PlayerImages> = null) {
         this.playerImages = new ItemCollection<PlayerImages>([]);
         if (!fs.existsSync(ImageManager.HANDS_PATH)) {
             mkdirSync(ImageManager.HANDS_PATH);
         }
     }
 
-    private findPlayerImage(player:string):PlayerImages {
-        var playerImage:PlayerImages = null;
-        for (var ix = 0; ix < this.playerImages.countItems(); ix++) {
-            var tmp = this.playerImages.itemAt(ix);
-            if (tmp.player == player) {
+    private findPlayerImage(player: string): PlayerImages {
+        let playerImage: PlayerImages = null;
+        for (let ix = 0; ix < this.playerImages.countItems(); ix++) {
+            const tmp = this.playerImages.itemAt(ix);
+            if (tmp.player === player) {
                 playerImage = tmp;
                 break;
             }
@@ -272,7 +274,7 @@ export class ImageManager {
         return playerImage;
     }
 
-    static getCardImageUrl(card:Card):string {
+    static getCardImageUrl(card: Card): string {
         return ImageConvert.getCardImageUrl(card);
     }
 
@@ -282,85 +284,78 @@ export class ImageManager {
      * @param {CribbageHand} hand the hand to create an image for if the player does not have a latest hand
      * @returns the path to the image of the player's latest hand
      */
-    getLatestPlayerHand(player:string, hand:CribbageHand):Q.Promise<string> {
-        var that = this;
-        return new Q.Promise(function(resolve, reject) {
-            var playerImage = that.findPlayerImage(player);
-            if (playerImage != null && playerImage.imageCount() > 0) {
-                // Resolve on the cached image
-                resolve(ImageConvert.makeLocalUrlPath(playerImage.getLatestImage()));
+    async getLatestPlayerHand(player: string, hand: CribbageHand): Promise<string> {
+        const playerImage = this.findPlayerImage(player);
+        if (playerImage !== null && playerImage.imageCount() > 0) {
+            // Resolve on the cached image
+            return ImageConvert.makeLocalUrlPath(playerImage.getLatestImage());
+        }
+        else {
+            // Create a new image and resolve on that
+            try {
+                return await this.createPlayerHandImageAsync(player, hand);
             }
-            else {
-                // Create a new image and resolve on that
-                that.createPlayerHandImageAsync(player, hand)
-                    .then(function(handUrl:string){
-                        resolve(handUrl);
-                    })
-                    .catch((err:any) => {
-                        reject(err);
-                    });
+            catch (err) {
+                return err;
             }
-        });
+        }
     }
 
     /**
      * Get the path to the last sequence image
      */
-    getLatestSequence(sequence:Sequence):Q.Promise<string> {
+    async getLatestSequence(sequence: Sequence): Promise<string> {
         return this.getLatestPlayerHand(ImageManager.SEQUENCE_NAME, new CribbageHand(sequence.cards.items));
     }
 
-    private createHandImageAsync(player:string, hand:CribbageHand, type:PlayerImageType, sortHand:boolean):Q.Promise<string> {
-        var that = this;
-        return new Q.Promise(function(resolve, reject) {
-            ImageConvert.makeHandImageAsync(player, hand, type, ImageManager.HANDS_PATH, sortHand)
-                .then(function(handPath:string) {
-                    // Add the hand's image to the player's collection of hand images
-                    var playerImages = that.findPlayerImage(player);
-                    if (playerImages == null) {
-                        playerImages = new PlayerImages(player, new Stack([]));
-                    }
-                    playerImages.pushImage(handPath, type);
-                    that.playerImages.addItem(playerImages);
-                    resolve(ImageConvert.makeLocalUrlPath(handPath));
-                })
-                .catch((err:any) => {
-                    reject(err);
-                });
-        });
+    private async createHandImageAsync(player: string, hand: CribbageHand, type: PlayerImageType, sortHand: boolean): Promise<string> {
+        try {
+            const handPath = await ImageConvert.makeHandImageAsync(player, hand, type, ImageManager.HANDS_PATH, sortHand);
+            // Add the hand's image to the player's collection of hand images
+            let playerImages = this.findPlayerImage(player);
+            if (playerImages === null) {
+                playerImages = new PlayerImages(player, new Stack([]));
+            }
+            playerImages.pushImage(handPath, type);
+            this.playerImages.addItem(playerImages);
+            return ImageConvert.makeLocalUrlPath(handPath);
+        }
+        catch (err) {
+            return err;
+        }
     }
 
-    clearHands(players:Array<CribbagePlayer>):void {
-        for (var ix = 0; ix < players.length; ix++) {
-            var playerImages = this.findPlayerImage(players[ix].name);
-            if (playerImages != null) {
+    clearHands(players: Array<CribbagePlayer>): void {
+        for (let ix = 0; ix < players.length; ix++) {
+            const playerImages = this.findPlayerImage(players[ix].name);
+            if (playerImages !== null) {
                 playerImages.clearAll();
             }
         }
     }
 
-    clearSequence():void {
-        var sequenceImage = this.findPlayerImage(ImageManager.SEQUENCE_NAME);
-        if (sequenceImage != null) {
+    clearSequence(): void {
+        const sequenceImage = this.findPlayerImage(ImageManager.SEQUENCE_NAME);
+        if (sequenceImage !== null) {
             sequenceImage.clearAll();
         }
     }
 
-    clearAllImages():void {
-        for (var ix = 0; ix < this.playerImages.countItems(); ix++) {
+    clearAllImages(): void {
+        for (let ix = 0; ix < this.playerImages.countItems(); ix++) {
             this.playerImages.itemAt(ix).clearAll();
         }
     }
 
-    createDiscardImageAsync(player:string, discards:Array<Card>) {
+    createDiscardImageAsync(player: string, discards: Array<Card>) {
         return this.createHandImageAsync(player, new CribbageHand(discards), PlayerImageType.discard, true);
     }
 
-    createSequenceImageAsync(sequence:Sequence):Q.Promise<string> {
+    async createSequenceImageAsync(sequence: Sequence): Promise<string> {
         return this.createHandImageAsync(ImageManager.SEQUENCE_NAME, new CribbageHand(sequence.cards.items), PlayerImageType.sequence, false);
     }
 
-    createPlayerHandImageAsync(player:string, hand:CribbageHand):Q.Promise<string> {
+    async createPlayerHandImageAsync(player: string, hand: CribbageHand): Promise<string> {
         return this.createHandImageAsync(player, hand, PlayerImageType.hand, true);
     }
 }

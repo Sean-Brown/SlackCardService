@@ -1,47 +1,41 @@
-/// <reference path="../../typings/index.d.ts" />
+import * as expect from 'expect';
+import {Application} from 'express';
+import {request} from 'supertest';
+import truncate from '../db/postgres/integration/truncate';
+import {createNewServer} from './setup';
 
-"use strict";
-
-import {createNewServer} from "./setup";
-import {deleteTables} from "../db/postgres/integration/CreateTablesSpec";
-
-var request = require("supertest"),
-    expect  = require("expect");
-
-describe("Run the app", function() {
+describe('Run the app', function () {
+    const app: Application = null;
     /*
      Before all the tests run, make sure to create a fresh instance of the application
      in order to ensure the state of the server is reset between each test run. Also
      ensure that the database tables are created
      */
-    beforeEach(function(done) {
+    beforeEach(async function () {
         // Asynchronously drop the schema
-        deleteTables()
-            .then(() => {
-                return createNewServer(this);
-            })
-            .finally(() => { done(); });
+        await truncate();
+        await createNewServer(app);
     });
     // After all the tests have run, drop the tables
-    afterEach(function(done) {
+    afterEach(async function () {
         // Asynchronously drop the schema
-        deleteTables().finally(() => { done(); });
+        await truncate();
     });
 
-    it("responds to /", function(done) {
-        request(this.app)
-            .get("/")
+    it('responds to /', function (done) {
+        request(app)
+            .get('/')
             .expect(200, done);
     });
-    it("resets state between tests: set x equal to zero", function() {
-        this.app.locals.x = 0;
+    it('resets state between tests: set x equal to zero', function () {
+        app.locals.x = 0;
     });
-    it("resets state between tests", function() {
-        expect(this.app.locals.x).toNotExist();
+    it('resets state between tests', function () {
+        expect(app.locals.x).toNotExist();
     });
-    it("returns 404 for unknown routes", function(done) {
-        request(this.app)
-            .get("/foo/bar")
+    it('returns 404 for unknown routes', function (done) {
+        request(app)
+            .get('/foo/bar')
             .expect(404, done);
     });
 });

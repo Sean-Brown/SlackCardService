@@ -1,166 +1,116 @@
-import {deleteTables} from "./CreateTablesSpec";
-import {readConfigFromEnv} from "./setEnv";
-import {PostgresTables} from "../../../../db/implementation/postgres/create_tables";
-import {createGame} from "./GameActionsSpec";
-import {verifyReturn} from "../../../verifyReturn";
-import {Game} from "../../../../db/abstraction/tables/game";
-import {GameHistory} from "../../../../db/abstraction/tables/game_history";
-import {GameHistoryReturn, DBReturnStatus, GameHistoryPlayerReturn} from "../../../../db/abstraction/return/db_return";
-import {game_history_actions} from "../../../../db/implementation/postgres/game_history_actions";
-import {createPlayer} from "./PlayerActionsSpec";
-import {Player} from "../../../../db/abstraction/tables/player";
-import {game_history_player_actions} from "../../../../db/implementation/postgres/game_history_player_actions";
-var Q = require("q");
+import * as expect from 'expect';
+import { GameHistoryActions } from '../../../../db/actions/game_history_actions';
+import { GameHistoryPlayerActions } from '../../../../db/actions/game_history_player_actions';
+import { Game } from '../../../../db/models/game';
+import { GameHistory } from '../../../../db/models/game_history';
+import { Player } from '../../../../db/models/player';
+import { ResponseCode } from '../../../../routes/response_code';
+import { readConfigFromEnv } from '../../setEnv';
+import { createGame } from './GameActionsSpec';
+import { fail } from './helpers';
+import { createPlayer } from './PlayerActionsSpec';
+import truncate from './truncate';
 
 /**
  * Create a row for the game-history in the database
- * @param {number} game_id the ID of the game
+ * @param {number} gameID the ID of the game
  * @param {boolean} expectResult (=true) expect a non-null return object
  * @returns the game-history object for that row
  */
-export function createGameHistory(game_id:number, expectResult:boolean = true): Q.Promise<GameHistory> {
-    return new Q.Promise((resolve) => {
-        game_history_actions.create(game_id)
-            .then((ret: GameHistoryReturn) => {
-                if (expectResult) {
-                    verifyReturn(ret, "Expected a result from creating the game-history");
-                }
-                else {
-                    // Should have an error message and a null result
-                    expect(ret.message.length).toBeGreaterThan(0);
-                    expect(ret.first()).toBeNull("No result should have been returned.");
-                }
-                resolve(ret.first());
-            });
-    });
+export async function createGameHistory(gameID: number, expectResult = true): Promise<GameHistory> {
+    try {
+        const gameHistory = await GameHistoryActions.create(gameID);
+        return gameHistory;
+    }
+    catch (e) {
+        if (expectResult) {
+            fail(`failed to create the game history record`);
+        }
+        return null;
+    }
 }
-describe("Test the 'game-history' actions", function() {
-    var game:Game = null;
-    beforeEach(function(done) {
-        readConfigFromEnv();
-        // Create the tables
-        PostgresTables.createTables()
-            .then(() => {
-                // Before beginning, create a game and save it
-                return createGame();
-            })
-            .then((result:Game) => {
-                game = result;
-            })
-            .catch(() => {
-                // fail the test
-                fail("Test should have succeeded");
-            })
-            .finally(() => { done(); });
+describe('Test the \'game-history\' actions', function () {
+    let game: Game = null;
+    beforeEach(async function (done) {
+        try {
+            readConfigFromEnv();
+            // Before beginning, create a game and save it
+            game = await createGame();
+        }
+        catch (e) {
+            // fail the test
+            fail(`Test should have succeeded. Error: ${e}`);
+        }
+        finally {
+            done();
+        }
     });
-    afterEach(function(done) {
+    afterEach(async (done) => {
         // Drop the tables
-        deleteTables().finally(() => { done(); });
+        await truncate();
+        done();
     });
-    it("can create a game-history entry", function(done) {
-        createGameHistory(game.id).finally(() => { done(); });
+    it('can create a game-history entry', async function (done) {
+        try {
+            await createGameHistory(game.id);
+        }
+        catch (e) {
+            fail(`Test should have succeeded. Error ${e}`);
+        }
+        finally {
+            done();
+        }
     });
-    it("can find the most recent game-history entry", function(done) {
-        var gameHistory = null;
-        createGameHistory(game.id)
-            .then((result:GameHistory) => {
-                gameHistory = result;
-                return game_history_actions.findMostRecent(game.id);
-            })
-            .then((result:GameHistoryReturn) => {
-                verifyReturn(result, "Expected a game-history result");
-                expect(result.first().id).toEqual(gameHistory.id);
-            })
-            .finally(() => { done(); });
+    it('can find the most recent game-history entry', async function (done) {
+        const gameHistory = await createGameHistory(game.id);
+        const result = await GameHistoryActions.findMostRecent(game.id);
+        expect(result.id).toEqual(gameHistory.id);
+        done();
     });
-    it("can find the most recent game-history entry", function(done) {
-        var gh1:GameHistory, gh2:GameHistory = null;
-        createGameHistory(game.id)
-            .then((result:GameHistory) => {
-                gh1 = result;
-                return createGameHistory(game.id);
-            })
-            .then((result:GameHistory) => {
-                gh2 = result;
-                expect(gh1.id).toBeLessThan(gh2.id);
-                expect(gh1.began).toBeLessThan(gh2.began);
-                return game_history_actions.findMostRecent(game.id);
-            })
-            .then((result:GameHistoryReturn) => {
-                verifyReturn(result, "Expected a game-history result");
-                expect(result.first().id).toEqual(gh2.id);
-            })
-            .finally(() => { done(); });
+    it('can find the most recent game-history entry', async function (done) {
+        const gh1 = await createGameHistory(game.id);
+        const gh2 = await createGameHistory(game.id);
+        expect(gh1.id).toBeLessThan(gh2.id);
+        expect(gh1.began.valueOf()).toBeLessThan(gh2.began.valueOf());
+        const result = await GameHistoryActions.findMostRecent(game.id);
+        expect(result.id).toEqual(gh2.id);
+        done();
     });
-    it("can find the most recent game-history entry that has not yet ended", function(done) {
-        var gh1:GameHistory, gh2:GameHistory = null;
-        createGameHistory(game.id)
-            .then((result:GameHistory) => {
-                gh1 = result;
-                return createGameHistory(game.id);
-            })
-            .then((result:GameHistory) => {
-                gh2 = result;
-                expect(gh1.id).toBeLessThan(gh2.id);
-                expect(gh1.began).toBeLessThan(gh2.began);
-                // End game 2
-                return game_history_actions.endGame(gh2.id);
-            })
-            .then((result:GameHistoryReturn) => {
-                expect(result.status).toEqual(DBReturnStatus.ok);
-                // Finding the most recent game history should now return game-history 1
-                return game_history_actions.findMostRecent(game.id);
-            })
-            .then((result:GameHistoryReturn) => {
-                verifyReturn(result, "Expected a game-history result");
-                expect(result.first().id).toEqual(gh1.id, "The most recent game-history result should have been the first game since that one has not yet ended");
-            })
-            .finally(() => { done(); });
+    it('can find the most recent game-history entry that has not yet ended', async function (done) {
+        const gh1 = await createGameHistory(game.id);
+        const gh2 = await createGameHistory(game.id);
+        expect(gh1.id).toBeLessThan(gh2.id);
+        expect(gh1.began.valueOf()).toBeLessThan(gh2.began.valueOf());
+        // End game 2
+        const result = await GameHistoryActions.endGame(gh2.id);
+        expect(result).not.toBeNull();
+        // Finding the most recent game history should now return game-history 1
+        const ghReturn = await GameHistoryActions.findMostRecent(game.id);
+        expect(ghReturn.id).toEqual(gh1.id, 'The most recent game-history result should have been the first game since that one has not yet ended');
+        done();
     });
-    it("can end a game", function(done) {
-        var gh = null;
-        createGameHistory(game.id)
-            .then((result:GameHistory) => {
-                gh = result;
-                return game_history_actions.endGame(gh.id);
-            })
-            .then((result:GameHistoryReturn) => {
-                verifyReturn(result, "Expected a game-history result");
-                expect(result.first().id).toEqual(gh.id);
-                expect(result.first().ended).not.toBeNull("Expected an 'ended' timestamp");
-                expect(result.first().began).toBeLessThan(result.first().ended, "Expected the game to end AFTER it began");
-            })
-            .finally(() => { done(); });
+    it('can end a game', async function (done) {
+        const gh = await createGameHistory(game.id);
+        const result = await GameHistoryActions.endGame(gh.id);
+        const first = result['1'][0];
+        expect(first.id).toEqual(gh.id);
+        expect(first.ended).not.toBeNull('Expected an \'ended\' timestamp');
+        expect(first.began.valueOf()).toBeLessThan(first.ended.valueOf(), 'Expected the game to end AFTER it began');
+        done();
     });
-    it("can find the game history records associated with a player for a specific game", function(done) {
-        var gh = null, player = null;
-        createGameHistory(game.id)
-            .then((result:GameHistory) => {
-                gh = result;
-                return createPlayer();
-            })
-            .then((result:Player) => {
-                player = result;
-                return game_history_player_actions.createAssociation(player.id, gh.id);
-            })
-            .then((result:GameHistoryPlayerReturn) => {
-                verifyReturn(result, "Expected a game-history-player result");
-                return game_history_actions.find(player.name, gh.id);
-            })
-            .then((result:GameHistoryReturn) => {
-                verifyReturn(result, "Expected a game-history result");
-                expect(result.first().id).toEqual(gh.id);
-            })
-            .finally(() => { done(); });
+    it('can find the game history records associated with a player for a specific game', async function (done) {
+        const gh = await createGameHistory(game.id);
+        const player = await createPlayer();
+        await GameHistoryPlayerActions.createAssociations(gh.id, [player.id]);
+        const ghReturn = await GameHistoryActions.find(gh.id, player.name);
+        expect(ghReturn[0].id).toEqual(gh.id);
+        done();
     });
-    it("enforces game_id foreign key constraint", function(done) {
-        createGameHistory(0, false)
-            .then((result:GameHistory) => {
-                if (result != null) {
-                    fail(`Test should have failed`);
-                }
-            })
-            .finally(() => { done(); });
+    it('enforces gameID foreign key constraint', async function (done) {
+        const result = await createGameHistory(0, false);
+        if (result !== null) {
+            fail(`Test should have failed`);
+        }
+        done();
     });
-    // TODO test more error cases
 });

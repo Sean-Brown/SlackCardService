@@ -1,6 +1,6 @@
 {
   "name": "slack_card_service",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "author": "Sean Brown",
   "license": "ISC",
   "bugs": {
@@ -8,48 +8,60 @@
   },
   "homepage": "https://github.com/Sean-Brown/SlackCardSerevice#readme",
   "engines": {
-    "node": "6.9.1",
-    "npm": "3.10.8"
+    "node": "10.8.0",
+    "npm": "6.3.0"
   },
   "description": "Web service for playing card games",
   "main": "app.js",
   "scripts": {
     "build": "typings install && tsc -p .",
+    "db:migrate": "node ./spec/db/migrate",
+    "pretest": "NODE_ENV=test npm run db:migrate",
     "postinstall": "npm run build || true",
     "start": "node app.js",
     "test": "node -v && npm -v && npm run test-node && npm run test-service",
     "test-node": "mocha -c -b --reporter spec spec/Node/*.js",
     "test-service": "jasmine-node ./spec/SlackCardService/"
   },
-  "typescript": {
-    "definition": "typings/index.d.ts"
-  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Sean-Brown/SlackCardService.git"
   },
   "dependencies": {
-    "async": "^2.0.1",
     "body-parser": "^1.14.1",
-    "dotenv": "^2.0.0",
+    "dotenv": "^6.0.0",
     "errorhandler": "^1.4.2",
     "expect": "^1.13.4",
-    "express": "^4.13.3",
+    "express": "^4.16.3",
     "form-data": "^2.1.0",
-    "images": "3.0.0",
+    "images": "3.0.1",
     "pg": "^6.1.0",
-    "promise": "^7.1.1",
-    "q": "^1.4.1",
+    "reflect-metadata": "^0.1.12",
     "request": "^2.67.0",
-    "typescript": "2.0.3",
-    "typings": "^1.4"
+    "sequelize": "^4.38.0",
+    "sequelize-typescript": "^0.6.6",
+    "typescript": "2.9.2"
   },
   "devDependencies": {
+    "@types/body-parser": "^1.17.0",
+    "@types/dotenv": "^4.0.3",
+    "@types/errorhandler": "0.0.32",
+    "@types/expect": "^1.20.3",
+    "@types/express": "^4.16.0",
+    "@types/images": "^2.2.2",
+    "@types/karma": "^1.7.5",
+    "@types/mocha": "^5.2.5",
+    "@types/node": "^10.5.8",
+    "@types/request": "^2.47.1",
+    "@types/sequelize": "^4.27.24",
+    "core-worker": "^0.3.5",
+    "grunt": "^1.0.3",
     "jasmine-node": "^2.0.0-beta4",
-    "karma": "^1.3.0",
-    "mocha": "^3.0.2",
-    "node-inspector": "^0.12.5",
-    "supertest": "^2.0.0"
+    "karma": "^3.0.0",
+    "mocha": "^5.2.0",
+    "node-inspector": "^1.1.2",
+    "supertest": "^3.1.0",
+    "tslint": "^5.11.0"
   },
   "keywords": [
     "slack",

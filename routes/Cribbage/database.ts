@@ -1,208 +1,130 @@
-/*
- *********************************************************************************************************************
- TODO: move to its own folder if we ever add another game, for now since it's just cribbage we can keep the file here
- *********************************************************************************************************************
- */
+import { CribbageHandHistoryActions } from '../../db/actions/cribbage_hand_history_actions';
+import { GameActions } from '../../db/actions/game_actions';
+import { GameHistoryActions } from '../../db/actions/game_history_actions';
+import { GameHistoryPlayerActions } from '../../db/actions/game_history_player_actions';
+import { PlayerActions } from '../../db/actions/player_actions';
+import { WinLossHistoryActions } from '../../db/actions/win_loss_history_actions';
+import { CribbageHandHistory } from '../../db/models/cribbage_hand_history';
+import { Game } from '../../db/models/game';
+import { GameHistory } from '../../db/models/game_history';
+import { Player } from '../../db/models/player';
 
-import {GameHistory} from "../../db/abstraction/tables/game_history";
-import {CribbageHandHistory} from "../../db/abstraction/tables/cribbage_hand_history";
-import {pg_mgr} from "../../db/implementation/postgres/manager";
-import {win_loss_history_actions} from "../../db/implementation/postgres/win_loss_history_actions";
-import {
-    WinLossHistoryReturn, DBReturnStatus, GameReturn, PlayerReturn, GameHistoryReturn, GameHistoryPlayerReturn,
-    CribbageHandHistoryReturn
-} from "../../db/abstraction/return/db_return";
-import {Game} from "../../db/abstraction/tables/game";
-import {game_actions} from "../../db/implementation/postgres/game_actions";
-import {Player} from "../../db/abstraction/tables/player";
-import {player_actions} from "../../db/implementation/postgres/player_actions";
-import {game_history_actions} from "../../db/implementation/postgres/game_history_actions";
-import {game_history_player_actions} from "../../db/implementation/postgres/game_history_player_actions";
-import {cribbage_hand_history_actions} from "../../db/implementation/postgres/cribbage_hand_history_actions";
-import {getTableName, DBTables} from "../../db/abstraction/tables/base_table";
-var Q = require("q");
-
-export module DBRoutes {
+export namespace DBRoutes {
 
     export enum Routes {
-        winLossHistory = <any>"/wlHistory",
-        gameHistory = <any>"/gameHistory",
-        handHistory = <any>"/handHistory"
+        winLossHistory = '/wlHistory',
+        gameHistory = '/gameHistory',
+        handHistory = '/handHistory'
     }
 
     export class WinLossHistoryResponse {
-        wins:number;
-        losses:number;
+        wins: number;
+        losses: number;
     }
 
     export class GameHistoryItem {
-        game:GameHistory;
-        won:boolean;
+        game: GameHistory;
+        won: boolean;
     }
     export class GameHistoryResponse {
-        games:Array<GameHistoryItem>;
+        games: Array<GameHistoryItem>;
     }
 
     export class CribbageHandHistoryResponse {
-        hands:Array<CribbageHandHistory>;
+        hands: Array<CribbageHandHistory>;
     }
 
     class Router {
-        constructor(private initialized = false) { }
-        private init():Q.Promise<string> {
-            var that = this;
-            return new Q.Promise((resolve, reject) => {
-                if (that.initialized) {
-                    // Already initialize, resolve immediately
-                    resolve();
-                }
-                else {
-                    // Initialize the Postgres database then resolve
-                    pg_mgr.init()
-                        .then(() => {
-                            that.initialized = true;
-                            resolve("");
-                        })
-                        .catch((err:string) => {
-                            reject(err);
-                        });
-                }
-            });
-        }
-
         /**
          * Add a player to the database. If the player already exists, then return that player
          * from the database.
-         * @param {string} player the name of the player
-         * @returns {Q.Promise} resolves on a Player object or null if there was an error
+         * @param {string} playerName the name of the player
+         * @returns {Promise} resolves on a Player object or null if there was an error
          */
-        addPlayer(player:string):Q.Promise<Player> {
-            var that = this;
-            return new Q.Promise((resolve, reject) => {
-                that.init()
-                    .then(() => {
-                        player_actions.findByName(player)
-                            .then((result:PlayerReturn) => {
-                                if (result.status != DBReturnStatus.ok) {
-                                    console.log(result.message);
-                                    reject(null);
-                                }
-                                else if (result.first() != null) {
-                                    console.log(`Player ${player} already exists in the database`);
-                                    resolve(result.first());
-                                }
-                                else {
-                                    // The player does not exist, create them
-                                    player_actions.create(player)
-                                        .then((result:PlayerReturn) => {
-                                            if (result.status != DBReturnStatus.ok) {
-                                                console.log(result.message);
-                                                reject(null);
-                                            }
-                                            else {
-                                                console.log(`Created player ${player} in the database`);
-                                                resolve(result.first());
-                                            }
-                                        });
-                                }
-                            });
-                    })
-                    .catch((err:string) => {
-                        console.log(err);
-                        reject(null);
-                    });
-            });
+        async addPlayer(playerName: string): Promise<Player> {
+            try {
+                const player = await PlayerActions.findByName(playerName);
+                if (player) {
+                    console.warn(`Player ${playerName} already exists in the database`);
+                    return player;
+                }
+                else {
+                    // The player does not exist, create them
+                    const player = await PlayerActions.create(playerName);
+                    if (!player) {
+                        console.error(`error creating player ${playerName}`);
+                        return null;
+                    }
+                    else {
+                        console.log(`Created player ${playerName} in the database`);
+                        return player;
+                    }
+                }
+            }
+            catch (e) {
+                console.log(e);
+            }
         }
 
         /**
          * Create a game history entry for the given game and players
-         * @param game_history_id the ID of the game (i.e. the Cribbage ID in the database)
-         * @param player_ids the IDs of the players who are part of this game
+         * @param gameID the ID of the game (i.e. the Cribbage ID in the database)
+         * @param playerIDs the IDs of the players who are part of this game
+         * @returns {Promise<GameHistory>}
          */
-        createGameHistory(game_history_id:number, player_ids:Array<number>): Q.Promise<GameHistory> {
-            var that = this;
-            return new Q.Promise((resolve, reject) => {
-                var gameHistory:GameHistory = null;
-                that.init()
-                    .then(() => {
-                        return game_history_actions.create(game_history_id)
-                    })
-                    .then((result:GameHistoryReturn) => {
-                        if (result.status != DBReturnStatus.ok) {
-                            console.error(result.message);
-                            reject(null);
-                        }
-                        else {
-                            // Save the game history object
-                            gameHistory = result.first();
-                            // Associate the players with the game
-                            return game_history_player_actions.createAssociations(player_ids, game_history_id);
-                        }
-                    })
-                    .then((result:GameHistoryPlayerReturn) => {
-                        if (result.status != DBReturnStatus.ok) {
-                            // Something went wrong
-                            console.log(result.message);
-                            reject(null);
-                        }
-                        else {
-                            // Success! Resolve on the GameHistory object that was created
-                            console.log(`Added ${player_ids} to the game history`);
-                            resolve(gameHistory)
-                        }
-                    })
-                    .catch((err:string) => {
-                        console.log(err);
-                        reject(null);
-                    });
-            });
+        async createGameHistory(gameID: number, playerIDs: Array<number>): Promise<GameHistory> {
+            try {
+                const gameHistory = await GameHistoryActions.create(gameID);
+                if (!gameHistory) {
+                    console.error(`error creating a game history entry`);
+                    return null;
+                }
+                // Associate the players with the game
+                const assocResult = await GameHistoryPlayerActions.createAssociations(gameHistory.id, playerIDs);
+                if (!assocResult) {
+                    // Something went wrong
+                    console.error(`failed to create the game-player association for game ${gameHistory.id}`);
+                    return null;
+                }
+                else {
+                    // Success! Resolve on the GameHistory object that was created
+                    console.log(`Added ${playerIDs} to the game history`);
+                    return gameHistory;
+                }
+            }
+            catch (err) {
+                console.error(err);
+                return null;
+            }
         }
 
         /**
          * Get the Game object for the given game, or create the game row if that game does not exist
-         * @param game the name of the game
-         * @returns {Q.Promise<Game>} a promise to return a Game object representing a row in the <game> database table
+         * @param gameName the name of the game
+         * @returns {Promise<Game>} a promise to return a Game object representing a row in the <game> database table
          */
-        getGame(game:string):Q.Promise<Game> {
-            var that = this;
-            return new Q.Promise((resolve, reject) => {
-                that.init()
-                    .then(() => {
-                        return game_actions.findByName(game);
-                    })
-                    .then((result:GameReturn) => {
-                        if (result.status != DBReturnStatus.ok) {
-                            console.log(`Error finding ${game}: ${result.message}`);
-                            reject(null);
-                        }
-                        else {
-                            if (result.result.length == 0) {
-                                // The game doesn't exist, create it
-                                game_actions.create(game)
-                                    .then((result:GameReturn) => {
-                                        if (result.status != DBReturnStatus.ok) {
-                                            console.log(`Error creating ${game}: ${result.message}`);
-                                            reject(null);
-                                        }
-                                        else if (result.result.length == 0) {
-                                            console.log(`Unknown error creating ${game}`);
-                                            reject(null);
-                                        }
-                                        else {
-                                            resolve(result.first());
-                                        }
-                                    })
-                            }
-                            else {
-                                resolve(result.first());
-                            }
-                        }
-                    })
-                    .catch((err:string) => {
-                        console.log(err);
-                        reject(null);
-                    });
-            });
+        async getGame(gameName: string): Promise<Game> {
+            try {
+                const game = await GameActions.findByName(gameName);
+                if (!game) {
+                    // The game doesn't exist, create it
+                    const game = await GameActions.create(gameName);
+                    if (!game) {
+                        console.error(`Error creating ${gameName}`);
+                        return null;
+                    }
+                    else {
+                        return game;
+                    }
+                }
+                else {
+                    return game;
+                }
+            }
+            catch (err) {
+                console.error(err);
+                return null;
+            }
         }
 
         /**
@@ -210,95 +132,47 @@ export module DBRoutes {
          * There's no reason to remove the GameHistory or GameHistoryPlayer records,
          * those can be re-used.
          * @note this method always resolves: check the boolean result to check for success.
-         * @param game_history_id
-         * @returns {Q.Promise} whether or not resetting the Cribbage-hand-history succeeds
+         * @param gameHistoryID
+         * @returns {Promise} whether or not resetting the Cribbage-hand-history succeeds
          */
-        resetGame(game_history_id:number):Q.Promise<boolean> {
-            var that = this;
-            return new Q.Promise((resolve) => {
-                that.init()
-                    .then(() => {
-                        cribbage_hand_history_actions.remove(game_history_id)
-                            .then((result:CribbageHandHistoryReturn) => {
-                                if (result.status != DBReturnStatus.ok) {
-                                    // Something went wrong
-                                    console.log(result.message);
-                                    resolve(false);
-                                }
-                                else {
-                                    console.log(`The GameHistory ${game_history_id} was reset`);
-                                    resolve(true);
-                                }
-                            });
-                    })
-                    .catch((err:string) => {
-                        console.log(err);
-                        resolve(false);
-                    });
-            });
+        async resetGame(gameHistoryID: number): Promise<boolean> {
+            try {
+                await CribbageHandHistoryActions.remove(gameHistoryID);
+                console.log(`The GameHistory ${gameHistoryID} was reset`);
+                return true;
+            }
+            catch (err) {
+                console.error(err);
+                return false;
+            }
         }
 
-        winLossHistory(player:string):Q.Promise<WinLossHistoryResponse> {
-            var that = this;
-            return new Q.Promise((resolve, reject) => {
-                that.init()
-                    .then(() => {
-                        return win_loss_history_actions.get(player);
-                    })
-                    .then((result:WinLossHistoryReturn) => {
-                        var ret = new WinLossHistoryResponse();
-                        if (result.status != DBReturnStatus.ok) {
-                            for (let ix = 0; ix < result.result.length; ix++) {
-                                if (result.result[ix].won) {
-                                    ret.wins++;
-                                }
-                                else {
-                                    ret.losses++;
-                                }
-                            }
-                            resolve(ret);
+        /**
+         * Get a player's win-loss history results -- count the number of wins and losses
+         * @param player
+         * @returns {null}
+         */
+        async winLossHistory(player: string): Promise<WinLossHistoryResponse> {
+            try {
+                const wlhResults = await WinLossHistoryActions.get(player);
+                const ret = new WinLossHistoryResponse();
+                if (wlhResults.length > 0) {
+                    for (const wlhResult of wlhResults) {
+                        if (wlhResult.won) {
+                            ret.wins++;
                         }
                         else {
-                            reject(ret);
+                            ret.losses++;
                         }
-                    })
-                    .catch((err:string) => {
-                        console.log(err);
-                        reject(null);
-                    });
-            });
-        }
-
-        gameHistory(player:string):Q.Promise<GameHistoryResponse> {
-            var that = this;
-            return new Q.Promise((resolve, reject) => {
-                that.init()
-                    .then(() => {
-                        var ret = new GameHistoryResponse();
-                        resolve(ret);
-                    })
-                    .catch((err:string) => {
-                        console.log(err);
-                        reject(null);
-                    });
-            });
-        }
-
-        cribbageHandHistory(player:string, gameHistoryID:number):Q.Promise<CribbageHandHistoryResponse> {
-            var that = this;
-            return new Q.Promise((resolve, reject) => {
-                that.init()
-                    .then(() => {
-                        var ret = new CribbageHandHistoryResponse();
-                        resolve(ret);
-                    })
-                    .catch((err:string) => {
-                        console.log(err);
-                        reject(null);
-                    });
-            });
+                    }
+                }
+                return ret;
+            }
+            catch (err) {
+                console.error(err);
+                return null;
+            }
         }
     }
-    export var router = new Router();
-
+    export const router = new Router();
 }

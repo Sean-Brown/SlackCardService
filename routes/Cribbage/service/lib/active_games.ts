@@ -1,25 +1,21 @@
-import {Cribbage} from "../../../../card_service/implementations/cribbage";
-import {GameAssociation} from "./game_association";
-import {CribbageRoutes} from "../../index";
-import CribbageResponse = CribbageRoutes.CribbageResponse;
+import { Players } from '../../../../card_service/base_classes/card_game';
+import { ItemCollection } from '../../../../card_service/base_classes/collections/item_collection';
+import { BaseCard } from '../../../../card_service/base_classes/items/card';
+import { Cribbage } from '../../../../card_service/implementations/cribbage';
+import { CribbageHand } from '../../../../card_service/implementations/cribbage_hand';
+import { CribbagePlayer } from '../../../../card_service/implementations/cribbage_player';
+import { GameHistoryPlayerActions } from '../../../../db/actions/game_history_player_actions';
+import { Player } from '../../../../db/models/player';
+import { getErrorMessage } from '../../../lib';
+import { ResponseCode } from '../../../response_code';
+import { DBRoutes } from '../../database';
+import { CribbageService } from '../cribbage_service';
+import { GameAssociation } from './game_association';
+import { recreateGame } from './recreate_game';
 import {
-    PlayerInGameResponse, makeErrorResponse, GameAssociationResponse, CribbageServiceResponse,
-    CribbageHandResponse, CribbageReturnResponse, CurrentGameResponse, checkResponse
-} from "./response";
-import {game_history_player_actions} from "../../../../db/implementation/postgres/game_history_player_actions";
-import {GameHistoryPlayerReturn, DBReturnStatus} from "../../../../db/abstraction/return/db_return";
-import {Players} from "../../../../card_service/base_classes/card_game";
-import {CribbagePlayer} from "../../../../card_service/implementations/cribbage_player";
-import {CribbageHand} from "../../../../card_service/implementations/cribbage_hand";
-import {recreateGame} from "./recreate_game";
-import {GameHistory} from "../../../../db/abstraction/tables/game_history";
-import {DBRoutes} from "../../database";
-import {getErrorMessage} from "../../../lib";
-import {BaseCard} from "../../../../card_service/base_classes/items/card";
-import {ItemCollection} from "../../../../card_service/base_classes/collections/item_collection";
-import {Player} from "../../../../db/abstraction/tables/player";
-import {CribbageService} from "../cribbage_service";
-var Q = require("q");
+    CribbageHandResponse, CribbageReturnResponse, CribbageServiceResponse, CurrentGameResponse,
+    GameAssociationResponse, GetCurrentGameResponse, makeErrorResponse, PlayerInGameResponse
+} from './response';
 
 export class ActiveGames {
     /**
@@ -39,7 +35,9 @@ export class ActiveGames {
      */
     public newGame: Cribbage;
 
-    private static get PLAYER_NOT_IN_GAME():string { return "You're not part of an active game"; }
+    private static get PLAYER_NOT_IN_GAME(): string {
+        return 'You\'re not part of an active game';
+    }
 
     constructor() {
         this.playerGame = new Map<number, number>();
@@ -52,7 +50,7 @@ export class ActiveGames {
      * @param ga
      * @param gameHistoryID
      */
-    private removeGameAssociation(ga:GameAssociation, gameHistoryID:number): void {
+    private removeGameAssociation(ga: GameAssociation, gameHistoryID: number): void {
         // Remove the association from each player
         ga.playerIDs.forEach((pid) => {
             this.playerGame.delete(pid);
@@ -67,8 +65,8 @@ export class ActiveGames {
      * @param player
      * @returns true if the player has a game
      */
-    public playerIsInGame(playerID:number, player:string): boolean {
-        return (this.playerGame.has(playerID) || (this.newGame.players.findPlayer(player) != null));
+    public playerIsInGame(playerID: number, player: string): boolean {
+        return (this.playerGame.has(playerID) || (this.newGame.players.findPlayer(player) !== null));
     }
 
     /**
@@ -76,18 +74,9 @@ export class ActiveGames {
      * @param playerID
      * @param gameHistoryID
      */
-    public playerWasInGame(playerID:number, gameHistoryID:number): Q.Promise<PlayerInGameResponse> {
-        return new Q.Promise((resolve) => {
-            game_history_player_actions.findAssociation(playerID, gameHistoryID)
-                .then((result:GameHistoryPlayerReturn) => {
-                    if (result.status != DBReturnStatus.ok) {
-                        resolve(makeErrorResponse(result.message));
-                    }
-                    else {
-                        resolve(new PlayerInGameResponse(result.first() != null));
-                    }
-                });
-        });
+    public static async playerWasInGame(playerID: number, gameHistoryID: number): Promise<PlayerInGameResponse> {
+        const result = await GameHistoryPlayerActions.findAssociation(playerID, gameHistoryID);
+        return new PlayerInGameResponse(result !== null);
     }
 
     /**
@@ -96,17 +85,13 @@ export class ActiveGames {
      * @param gameHistoryID
      * @returns {GameAssociation}
      */
-    public getActiveGame(players:Map<string, number>, gameHistoryID:number): Q.Promise<GameAssociationResponse> {
-        return new Q.Promise((resolve) => {
-            let gameAssociation = this.activeGames.get(gameHistoryID);
-            if (gameAssociation != null) {
-                resolve(new GameAssociationResponse(gameAssociation));
-            }
-            else {
-                // The active game hasn't yet been created, so make it and then add the player to it
-                resolve(recreateGame(players, gameHistoryID));
-            }
-        });
+    public async getActiveGame(players: Map<string, number>, gameHistoryID: number): Promise<GameAssociationResponse> {
+        const gameAssociation = this.activeGames.get(gameHistoryID);
+        if (gameAssociation !== null) {
+            return new GameAssociationResponse(gameAssociation);
+        }
+        // The active game hasn't yet been created, so make it and then add the player to it
+        return await recreateGame(gameHistoryID, players);
     }
 
     /**
@@ -114,25 +99,24 @@ export class ActiveGames {
      * @param gameHistoryID
      * @param service the Cribbage service used to find players names from their ID
      */
-    public getGamePlayers(gameHistoryID:number, service:CribbageService): Q.Promise<Array<Player>> {
-        return new Q.Promise((resolve) => {
-            let players = [];
-            let ga = this.activeGames.get(gameHistoryID);
-            if (ga) {
-                ga.playerIDs.forEach((playerID: number) => {
-                    service.getPlayerName(playerID)
-                        .then((player:string) => {
-                            if (player.length > 0) {
-                                players.push(new Player(playerID, player));
-                            }
-                            else {
-                                console.error(`Unable to find player ${playerID}`);
-                            }
-                        });
-                });
+    public async getGamePlayers(gameHistoryID: number, service: CribbageService): Promise<Array<Player>> {
+        const players = [];
+        const ga = this.activeGames.get(gameHistoryID);
+        if (ga) {
+            for (const playerID of ga.playerIDs) {
+                const player = await service.getPlayerName(playerID);
+                if (player.length > 0) {
+                    players.push(new Player({
+                        id: playerID,
+                        name: player
+                    }));
+                }
+                else {
+                    console.error(`Unable to find player ${playerID}`);
+                }
             }
-            resolve(players);
-        });
+        }
+        return players;
     }
 
     /**
@@ -140,7 +124,7 @@ export class ActiveGames {
      * @param playerID
      * @param gameHistoryID
      */
-    public setPlayerGame(playerID:number, gameHistoryID:number): void {
+    public setPlayerGame(playerID: number, gameHistoryID: number): void {
         this.playerGame.set(playerID, gameHistoryID);
     }
 
@@ -149,17 +133,17 @@ export class ActiveGames {
      * @param gameHistoryID
      * @param gameAssociation
      */
-    public setGameHistoryAssociation(gameHistoryID:number, gameAssociation:GameAssociation): void {
+    public setGameHistoryAssociation(gameHistoryID: number, gameAssociation: GameAssociation): void {
         this.activeGames.set(gameHistoryID, gameAssociation);
     }
 
     /**
      * Join the player to a new game
      * @param player
-     * @returns {Q.Promise}
+     * @returns {Promise}
      */
-    public joinPlayerToNewGame(player:string): void {
-        if (this.newGame.players.findPlayer(player) == null) {
+    public joinPlayerToNewGame(player: string): void {
+        if (this.newGame.players.findPlayer(player) === null) {
             // Add the player to the game
             this.newGame.addPlayer(new CribbagePlayer(player, new CribbageHand([])));
         }
@@ -170,95 +154,77 @@ export class ActiveGames {
      * @param playerID
      * @param player
      */
-    public leaveGame(playerID:number, player:string): Q.Promise<CribbageServiceResponse> {
-        let that = this;
-        return new Q.Promise((resolve) => {
-            let activeGameID = that.playerGame.get(playerID);
-            if (activeGameID) {
-                // Disassociate them from the active game
-                that.playerGame.delete(playerID);
-                resolve(new CribbageServiceResponse(DBReturnStatus.ok, `Removed you from ${activeGameID}`))
-            }
-            else {
-                // Check the new game
-                let gamePlayer = that.newGame.players.findPlayer(player);
-                if (gamePlayer) {
-                    // Remove them from the new game
-                    that.newGame.players.removeItem(gamePlayer);
-                    resolve(new CribbageServiceResponse(DBReturnStatus.ok, "Removed you from the new game"));
-                }
-                else {
-                    // They're not part of any game
-                    resolve(new CribbageServiceResponse(DBReturnStatus.ok, "You're not part of any game"));
-                }
-            }
-        });
+    public leaveGame(playerID: number, player: string): CribbageServiceResponse {
+        const activeGameID = this.playerGame.get(playerID);
+        if (activeGameID) {
+            // Disassociate them from the active game
+            this.playerGame.delete(playerID);
+            return new CribbageServiceResponse(ResponseCode.ok, `Removed you from ${activeGameID}`);
+        }
+        // Check the new game
+        const gamePlayer = this.newGame.players.findPlayer(player);
+        if (gamePlayer) {
+            // Remove them from the new game
+            this.newGame.players.removeItem(gamePlayer);
+            return new CribbageServiceResponse(ResponseCode.ok, 'Removed you from the new game');
+        }
+        // They're not part of any game
+        return new CribbageServiceResponse(ResponseCode.ok, 'You\'re not part of any game');
     }
 
     /**
      * Begin the new game
      * @param refPlayer the player beginning the game -- they must be part of the new game to begin it
      * @param cribbageID the ID of the Cribbage game in the database
-     * @param players the association of a player's name to their playerID in the database. This
+     * @param players the association of a player's name to their player_id in the database. This
      * is just used for reference, these aren't the actual players joining the game
      */
-    public beginGame(refPlayer:string, cribbageID:number, players:Map<string, number>): Q.Promise<GameAssociationResponse> {
-        let that = this;
-        return new Q.Promise((resolve) => {
-            // Get the IDs of each player in the game
-            let playerIDs = new Set<number>();
-            let errors = [];
-            for (let ix = 0; ix < that.newGame.players.countItems(); ix++) {
-                let player = that.newGame.players.itemAt(ix);
-                let playerID = players.get(player.name);
-                if (playerID != null) {
-                    playerIDs.add(playerID);
-                }
-                else {
-                    errors.push(`Unable to find the ID for player ${player}`);
-                }
-            }
-            if (errors.length > 0) {
-                resolve(getErrorMessage(errors));
+    public async beginGame(refPlayer: string, cribbageID: number, players: Map<string, number>): Promise<GameAssociationResponse> {
+        // Get the IDs of each player in the game
+        const playerIDs = new Set<number>();
+        const errors = [];
+        for (let ix = 0; ix < this.newGame.players.countItems(); ix++) {
+            const player = this.newGame.players.itemAt(ix);
+            const playerID = players.get(player.name);
+            if (playerID !== null) {
+                playerIDs.add(playerID);
             }
             else {
-                // Check the player is a member of the new game
-                let playerID = players.get(refPlayer);
-                if (!playerIDs.has(playerID)) {
-                    resolve(makeErrorResponse(`Player ${refPlayer} is not part of the new game`));
-                }
-                else {
-                    // Begin the new game
-                    that.newGame.begin();
-                    // Add a row for the new game in the database and create the associations with each player in the game
-                    let gameAssociation = null;
-                    return DBRoutes.router.createGameHistory(cribbageID, Array.from(playerIDs))
-                        .then((gameHistory: GameHistory) => {
-                            // Add to the map of active games
-                            let gameHistoryID = gameHistory.id;
-                            gameAssociation = new GameAssociation(that.newGame, gameHistoryID, playerIDs);
-                            that.activeGames.set(gameHistoryID, gameAssociation);
-                            // Set the player game associations
-                            let pids = [];
-                            playerIDs.forEach((playerID:number) => {
-                                that.playerGame.set(playerID, gameHistoryID);
-                                pids.push(playerID);
-                            });
-                            return game_history_player_actions.createAssociations(pids, gameHistoryID);
-                        })
-                        .then((result: GameHistoryPlayerReturn) => {
-                            checkResponse(result, resolve);
-                            // Create a fresh game for players to join
-                            that.newGame = new Cribbage(new Players([]));
-                            // Resolve
-                            resolve(new GameAssociationResponse(gameAssociation));
-                        })
-                        .catch(() => {
-                            resolve(makeErrorResponse("Unable to create the game-history record in the database"));
-                        });
-                }
+                errors.push(`Unable to find the ID for player ${player}`);
             }
-        });
+        }
+        if (errors.length > 0) {
+            return <GameAssociationResponse>new CribbageServiceResponse(ResponseCode.error, getErrorMessage(errors));
+        }
+        // Check the player is a member of the new game
+        const playerID = players.get(refPlayer);
+        if (!playerIDs.has(playerID)) {
+            return <GameAssociationResponse>makeErrorResponse(`Player ${refPlayer} is not part of the new game`);
+        }
+        // Begin the new game
+        this.newGame.begin();
+        try {
+            // Add a row for the new game in the database and create the associations with each player in the game
+            const gameHistory = await DBRoutes.router.createGameHistory(cribbageID, Array.from(playerIDs));
+            // Add to the map of active games
+            const gameHistoryID = gameHistory.id;
+            const gameAssociation = new GameAssociation(this.newGame, gameHistoryID, playerIDs);
+            this.activeGames.set(gameHistoryID, gameAssociation);
+            // Set the player game associations
+            const pids: number[] = [];
+            playerIDs.forEach((playerID: number) => {
+                this.playerGame.set(playerID, gameHistoryID);
+                pids.push(playerID);
+            });
+            await GameHistoryPlayerActions.createAssociations(gameHistoryID, pids);
+            // Create a fresh game for players to join
+            this.newGame = new Cribbage(new Players([]));
+            // Resolve
+            return new GameAssociationResponse(gameAssociation);
+        }
+        catch (e) {
+            return <GameAssociationResponse>makeErrorResponse('Unable to create the game-history record in the database');
+        }
     }
 
     /**
@@ -266,14 +232,12 @@ export class ActiveGames {
      * @param secret the secret required to reset the game
      * @returns {CribbageServiceResponse}
      */
-    public resetGame(secret:string): CribbageServiceResponse {
-        if (secret == process.env.CRIB_RESET_SECRET) {
+    public resetGame(secret: string): CribbageServiceResponse {
+        if (secret === process.env.CRIB_RESET_SECRET) {
             this.newGame = new Cribbage(new Players([]));
             return new CribbageServiceResponse();
         }
-        else {
-            return makeErrorResponse("Incorrect password");
-        }
+        return makeErrorResponse('Incorrect password');
     }
 
     /**
@@ -281,19 +245,19 @@ export class ActiveGames {
      * @param gameHistoryID
      * @returns {string}
      */
-    public static gameNotFoundError(gameHistoryID:number):string { return `Unable to find game ${gameHistoryID}`; }
+    public static gameNotFoundError(gameHistoryID: number): string {
+        return `Unable to find game ${gameHistoryID}`;
+    }
 
     /**
      * Describe the given game
      * @param gameHistoryID
      */
-    public describe(gameHistoryID:number): CribbageServiceResponse {
+    public describe(gameHistoryID: number): CribbageServiceResponse {
         if (this.activeGames.has(gameHistoryID)) {
-            return new CribbageServiceResponse(DBReturnStatus.ok, this.activeGames.get(gameHistoryID).game.describe());
+            return new CribbageServiceResponse(ResponseCode.ok, this.activeGames.get(gameHistoryID).game.describe());
         }
-        else {
-            return new CribbageServiceResponse(DBReturnStatus.error, ActiveGames.gameNotFoundError(gameHistoryID));
-        }
+        return new CribbageServiceResponse(ResponseCode.error, ActiveGames.gameNotFoundError(gameHistoryID));
     }
 
     /**
@@ -301,16 +265,14 @@ export class ActiveGames {
      * @param playerID
      * @param player
      */
-    public getPlayerHand(playerID:number, player:string): CribbageHandResponse {
+    public getPlayerHand(playerID: number, player: string): CribbageHandResponse {
         if (!this.playerGame.has(playerID)) {
             // The player isn't part of an active game
             return <CribbageHandResponse>makeErrorResponse(ActiveGames.PLAYER_NOT_IN_GAME);
         }
-        else {
-            // Find the player's current game
-            let ga = this.activeGames.get(this.playerGame.get(playerID));
-            return new CribbageHandResponse(ga.game.getPlayerHand(player));
-        }
+        // Find the player's current game
+        const ga = this.activeGames.get(this.playerGame.get(playerID));
+        return new CribbageHandResponse(ga.game.getPlayerHand(player));
     }
 
     /**
@@ -319,24 +281,22 @@ export class ActiveGames {
      * @param player
      * @param card
      */
-    public playCard(playerID:number, player:string, card:BaseCard): CribbageReturnResponse {
+    public playCard(playerID: number, player: string, card: BaseCard): CribbageReturnResponse {
         if (!this.playerGame.has(playerID)) {
             return <CribbageReturnResponse>makeErrorResponse(ActiveGames.PLAYER_NOT_IN_GAME);
         }
+        // Find the game the player is in
+        const gameHistoryID = this.playerGame.get(playerID);
+        const ga = this.activeGames.get(gameHistoryID);
+        if (ga) {
+            const result = ga.game.playCard(player, card);
+            if (result.gameOver) {
+                this.removeGameAssociation(ga, gameHistoryID);
+            }
+            return new CribbageReturnResponse(result, ga.game, ga.gameHistoryID);
+        }
         else {
-            // Find the game the player is in
-            let gameHistoryID = this.playerGame.get(playerID);
-            let ga = this.activeGames.get(gameHistoryID);
-            if (ga) {
-                let result = ga.game.playCard(player, card);
-                if (result.gameOver) {
-                    this.removeGameAssociation(ga, gameHistoryID);
-                }
-                return new CribbageReturnResponse(result, ga.game, ga.gameHistoryID);
-            }
-            else {
-                return <CribbageReturnResponse>makeErrorResponse("You're not in a game");
-            }
+            return <CribbageReturnResponse>makeErrorResponse('You\'re not in a game');
         }
     }
 
@@ -344,14 +304,24 @@ export class ActiveGames {
      * Get the given player's current game
      * @param playerID
      */
-    public getPlayerGame(playerID:number): CurrentGameResponse {
+    public getPlayerGame(playerID: number): CurrentGameResponse {
         if (!this.playerGame.has(playerID)) {
             return <CurrentGameResponse>makeErrorResponse(ActiveGames.PLAYER_NOT_IN_GAME);
         }
-        else {
-            let gameHistoryID = this.playerGame.get(playerID);
-            return new CurrentGameResponse(this.activeGames.get(gameHistoryID).game);
+        const gameHistoryID = this.playerGame.get(playerID);
+        return new CurrentGameResponse(this.activeGames.get(gameHistoryID).game);
+    }
+
+    /**
+     * Get the given player's current game ID
+     * @param playerID
+     * @returns {GetCurrentGameResponse}
+     */
+    public getPlayerGameID(playerID: number): GetCurrentGameResponse {
+        if (!this.playerGame.has(playerID)) {
+            return <GetCurrentGameResponse>makeErrorResponse(ActiveGames.PLAYER_NOT_IN_GAME);
         }
+        return new GetCurrentGameResponse(this.playerGame.get(playerID));
     }
 
     /**
@@ -360,20 +330,18 @@ export class ActiveGames {
      * @param player
      * @param cards
      */
-    public giveToKitty(playerID:number, player:string, cards:Array<BaseCard>): CribbageReturnResponse {
+    public giveToKitty(playerID: number, player: string, cards: Array<BaseCard>): CribbageReturnResponse {
         if (!this.playerGame.has(playerID)) {
             return <CribbageReturnResponse>makeErrorResponse(ActiveGames.PLAYER_NOT_IN_GAME);
         }
-        else {
-            // Find the game the player is in
-            let gameHistoryID = this.playerGame.get(playerID);
-            let ga = this.activeGames.get(gameHistoryID);
-            let result = ga.game.giveToKitty(player, new ItemCollection(cards));
-            if (result.gameOver) {
-                this.removeGameAssociation(ga, gameHistoryID);
-            }
-            return new CribbageReturnResponse(result, ga.game, ga.gameHistoryID);
+        // Find the game the player is in
+        const gameHistoryID = this.playerGame.get(playerID);
+        const ga = this.activeGames.get(gameHistoryID);
+        const result = ga.game.giveToKitty(player, new ItemCollection(cards));
+        if (result.gameOver) {
+            this.removeGameAssociation(ga, gameHistoryID);
         }
+        return new CribbageReturnResponse(result, ga.game, ga.gameHistoryID);
     }
 
     /**
@@ -381,19 +349,17 @@ export class ActiveGames {
      * @param playerID
      * @param player
      */
-    public go(playerID:number, player:string): CribbageReturnResponse {
+    public go(playerID: number, player: string): CribbageReturnResponse {
         if (!this.playerGame.has(playerID)) {
             return <CribbageReturnResponse>makeErrorResponse(ActiveGames.PLAYER_NOT_IN_GAME);
         }
-        else {
-            // Find the game the player is in
-            let gameHistoryID = this.playerGame.get(playerID);
-            let ga = this.activeGames.get(gameHistoryID);
-            let result = ga.game.go(player);
-            if (result.gameOver) {
-                this.removeGameAssociation(ga, gameHistoryID);
-            }
-            return new CribbageReturnResponse(result, ga.game, ga.gameHistoryID);
+        // Find the game the player is in
+        const gameHistoryID = this.playerGame.get(playerID);
+        const ga = this.activeGames.get(gameHistoryID);
+        const result = ga.game.go(player);
+        if (result.gameOver) {
+            this.removeGameAssociation(ga, gameHistoryID);
         }
+        return new CribbageReturnResponse(result, ga.game, ga.gameHistoryID);
     }
 }

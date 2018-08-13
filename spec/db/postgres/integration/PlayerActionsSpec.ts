@@ -1,73 +1,66 @@
-import {deleteTables} from "./CreateTablesSpec";
-import {readConfigFromEnv} from "./setEnv";
-import {PostgresTables} from "../../../../db/implementation/postgres/create_tables";
-import {Player} from "../../../../db/abstraction/tables/player";
-import {PlayerReturn} from "../../../../db/abstraction/return/db_return";
-import {player_actions} from "../../../../db/implementation/postgres/player_actions";
-import {verifyReturn} from "../../../verifyReturn";
-var Q = require("q");
+import * as expect from 'expect';
+import { PlayerActions } from '../../../../db/actions/player_actions';
+import { Player } from '../../../../db/models/player';
+import { readConfigFromEnv } from '../../setEnv';
+import { fail } from './helpers';
+import truncate from './truncate';
 
-const player = "DaVinci";
+const PlayerName = 'DaVinci';
 /**
  * Create a row for the player in the database
  * @param playerName the name of the player, defaults to {player}
  * @returns the Player object for that row
  */
-export function createPlayer(playerName:string = player): Q.Promise<Player> {
-    return new Q.Promise((resolve, reject) => {
-        player_actions.create(playerName).then((ret: PlayerReturn) => {
-            verifyReturn(ret, "Expected a result from creating a game");
-            resolve(ret.first());
-        });
-    });
+export async function createPlayer(playerName: string = PlayerName): Promise<Player> {
+    return PlayerActions.create(playerName);
 }
-describe("Test the 'player' actions", function() {
-    beforeEach(function(done) {
+describe('Test the \'player\' actions', function () {
+    beforeEach(function () {
         readConfigFromEnv();
-        // Create the tables
-        PostgresTables.createTables().finally(() => { done(); });
     });
-    afterEach(function(done) {
+    afterEach(async (done) => {
         // Drop the tables
-        deleteTables().finally(() => { done(); });
+        await truncate();
+        done();
     });
-    it("can create a player", function(done) {
-        createPlayer()
-            .catch(() => {
-                // fail the test
-                fail("Test should have succeeded");
-            })
-            .finally(() => { done(); });
+    it('can create a player', async function (done) {
+        try {
+            await createPlayer();
+        }
+        catch (e) {
+            // fail the test
+            fail(`Test should have succeeded: Error: ${e}`);
+        }
+        finally {
+            done();
+        }
     });
-    it("can find an existing player", function(done) {
-        createPlayer()
-            .then((result:Player) => {
-                return player_actions.find(result.id);
-            })
-            .then((result:PlayerReturn) => {
-                verifyReturn(result, "Expected a result from finding a player");
-                expect(result.first().name).toBe(player);
-            })
-            .catch(() => {
-                // fail the test
-                fail("Test should have succeeded");
-            })
-            .finally(() => { done(); });
+    it('can find an existing player', async function (done) {
+        try {
+            const player = await createPlayer();
+            const result = await PlayerActions.findById(player.id);
+            expect(result.name).toBe(PlayerName);
+        }
+        catch (e) {
+            // fail the test
+            fail(`Test should have succeeded: Error: ${e}`);
+        }
+        finally {
+            done();
+        }
     });
-    it("can find an existing player by name", function(done) {
-        createPlayer()
-            .then((result:Player) => {
-                return player_actions.findByName(result.name);
-            })
-            .then((result:PlayerReturn) => {
-                verifyReturn(result, "Expected a result from finding a player by name");
-                expect(result.first().name).toBe(player);
-            })
-            .catch(() => {
-                // fail the test
-                fail("Test should have succeeded");
-            })
-            .finally(() => { done(); });
+    it('can find an existing player by name', async function (done) {
+        try {
+            const player = await createPlayer();
+            const result = await PlayerActions.findByName(player.name);
+            expect(result.name).toBe(PlayerName);
+        }
+        catch (e) {
+            // fail the test
+            fail(`Test should have succeeded: Error: ${e}`);
+        }
+        finally {
+            done();
+        }
     });
-    // TODO test error cases
 });

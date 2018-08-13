@@ -1,15 +1,15 @@
 {
   "compilerOptions": {
-    "target": "es6",
+    "target": "es2017",
     "module": "commonjs",
     "declaration": false,
     "sourceMap": true,
     "noImplicitAny": false,
     "removeComments": true,
-    "noLib": false
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true
   },
   "exclude": [
-    "node_modules",
-    "typings"
+    "node_modules"
   ]
 }

@@ -1,4 +1,4 @@
-import {Value, Suit, BaseCard} from "../card_service/base_classes/items/card";
+import { BaseCard, Suit, Value } from '../card_service/base_classes/items/card';
 export const aceOfSpades = new BaseCard(Suit.Spades, Value.Ace),
     aceOfHearts = new BaseCard(Suit.Hearts, Value.Ace),
     aceOfDiamonds = new BaseCard(Suit.Diamonds, Value.Ace),

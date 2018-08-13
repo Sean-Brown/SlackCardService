@@ -1,29 +1,19 @@
-/// <reference path="../../typings/index.d.ts" />
+import * as express from 'express';
+import * as Mocha from 'mocha';
+import {setup} from '../../app';
+import {readConfigFromEnv} from '../db/setEnv';
 
-import {setup} from "../../app";
-import {Express} from "express";
-import * as Mocha from "mocha";
-import {readConfigFromEnv} from "../db/postgres/integration/setEnv";
-
-var Q = require("q");
-
-var express = require("express");
-
-export interface TestClass extends Mocha.ITest {
-    app: Express;
+export interface TestClass extends Mocha.Test {
+    app: express.Application;
 }
 
-export function createNewServer(test: TestClass): Q.Promise<void> {
-    return new Q.Promise((resolve, reject) => {
+export async function createNewServer(app: express.Application): Promise<void> {
+    try {
         readConfigFromEnv();
-        setup(express())
-            .then((app:Express) => {
-                test.app = app;
-                resolve();
-            })
-            .catch(() => {
-                test.app = null;
-                reject();
-            });
-    });
+        app = await setup(express());
+    }
+    catch (e) {
+        console.error(`Error caught creating a new test server: ${e}`);
+        app = null;
+    }
 }

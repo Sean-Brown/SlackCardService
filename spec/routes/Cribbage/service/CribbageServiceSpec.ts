@@ -1,47 +1,37 @@
-import {CribbagePlayer} from "../../../../card_service/implementations/cribbage_player";
-import {deleteTables} from "../../../db/postgres/integration/CreateTablesSpec";
-import {CribbageHand} from "../../../../card_service/implementations/cribbage_hand";
-import {player_actions} from "../../../../db/implementation/postgres/player_actions";
+import * as expect from 'expect';
+import { CribbageHand } from '../../../../card_service/implementations/cribbage_hand';
+import { CribbagePlayer } from '../../../../card_service/implementations/cribbage_player';
+import { CribbageHandHistoryActions } from '../../../../db/actions/cribbage_hand_history_actions';
+import { GameActions } from '../../../../db/actions/game_actions';
+import { GameHistoryActions } from '../../../../db/actions/game_history_actions';
+import { GameHistoryPlayerActions } from '../../../../db/actions/game_history_player_actions';
+import { PlayerActions } from '../../../../db/actions/player_actions';
+import { CribbageHandHistory } from '../../../../db/models/cribbage_hand_history';
+import { WinLossHistory } from '../../../../db/models/win_loss_history';
+import { CribbageService } from '../../../../routes/Cribbage/service/cribbage_service';
+import { ActiveGames } from '../../../../routes/Cribbage/service/lib/active_games';
+import { ResponseCode } from '../../../../routes/response_code';
+import { fail } from '../../../db/postgres/integration/helpers';
+import truncate from '../../../db/postgres/integration/truncate';
 import {
-    DBReturn, DBReturnStatus, CribbageHandHistoryReturn,
-    GameHistoryReturn, GameHistoryPlayerReturn
-} from "../../../../db/abstraction/return/db_return";
-import {verifyReturn} from "../../../verifyReturn";
-import {game_history_actions} from "../../../../db/implementation/postgres/game_history_actions";
-import {game_actions} from "../../../../db/implementation/postgres/game_actions";
-import {win_loss_history_actions} from "../../../../db/implementation/postgres/win_loss_history_actions";
-import {WinLossHistory} from "../../../../db/abstraction/tables/win_loss_history";
-import {CribbageService} from "../../../../routes/Cribbage/service/cribbage_service";
-import {PostgresTables} from "../../../../db/implementation/postgres/create_tables";
-import createTables = PostgresTables.createTables;
-import {
-    CribbageServiceResponse, GetUnfinishedGamesResponse,
-    GameAssociationResponse, CribbageReturnResponse
-} from "../../../../routes/Cribbage/service/lib/response";
-import {game_history_player_actions} from "../../../../db/implementation/postgres/game_history_player_actions";
-import {Player} from "../../../../db/abstraction/tables/player";
-import {ActiveGames} from "../../../../routes/Cribbage/service/lib/active_games";
-import {
-    sixOfDiamonds, tenOfSpades, sixOfClubs, fiveOfHearts, fourOfSpades,
-    fiveOfDiamonds, tenOfHearts, jackOfDiamonds, jackOfSpades, queenOfClubs, sevenOfHearts, sevenOfClubs, eightOfClubs,
-    fourOfClubs, threeOfHearts, twoOfSpades, aceOfClubs, kingOfClubs, jackOfHearts, nineOfClubs
-} from "../../../StandardCards";
-import {cribbage_hand_history_actions} from "../../../../db/implementation/postgres/cribbage_hand_history_actions";
-import {CribbageHandHistory} from "../../../../db/abstraction/tables/cribbage_hand_history";
-let Q = require("q");
+    aceOfClubs, eightOfClubs, fiveOfDiamonds, fiveOfHearts, fourOfClubs, fourOfSpades, jackOfDiamonds,
+    jackOfHearts, jackOfSpades, kingOfClubs, nineOfClubs, queenOfClubs, sevenOfClubs, sevenOfHearts,
+    sixOfClubs, sixOfDiamonds, tenOfHearts, tenOfSpades, threeOfHearts, twoOfSpades
+} from '../../../StandardCards';
 
 interface IReturn {
-    status:DBReturnStatus;
-    message:string;
+    status: ResponseCode;
+    message: string;
 }
 
-function expectSuccess(result:IReturn) {
-    expect(result.status).toEqual(DBReturnStatus.ok, result.message)
+function expectSuccess(result: IReturn) {
+    expect(result.status).toEqual(ResponseCode.ok, result.message);
 }
 
-describe("The Cribbage Service", function() {
+describe('The Cribbage Service', function () {
     let cribbageID;
-    let PeterGriffin:CribbagePlayer, pgID:number, HomerSimpson:CribbagePlayer, hsID:number;
+    let PeterGriffin: CribbagePlayer, HomerSimpson: CribbagePlayer;
+    const pgID: number = null, hsID: number = null;
     let gameHistories = [], winLossHistories = [];
     let cribbageService;
 
@@ -50,150 +40,94 @@ describe("The Cribbage Service", function() {
      in order to ensure the state of the server is reset between each test run. Also
      ensure that the database tables are created
      */
-    beforeEach(function(done) {
+    beforeEach(async function () {
         gameHistories = [];
         winLossHistories = [];
-        deleteTables()
-            .then(() => {
-                return createTables();
-            })
-            .then((error:string) => {
-                if (error.length > 0) {
-                    done.fail(error);
-                }
-                else {
-                    cribbageService = new CribbageService();
-                }
-            })
-            .finally(() => {
-                PeterGriffin = new CribbagePlayer("Peter Griffin", new CribbageHand([]));
-                HomerSimpson = new CribbagePlayer("Homer Simpson", new CribbageHand([]));
-                done();
-            });
+        await truncate();
+        cribbageService = new CribbageService();
+        PeterGriffin = new CribbagePlayer('Peter Griffin', new CribbageHand([]));
+        HomerSimpson = new CribbagePlayer('Homer Simpson', new CribbageHand([]));
     });
 
     /**
-     * Create a row in the database in a generic fashion
-     * @param errorMessage the error message to fail with if the method fails
-     * @param instance the action class instance, e.g. 'player_actions', 'game_actions', etc.
-     * @param method the method to invoke on the action class, e.g. 'create'
-     * @param params the parameters to the method
-     * @returns {Q.Promise} the ID of the newly created row
-     */
-    function createRow<ActionClass, ResultType extends DBReturn<any>>(errorMessage:string, instance:ActionClass, method:string, ...params:any[]): Q.Promise<number> {
-        return new Q.Promise((resolve) => {
-            if (params.length == 1) {
-                instance[method](params[0])
-                    .then((result: ResultType) => {
-                        verifyReturn(result, errorMessage);
-                        resolve(result.first().id);
-                    });
-            }
-            else {
-                instance[method](...params)
-                    .then((result: ResultType) => {
-                        verifyReturn(result, errorMessage);
-                        resolve(result.first().id);
-                    });
-            }
-        });
-    }
-
-    /**
      * Create the player in the database
-     * @param player
-     * @returns {Q.Promise} the ID of the player
+     * @param playerName
+     * @returns {Promise} the ID of the player
      */
-    function createPlayer(player:string): Q.Promise<number> {
-        return createRow("Expected a player return", player_actions, "create", player);
+    async function createPlayer(playerName: string): Promise<number> {
+        const player = await PlayerActions.create(playerName);
+        return player.id;
     }
 
     /**
      * Create the game-history row in the database
-     * @returns {Q.Promise} the ID of the newly created row
+     * @returns {Promise} the ID of the newly created row
      */
-    function createGameHistory(): Q.Promise<number> {
-        return createRow("Expected a game-history result", game_history_actions, "create", cribbageID);
+    async function createGameHistory(): Promise<number> {
+        const gameHistory = await GameHistoryActions.create(cribbageID);
+        return gameHistory.id;
     }
 
     /**
      * Create the game-history row in the database
-     * @returns {Q.Promise} the ID of the newly created row
+     * @returns {Promise} the number of newly created rows
      */
-    function createGameHistoryPlayer(playerIDs:Array<number>, gameHistoryID:number): Q.Promise<number> {
-        return createRow("Expected a game-history-player result", game_history_player_actions, "createAssociations", playerIDs, gameHistoryID);
+    async function createGameHistoryPlayer(playerIDs: Array<number>, gameHistoryId: number): Promise<number> {
+        const gameHistoryPlayer = await GameHistoryPlayerActions.createAssociations(gameHistoryId, playerIDs);
+        return gameHistoryPlayer.length;
     }
 
     /**
      * Create the win-loss history row in the database
-     * @returns {Q.Promise} the ID of the newly created row
+     * @returns {Promise} the ID of the newly created row
      */
-    function createWinLossHistory(playerID:number, gameHistoryID:number, won:boolean): Q.Promise<number> {
-        let param = new WinLossHistory(0, playerID, gameHistoryID, won);
-        return createRow("Expected a win-loss history result", win_loss_history_actions, "create", param);
+    async function createWinLossHistory(playerId: number, gameHistoryId: number, won: boolean): Promise<number> {
+        // const param = new WinLossHistory(0, playerID, gameHistoryID, won);
+        const wlh = await WinLossHistory.create({
+            playerId,
+            gameHistoryId,
+            won
+        });
+        return wlh.id;
     }
 
     /**
      * Create the Cribbage game in the database
-     * @returns {Q.Promise} the ID of the game
+     * @returns {Promise} the ID of the game
      */
-    function createGame(): Q.Promise<number> {
-        return createRow("Expected a game result", game_actions, "create", "cribbage");
+    async function createGame(): Promise<number> {
+        const game = await GameActions.create('cribbage');
+        return game.id;
     }
 
     /**
      * Initialize the game, players, etc in the database, then initialize the cribbage service
-     * @returns {Promise<Q.Promise<string>>}
+     * @returns {Promise<Promise<string>>}
      */
-    function initialize(): Q.Promise<string> {
+    async function initialize(): Promise<string> {
         // Create the Cribbage game
-        return createGame()
-            .then((id:number) => {
-                cribbageID = id;
-                // Create playerIDs
-                return createPlayer(PeterGriffin.name);
-            })
-            .then((id:number) => {
-                pgID = id;
-                return createPlayer(HomerSimpson.name);
-            })
-            .then((id:number) => {
-                hsID = id;
-                let playerIDs = [pgID, hsID];
-                // Create games and record some of them in the win-loss history table
-                return createGameHistory()
-                    .then((id:number) => {
-                        gameHistories.push(id);
-                        return createGameHistoryPlayer(playerIDs, id);
-                    })
-                    .then(() => {
-                        return createGameHistory()
-                    })
-                    .then((id:number) => {
-                        gameHistories.push(id);
-                        return createGameHistoryPlayer(playerIDs, id);
-                    })
-                    .then(() => {
-                        return createGameHistory()
-                    })
-                    .then((id:number) => {
-                        gameHistories.push(id);
-                        return createGameHistoryPlayer(playerIDs, id);
-                    })
-                    .then(() => {
-                        // Record that last one in the win-loss history table
-                        return createWinLossHistory(pgID, gameHistories[0], true);
-                    })
-                    .then((id:number) => {
-                        winLossHistories.push(id);
-                        return createWinLossHistory(hsID, gameHistories[0], false);
-                    })
-            })
-            .then((id:number) => {
-                winLossHistories.push(id);
-                // Now initialize the Cribbage service and make sure it finds the right number of unfinished games
-                return cribbageService.init();
-            });
+        cribbageID = await createGame();
+        // Create playerIDs
+        const pgID = await createPlayer(PeterGriffin.name);
+        const hsID = await createPlayer(HomerSimpson.name);
+        const playerIDs = [pgID, hsID];
+        // Create games and record some of them in the win-loss history table
+        const ghid1 = await createGameHistory();
+        gameHistories.push(ghid1);
+        await createGameHistoryPlayer(playerIDs, ghid1);
+        const ghid2 = await createGameHistory();
+        gameHistories.push(ghid2);
+        await createGameHistoryPlayer(playerIDs, ghid2);
+        const ghid3 = await createGameHistory();
+        gameHistories.push(ghid3);
+        await createGameHistoryPlayer(playerIDs, ghid3);
+        // Record that last one in the win-loss history table
+        const wlid1 = await createWinLossHistory(pgID, gameHistories[0], true);
+        winLossHistories.push(wlid1);
+        const wlid2 = await createWinLossHistory(hsID, gameHistories[0], false);
+        winLossHistories.push(wlid2);
+        // Now initialize the Cribbage service and make sure it finds the right number of unfinished games
+        return await cribbageService.init();
     }
 
     /**
@@ -201,465 +135,380 @@ describe("The Cribbage Service", function() {
      * @param error
      * @param done
      */
-    function checkInitialization(error:string, done:any):void {
+    function checkInitialization(error: string): void {
         if (error.length > 0) {
-            done.fail("Failed to initialize the cribbage service");
+            fail('Failed to initialize the cribbage service');
         }
     }
 
-    it("initializes the unfinished games correctly", function(done) {
-        initialize()
-            .then((error:string) => {
-                checkInitialization(error, done);
-                expect(cribbageService.countUnfinishedGames()).toEqual(2);
-            })
-            .finally(() => { done(); });
+    it('initializes the unfinished games correctly', async function () {
+        checkInitialization(await initialize());
+        expect(cribbageService.countUnfinishedGames()).toEqual(2);
     });
 
-    describe("when initialized", function() {
+    describe('when initialized', function () {
         /**
          * Before each test, initialize the cribbage service
          */
-        beforeEach(function(done) {
-            initialize()
-                .then((error:string) => {
-                    checkInitialization(error, done);
-                })
-                .finally(() => { done(); })
+        beforeEach(async function () {
+            checkInitialization(await initialize());
         });
 
-        it("doesn't return an error if a player tries to leave a game they're not in", function(done) {
-            cribbageService.leaveGame("Zaphod")
-                .then((result:CribbageServiceResponse) => {
-                    expectSuccess(result);
-                    expect(result.message).not.toContain("Removed");
-                })
-                .finally(() => { done(); });
+        it('doesn\'t return an error if a player tries to leave a game they\'re not in', async function () {
+            const result = await cribbageService.leaveGame('Zaphod');
+            expectSuccess(result);
+            expect(result.message).not.toContain('Removed');
         });
 
-        describe("joining a game", function() {
-            // it("doesn't throw an error if the same player tries to join the new game more than once", function(done) {
-            //     cribbageService.joinGame(PeterGriffin.name)
-            //         .then((result:CribbageServiceResponse) => {
-            //             expect(result.status).toEqual(DBReturnStatus.ok, result.message);
-            //         })
-            //         .finally(() => { done(); });
-            // });
-
-            // it("joins a player to a new game", function(done) {
-            //     let name = PeterGriffin.name;
-            //     cribbageService.joinGame(name)
-            //         .then((result:CribbageServiceResponse) => {
-            //             expect(result.status).toEqual(DBReturnStatus.ok, result.message);
-            //             expect(cribbageService.activeGames.newGame.players.findPlayer(name)).not.toBeNull(`Expected ${name} to be in the game`);
-            //         })
-            //         .finally(() => { done(); });
-            // });
-
-            // it("adds an player to the database and the service's map of players when the new player joins the new game", function(done) {
-            //     let name = "Zaphod";
-            //     cribbageService.joinGame(name)
-            //         .then((result:CribbageServiceResponse) => {
-            //             expect(result.status).toEqual(DBReturnStatus.ok, result.message);
-            //             expect(cribbageService.activeGames.newGame.players.findPlayer(name)).not.toBeNull(`Expected ${name} to be in the game`);
-            //             expect(cribbageService.players.has(name)).toBeTruthy();
-            //         })
-            //         .finally(() => { done(); });
-            // });
-
-            it("joins a player to an unfinished game", function(done) {
-                cribbageService.getUnfinishedGames(PeterGriffin.name)
-                    .then((result:GetUnfinishedGamesResponse) => {
-                        expect(result.status).toEqual(DBReturnStatus.ok, result.message);
-                        return cribbageService.joinGame(PeterGriffin.name, result.gameHistoryIDs[0]);
-                    })
-                    .then((result:CribbageServiceResponse) => {
-                        expectSuccess(result);
-                    })
-                    .finally(() => { done(); });
+        describe('joining a game', function () {
+            it('doesn\'t throw an error if the same player tries to join the new game more than once', async function () {
+                const result = await cribbageService.joinGame(PeterGriffin.name);
+                expect(result.status).toEqual(ResponseCode.ok, result.message);
             });
 
-            it("a player joining an unfinished game with no unfinished hand in the database is dealt a hand", function(done) {
+            it('joins a player to a new game', async function () {
+                const name = PeterGriffin.name;
+                const result = await cribbageService.joinGame(name);
+                expect(result.status).toEqual(ResponseCode.ok, result.message);
+                expect(cribbageService.activeGames.newGame.players.findPlayer(name)).not.toBeNull(`Expected ${name} to be in the game`);
+            });
+
+            it('adds an player to the database and the service\'s map of players when the new player joins the new game', async function () {
+                const name = 'Zaphod';
+                const result = await cribbageService.joinGame(name);
+                expect(result.status).toEqual(ResponseCode.ok, result.message);
+                expect(cribbageService.activeGames.newGame.players.findPlayer(name)).not.toBeNull(`Expected ${name} to be in the game`);
+                expect(cribbageService.players.has(name)).toBeTruthy();
+            });
+
+            it('joins a player to an unfinished game', async function () {
+                const ugResult = await cribbageService.getUnfinishedGames(PeterGriffin.name);
+                expect(ugResult.status).toEqual(ResponseCode.ok, ugResult.message);
+                const jgResult = await cribbageService.joinGame(PeterGriffin.name, ugResult.gameHistoryIDs[0]);
+                expectSuccess(jgResult);
+            });
+
+            it('a player joining an unfinished game with no unfinished hand in the database is dealt a hand', async function () {
                 let ghid = CribbageService.INVALID_ID;
-                cribbageService.getUnfinishedGames(PeterGriffin.name)
-                    .then((result:GetUnfinishedGamesResponse) => {
-                        expect(result.status).toEqual(DBReturnStatus.ok, result.message);
-                        ghid = result.gameHistoryIDs[0];
-                        return cribbageService.joinGame(PeterGriffin.name, ghid);
-                    })
-                    .then((result:CribbageServiceResponse) => {
-                        expectSuccess(result);
-                        expect(cribbageService.activeGames.activeGames.get(ghid).game.players.findPlayer(PeterGriffin.name).hand.countItems()).toBeGreaterThan(0);
-                    })
-                    .finally(() => { done(); });
+                const ugResult = await cribbageService.getUnfinishedGames(PeterGriffin.name);
+                expect(ugResult.status).toEqual(ResponseCode.ok, ugResult.message);
+                ghid = ugResult.gameHistoryIDs[0];
+                const jgResult = await cribbageService.joinGame(PeterGriffin.name, ghid);
+                expectSuccess(jgResult);
+                expect(cribbageService.activeGames.activeGames.get(ghid).game.players.findPlayer(PeterGriffin.name).hand.countItems()).toBeGreaterThan(0);
             });
         });
 
-        // it("says fuck you", function(done) {
-        //     let ghid = CribbageService.INVALID_ID;
-        //     let pgHand = new CribbageHand([aceOfClubs, twoOfSpades, threeOfHearts, fourOfClubs]),
-        //         hsHand = new CribbageHand([jackOfHearts, jackOfDiamonds, queenOfClubs, kingOfClubs]),
-        //         crib = new CribbageHand([sevenOfClubs, sevenOfHearts, eightOfClubs, nineOfClubs]),
-        //         cut = fiveOfDiamonds;
-        //     // In the database, fake a previous game a previous hand for each of the players
-        //     game_history_actions.create(cribbageID)
-        //         .then((result:GameHistoryReturn) => {
-        //             expectSuccess(result);
-        //             ghid = result.first().id;
-        //             return game_history_player_actions.createAssociations([pgID, hsID], ghid);
-        //         })
-        //         .then((result:GameHistoryPlayerReturn) => {
-        //             expectSuccess(result);
-        //             return cribbage_hand_history_actions.createMany([
-        //                 new CribbageHandHistory(1, pgID, ghid, pgHand.toShortString(), cut.shortString(), false, true, 10),
-        //                 new CribbageHandHistory(2, hsID, ghid, hsHand.toShortString(), cut.shortString(), false, true, 12),
-        //                 new CribbageHandHistory(3, pgID, ghid, crib.toShortString(), cut.shortString(), true, true, 12)
-        //             ]);
-        //         })
-        //         .then((result:CribbageHandHistoryReturn) => {
-        //             expectSuccess(result);
-        //             // reinitialize the cribbage service
-        //             return cribbageService.init();
-        //         })
-        //         .then((result:string) => {
-        //             expect(result.length).toBe(0);
-        //             return cribbageService.joinGame(PeterGriffin.name, ghid);
-        //         })
-        //         .then((result:CribbageServiceResponse) => {
-        //             expectSuccess(result);
-        //             let dbGame = cribbageService.activeGames.activeGames.get(ghid).game;
-        //             let dbHand = dbGame.players.findPlayer(PeterGriffin.name).hand;
-        //             expect(dbHand.countItems()).toBeGreaterThan(0);
-        //             let dbHandStr = dbHand.toShortString();
-        //             expect(dbHandStr).toContain(aceOfClubs.shortString());
-        //             expect(dbHandStr).toContain(twoOfSpades.shortString());
-        //             expect(dbHandStr).toContain(threeOfHearts.shortString());
-        //             expect(dbHandStr).toContain(fourOfClubs.shortString());
-        //             expect(dbGame.cut).toEqual(cut);
-        //             expect(dbGame.dealer).toEqual(HomerSimpson);
-        //         })
-        //         .finally(() => { done(); });
-        // });
+        it('is a test', async function () {
+            let ghid = CribbageService.INVALID_ID;
+            const pgHand = new CribbageHand([aceOfClubs, twoOfSpades, threeOfHearts, fourOfClubs]),
+                hsHand = new CribbageHand([jackOfHearts, jackOfDiamonds, queenOfClubs, kingOfClubs]),
+                crib = new CribbageHand([sevenOfClubs, sevenOfHearts, eightOfClubs, nineOfClubs]),
+                cut = fiveOfDiamonds;
+            // In the database, fake a previous game a previous hand for each of the players
+            const gameHistory = await GameHistoryActions.create(cribbageID);
+            ghid = gameHistory.id;
+            await GameHistoryPlayerActions.createAssociations(ghid, [pgID, hsID]);
+            await CribbageHandHistory.bulkCreate([
+                {
+                    playerId: pgID,
+                    gameHistoryId: ghid,
+                    hand: pgHand.toShortString(),
+                    cut: cut.shortString(),
+                    isCrib: false,
+                    played: true,
+                    points: 10
+                },
+                {
+                    playerId: hsID,
+                    gameHistoryId: ghid,
+                    hand: hsHand.toShortString(),
+                    cut: cut.shortString(),
+                    isCrib: false,
+                    played: true,
+                    points: 12
+                },
+                {
+                    playerId: pgID,
+                    gameHistoryId: ghid,
+                    hand: crib.toShortString(),
+                    cut: cut.shortString(),
+                    isCrib: true,
+                    played: true,
+                    points: 12
+                }
+            ]);
+            // reinitialize the cribbage service
+            const error = await cribbageService.init();
+            expect(error.length).toBe(0);
+            const jgResult = await cribbageService.joinGame(PeterGriffin.name, ghid);
+            expectSuccess(jgResult);
+            const dbGame = cribbageService.activeGames.activeGames.get(ghid).game;
+            const dbHand = dbGame.players.findPlayer(PeterGriffin.name).hand;
+            expect(dbHand.countItems()).toBeGreaterThan(0);
+            const dbHandStr = dbHand.toShortString();
+            expect(dbHandStr).toContain(aceOfClubs.shortString());
+            expect(dbHandStr).toContain(twoOfSpades.shortString());
+            expect(dbHandStr).toContain(threeOfHearts.shortString());
+            expect(dbHandStr).toContain(fourOfClubs.shortString());
+            expect(dbGame.cut).toEqual(cut);
+            expect(dbGame.dealer).toEqual(HomerSimpson);
+        });
 
-        // describe("with an unfinished game in the database", function() {
-        //     let ghid = CribbageService.INVALID_ID;
-        //     let pgHand = new CribbageHand([aceOfClubs, twoOfSpades, threeOfHearts, fourOfClubs]),
-        //         hsHand = new CribbageHand([jackOfHearts, jackOfDiamonds, queenOfClubs, kingOfClubs]),
-        //         crib = new CribbageHand([sevenOfClubs, sevenOfHearts, eightOfClubs, nineOfClubs]),
-        //         cut = fiveOfDiamonds;
-        //     beforeEach(function(done) {
-        //         // In the database, fake a previous game a previous hand for each of the players
-        //         game_history_actions.create(cribbageID)
-        //             .then((result:GameHistoryReturn) => {
-        //                 expectSuccess(result);
-        //                 ghid = result.first().id;
-        //                 return game_history_player_actions.createAssociations([pgID, hsID], ghid);
-        //             })
-        //             .then((result:GameHistoryPlayerReturn) => {
-        //                 expectSuccess(result);
-        //                 return cribbage_hand_history_actions.createMany([
-        //                     new CribbageHandHistory(1, pgID, ghid, pgHand.toShortString(), cut.shortString(), false, true, 10),
-        //                     new CribbageHandHistory(2, hsID, ghid, hsHand.toShortString(), cut.shortString(), false, true, 12),
-        //                     new CribbageHandHistory(3, pgID, ghid, crib.toShortString(), cut.shortString(), true, true, 12)
-        //                 ]);
-        //             })
-        //             .then((result:CribbageHandHistoryReturn) => {
-        //                 expectSuccess(result);
-        //             })
-        //             .finally(() => { done(); });
-        //
-        //         it("a player joining an unfinished game with an unfinished hand has that hand", function(done) {
-        //             cribbageService.joinGame(PeterGriffin.name, ghid)
-        //                 .then((result:CribbageServiceResponse) => {
-        //                     expectSuccess(result);
-        //                     let dbGame = cribbageService.activeGames.activeGames.get(ghid).game;
-        //                     let dbHand = dbGame.players.find(PeterGriffin.name).hand;
-        //                     expect(dbHand.countItems()).toBeGreaterThan(0);
-        //                     let dbHandStr = dbHand.toShortString();
-        //                     expect(dbHandStr).toContain(aceOfClubs.shortString());
-        //                     expect(dbHandStr).toContain(twoOfSpades.shortString());
-        //                     expect(dbHandStr).toContain(threeOfHearts.shortString());
-        //                     expect(dbHandStr).toContain(fourOfClubs.shortString());
-        //                     expect(dbGame.cut).toEqual(cut);
-        //                 })
-        //                 .finally(() => { done(); });
-        //         });
-        //     });
-        // });
+        describe('with an unfinished game in the database', function () {
+            let ghid = CribbageService.INVALID_ID;
+            const pgHand = new CribbageHand([aceOfClubs, twoOfSpades, threeOfHearts, fourOfClubs]),
+                hsHand = new CribbageHand([jackOfHearts, jackOfDiamonds, queenOfClubs, kingOfClubs]),
+                crib = new CribbageHand([sevenOfClubs, sevenOfHearts, eightOfClubs, nineOfClubs]),
+                cut = fiveOfDiamonds;
+            beforeEach(async function () {
+                // In the database, fake a previous game a previous hand for each of the players
+                const gameHistory = await GameHistoryActions.create(cribbageID);
+                ghid = gameHistory.id;
+                await GameHistoryPlayerActions.createAssociations(ghid, [pgID, hsID]);
+                await CribbageHandHistory.bulkCreate([
+                    {
+                        playerId: pgID,
+                        gameHistoryId: ghid,
+                        hand: pgHand.toShortString(),
+                        cut: cut.shortString(),
+                        isCrib: false,
+                        played: true,
+                        points: 10
+                    },
+                    {
+                        playerId: hsID,
+                        gameHistoryId: ghid,
+                        hand: hsHand.toShortString(),
+                        cut: cut.shortString(),
+                        isCrib: false,
+                        played: true,
+                        points: 12
+                    },
+                    {
+                        playerId: pgID,
+                        gameHistoryId: ghid,
+                        hand: crib.toShortString(),
+                        cut: cut.shortString(),
+                        isCrib: true,
+                        played: true,
+                        points: 12
+                    }
+                ]);
+            });
 
-        // describe("getting unfinished games", function() {
-        //     it("can get a player's unfinished games", function(done) {
-        //         cribbageService.getUnfinishedGames(PeterGriffin.name)
-        //             .then((result:GetUnfinishedGamesResponse) => {
-        //                 expect(result.status).toEqual(DBReturnStatus.ok, result.message);
-        //                 expect(result.gameHistoryIDs.length).toEqual(2);
-        //             })
-        //             .finally(() => { done(); });
-        //     });
-        //
-        //     it("adds an unknown player to the database if trying to get the unfinished games of an unknown player", function(done) {
-        //         cribbageService.getUnfinishedGames("Zaphod")
-        //             .then((result:GetUnfinishedGamesResponse) => {
-        //                 expectSuccess(result);
-        //                 expect(result.gameHistoryIDs.length).toEqual(0);
-        //             })
-        //             .finally(() => { done(); });
-        //     });
-        //
-        //     it("gets only the players from a given game", function(done) {
-        //         let player = "Sven", pid = CribbageService.INVALID_ID;
-        //         createPlayer(player)
-        //             .then((id:number) => {
-        //                 pid = id;
-        //                 return cribbageService.getUnfinishedGames(PeterGriffin.name);
-        //             })
-        //             .then((result:GetUnfinishedGamesResponse) => {
-        //                 expectSuccess(result);
-        //                 return cribbageService.getGamePlayers(result.gameHistoryIDs[0]);
-        //             })
-        //             .then((players:Array<Player>) => {
-        //                 expect(players.length).toEqual(2);
-        //             })
-        //             .finally(() => { done(); });
-        //     });
-        //
-        //     it("returns an empty array if getting the players from a non-existant game", function(done) {
-        //         cribbageService.getGamePlayers(-1)
-        //             .then((players:Array<Player>) => {
-        //                 expect(players.length).toEqual(0);
-        //             })
-        //             .finally(() => { done(); });
-        //     });
-        // });
+            it('a player joining an unfinished game with an unfinished hand has that hand', async function () {
+                const result = await cribbageService.joinGame(PeterGriffin.name, ghid);
+                expectSuccess(result);
+                const dbGame = cribbageService.activeGames.activeGames.get(ghid).game;
+                const dbHand = dbGame.players.find(PeterGriffin.name).hand;
+                expect(dbHand.countItems()).toBeGreaterThan(0);
+                const dbHandStr = dbHand.toShortString();
+                expect(dbHandStr).toContain(aceOfClubs.shortString());
+                expect(dbHandStr).toContain(twoOfSpades.shortString());
+                expect(dbHandStr).toContain(threeOfHearts.shortString());
+                expect(dbHandStr).toContain(fourOfClubs.shortString());
+                expect(dbGame.cut).toEqual(cut);
+            });
+        });
 
-        // describe("with players in the new game", function() {
-        //     /**
-        //      * Before each test, add players to the game
-        //      */
-        //     beforeEach(function(done) {
-        //         cribbageService.joinGame(PeterGriffin.name)
-        //             .then((result:CribbageServiceResponse) => {
-        //                 expect(result.status).toEqual(DBReturnStatus.ok, result.message);
-        //                 return cribbageService.joinGame(HomerSimpson.name);
-        //             })
-        //             .then((result:CribbageServiceResponse) => {
-        //                 expect(result.status).toEqual(DBReturnStatus.ok, result.message);
-        //                 expect(cribbageService.activeGames.newGame.players.countItems()).toEqual(2);
-        //             })
-        //             .finally(() => { done(); });
-        //     });
-        //
-        //     it("only lets a player in the new game to begin the game", function(done) {
-        //         let player = "Zaphod";
-        //         cribbageService.beginGame(player)
-        //             .then((result:GameAssociationResponse) => {
-        //                 expect(result.status).toEqual(DBReturnStatus.error);
-        //                 expect(cribbageService.activeGames.newGame.hasBegun).toBeFalsy("The new game should not have begun yet");
-        //                 return cribbageService.beginGame(HomerSimpson.name);
-        //             })
-        //             .then((result:GameAssociationResponse) => {
-        //                 expectSuccess(result);
-        //                 expect(result.gameAssociation).not.toBeNull("Expected a game association object");
-        //                 expect(result.gameAssociation.playerIDs.size).toEqual(2);
-        //                 expect(cribbageService.activeGames.activeGames.has(result.gameAssociation.gameHistoryID)).toBeTruthy("The game should've been set as an active game");
-        //                 expect(cribbageService.activeGames.playerGame.has(pgID)).toBeTruthy(`Couldn't find ${pgID} in the newly active game`);
-        //                 expect(cribbageService.activeGames.playerGame.has(hsID)).toBeTruthy(`Couldn't find ${hsID} in the newly active game`);
-        //             })
-        //             .finally(() => { done(); });
-        //     });
-        //
-        //     it("only resets the new game if the correct secret was given", function() {
-        //         let result = cribbageService.resetGame("wrong-secret");
-        //         expect(result.status).toEqual(DBReturnStatus.error);
-        //         result = cribbageService.resetGame(process.env.CRIB_RESET_SECRET);
-        //         expectSuccess(result);
-        //     });
-        //
-        //     it("lets a player leave the new game if they're in it", function(done) {
-        //         cribbageService.leaveGame(PeterGriffin.name)
-        //             .then((result:CribbageServiceResponse) => {
-        //                 expect(result.message.length).toBeGreaterThan(0);
-        //                 expect(result.message).toContain("Removed");
-        //             })
-        //             .finally(() => { done(); });
-        //     });
-        // });
+        describe('getting unfinished games', function () {
+            it('can get a player\'s unfinished games', async function () {
+                const result = await cribbageService.getUnfinishedGames(PeterGriffin.name);
+                expect(result.status).toEqual(ResponseCode.ok, result.message);
+                expect(result.gameHistoryIDs.length).toEqual(2);
+            });
 
-        // describe("with players in an active game", function() {
-        //     let ghid = 0;
-        //     const cut = fiveOfDiamonds;
-        //     /**
-        //      * Before each test, add the players to an unfinished game
-        //      */
-        //     beforeEach(function(done) {
-        //         ghid = gameHistories[0];
-        //         cribbageService.joinGame(PeterGriffin.name, ghid)
-        //             .then((result:CribbageServiceResponse) => {
-        //                 expect(result.status).toEqual(DBReturnStatus.ok, result.message);
-        //                 return cribbageService.joinGame(HomerSimpson.name, ghid);
-        //             })
-        //             .then((result:CribbageServiceResponse) => {
-        //                 expect(result.status).toEqual(DBReturnStatus.ok, result.message);
-        //                 // Replace each player's hand
-        //                 let gameAssociation = cribbageService.activeGames.activeGames.get(ghid);
-        //                 expect(gameAssociation).not.toBeNull();
-        //                 expect(gameAssociation.game.players.countItems()).toEqual(2);
-        //                 gameAssociation.game.players.findPlayer(PeterGriffin.name).hand =
-        //                     new CribbageHand([fourOfSpades, fiveOfHearts, sixOfClubs, tenOfSpades]);
-        //                 gameAssociation.game.players.findPlayer(HomerSimpson.name).hand =
-        //                     new CribbageHand([tenOfHearts, jackOfDiamonds, jackOfSpades, queenOfClubs]);
-        //                 gameAssociation.game.kitty =
-        //                     new CribbageHand([sixOfDiamonds, sevenOfHearts, sevenOfClubs, eightOfClubs]);
-        //                 gameAssociation.game.cut = cut;
-        //             })
-        //             .finally(() => { done(); });
-        //     });
-        //
-        //     it("lets a player leave the active game", function(done) {
-        //         cribbageService.leaveGame(PeterGriffin.name)
-        //             .then((result:CribbageServiceResponse) => {
-        //                 expectSuccess(result);
-        //                 expect(result.message).toContain("Removed");
-        //             })
-        //             .finally(() => { done(); });
-        //     });
-        //
-        //     describe("describes", function() {
-        //         it("describes the current active game", function() {
-        //             let result = cribbageService.describe(ghid);
-        //             expect(result.message.length).toBeGreaterThan(0);
-        //             expect(result.message).not.toEqual(ActiveGames.gameNotFoundError(ghid));
-        //             expect(result.message).toContain(PeterGriffin.name);
-        //             expect(result.message).toContain(HomerSimpson.name);
-        //         });
-        //
-        //         it("returns an error if describing a non-existant game", function() {
-        //             let ghid = -1;
-        //             let result = cribbageService.describe(ghid);
-        //             expect(result.message.length).toBeGreaterThan(0);
-        //             expect(result.message).toEqual(ActiveGames.gameNotFoundError(ghid));
-        //         });
-        //     });
-        //
-        //     describe("playing a card", function() {
-        //         it("lets the next player play a card", function(done) {
-        //             cribbageService.playCard(HomerSimpson.name, jackOfDiamonds)
-        //                 .then((result:CribbageReturnResponse) => {
-        //                     expectSuccess(result);
-        //                 })
-        //                 .finally(() => { done(); });
-        //         });
-        //
-        //         it("returns an error if the next player plays a card they do not have", function(done) {
-        //             cribbageService.playCard(HomerSimpson.name, fourOfSpades)
-        //                 .then((result:CribbageReturnResponse) => {
-        //                     expect(result.status).toEqual(DBReturnStatus.error);
-        //                 })
-        //                 .finally(() => { done(); });
-        //         });
-        //
-        //         it("returns an error if a player playing a card is not the next player", function(done) {
-        //             cribbageService.playCard(PeterGriffin.name, fourOfSpades)
-        //                 .then((result:CribbageReturnResponse) => {
-        //                     expect(result.status).toEqual(DBReturnStatus.error);
-        //                 })
-        //                 .finally(() => { done(); });
-        //         });
-        //
-        //         it("returns an error if playing a card in a non-active game", function(done) {
-        //             cribbageService.playCard("Zaphod", tenOfHearts)
-        //                 .then((result:CribbageReturnResponse) => {
-        //                     expect(result.status).toEqual(DBReturnStatus.error);
-        //                 })
-        //                 .finally(() => { done(); });
-        //         });
-        //
-        //         it("doesn't let play continue if the game has ended", function(done) {
-        //             cribbageService.activeGames.activeGames.get(ghid).game.players.findPlayer(PeterGriffin.name).points = 120;
-        //             cribbageService.playCard(HomerSimpson.name, jackOfDiamonds)
-        //                 .then((result:CribbageReturnResponse) => {
-        //                     expectSuccess(result);
-        //                     return cribbageService.playCard(PeterGriffin.name, fiveOfHearts);
-        //                 })
-        //                 .then((result:CribbageReturnResponse) => {
-        //                     expectSuccess(result);
-        //                     // The game should be over
-        //                     expect(cribbageService.activeGames.activeGames.get(ghid)).toBeUndefined();
-        //                     return cribbageService.playCard(HomerSimpson.name, jackOfSpades);
-        //                 })
-        //                 .then((result:CribbageReturnResponse) => {
-        //                     expect(result.status).toEqual(DBReturnStatus.error);
-        //                 })
-        //                 .finally(() => { done(); });
-        //         });
-        //     });
-        //
-        //     describe("when trying to 'go'", function() {
-        //         it("returns an error if the player can still play", function(done) {
-        //             cribbageService.go(HomerSimpson.name)
-        //                 .then((result:CribbageReturnResponse) => {
-        //                     expect(result.status).toEqual(DBReturnStatus.error);
-        //                 })
-        //                 .finally(() => { done(); });
-        //         });
-        //
-        //         it("lets a player who can't play 'go'", function(done) {
-        //             cribbageService.playCard(HomerSimpson.name, jackOfDiamonds)
-        //                 .then((result:CribbageReturnResponse) => {
-        //                     expectSuccess(result);
-        //                     return cribbageService.playCard(PeterGriffin.name, tenOfSpades);
-        //                 })
-        //                 .then((result:CribbageReturnResponse) => {
-        //                     expectSuccess(result);
-        //                     return cribbageService.playCard(HomerSimpson.name, jackOfSpades);
-        //                 })
-        //                 .then((result:CribbageReturnResponse) => {
-        //                     expectSuccess(result);
-        //                     return cribbageService.go(PeterGriffin.name);
-        //                 })
-        //                 .then((result:CribbageReturnResponse) => {
-        //                     expectSuccess(result);
-        //                 })
-        //                 .finally(() => { done(); });
-        //         });
-        //     });
-        //
-        //     describe("throwing to the kitty", function() {
-        //         beforeEach(() => {
-        //             let gameAssociation = cribbageService.activeGames.activeGames.get(ghid);
-        //             let pg = gameAssociation.game.players.findPlayer(PeterGriffin.name);
-        //             pg.hand.takeCard(sixOfDiamonds);
-        //             pg.hand.takeCard(sevenOfHearts);
-        //             let hs = gameAssociation.game.players.findPlayer(HomerSimpson.name);
-        //             hs.hand.takeCard(sevenOfClubs);
-        //             hs.hand.takeCard(eightOfClubs);
-        //             gameAssociation.game.kitty.removeAll();
-        //         });
-        //
-        //         it("allows a player to throw to the kitty", function(done) {
-        //             cribbageService.giveToKitty(PeterGriffin.name, [sixOfDiamonds, sevenOfHearts])
-        //                 .then((result:CribbageReturnResponse) => {
-        //                     expectSuccess(result);
-        //                 })
-        //                 .finally(() => { done(); });
-        //         });
-        //
-        //         it("doesn't let a player throw cards they don't have", function(done) {
-        //             cribbageService.giveToKitty(PeterGriffin.name, [sixOfDiamonds, sevenOfClubs])
-        //                 .then((result:CribbageReturnResponse) => {
-        //                     expect(result.status).toEqual(DBReturnStatus.error);
-        //                 })
-        //                 .finally(() => { done(); });
-        //         });
-        //
-        //         it("doesn't allow a random player to throw cards", function(done) {
-        //             cribbageService.giveToKitty("Zaphod", [sixOfDiamonds, sevenOfClubs])
-        //                 .then((result:CribbageReturnResponse) => {
-        //                     expect(result.status).toEqual(DBReturnStatus.error);
-        //                 })
-        //                 .finally(() => { done(); });
-        //         });
-        //     });
-        // });
+            it('adds an unknown player to the database if trying to get the unfinished games of an unknown player', async function () {
+                const result = await cribbageService.getUnfinishedGames('Zaphod');
+                expectSuccess(result);
+                expect(result.gameHistoryIDs.length).toEqual(0);
+            });
+
+            it('gets only the players from a given game', async function () {
+                const player = 'Sven';
+                let pid = CribbageService.INVALID_ID;
+                pid = await createPlayer(player);
+                expect(pid).not.toEqual(CribbageService.INVALID_ID);
+                const result = await cribbageService.getUnfinishedGames(PeterGriffin.name);
+                expectSuccess(result);
+                const players = await cribbageService.getGamePlayers(result.gameHistoryIDs[0]);
+                expect(players.length).toEqual(2);
+            });
+
+            it('returns an empty array if getting the players from a non-existant game', async function () {
+                const players = await cribbageService.getGamePlayers(-1);
+                expect(players.length).toEqual(0);
+            });
+        });
+
+        describe('with players in the new game', function () {
+            /**
+             * Before each test, add players to the game
+             */
+            beforeEach(async function () {
+                const jgResult = await cribbageService.joinGame(PeterGriffin.name);
+                expect(jgResult.status).toEqual(ResponseCode.ok, jgResult.message);
+                const jgResult2 = await cribbageService.joinGame(HomerSimpson.name);
+                expect(jgResult2.status).toEqual(ResponseCode.ok, jgResult2.message);
+                expect(cribbageService.activeGames.newGame.players.countItems()).toEqual(2);
+            });
+
+            it('only lets a player in the new game to begin the game', async function () {
+                const player = 'Zaphod';
+                const bgResult = await cribbageService.beginGame(player);
+                expect(bgResult.status).toEqual(ResponseCode.error);
+                expect(cribbageService.activeGames.newGame.hasBegun).toBeFalsy('The new game should not have begun yet');
+                const bgResult2 = await cribbageService.beginGame(HomerSimpson.name);
+                expectSuccess(bgResult2);
+                expect(bgResult2.gameAssociation).not.toBeNull('Expected a game association object');
+                expect(bgResult2.gameAssociation.playerIDs.size).toEqual(2);
+                expect(cribbageService.activeGames.activeGames.has(bgResult2.gameAssociation.game_history_id)).toBeTruthy('The game should\'ve been set as an active game');
+                expect(cribbageService.activeGames.playerGame.has(pgID)).toBeTruthy(`Couldn't find ${pgID} in the newly active game`);
+                expect(cribbageService.activeGames.playerGame.has(hsID)).toBeTruthy(`Couldn't find ${hsID} in the newly active game`);
+            });
+
+            it('only resets the new game if the correct secret was given', function () {
+                let result = cribbageService.resetGame('wrong-secret');
+                expect(result.status).toEqual(ResponseCode.error);
+                result = cribbageService.resetGame(process.env.CRIB_RESET_SECRET);
+                expectSuccess(result);
+            });
+
+            it('lets a player leave the new game if they\'re in it', async function () {
+                const result = await cribbageService.leaveGame(PeterGriffin.name);
+                expect(result.message.length).toBeGreaterThan(0);
+                expect(result.message).toContain('Removed');
+            });
+        });
+
+        describe('with players in an active game', function () {
+            let ghid = 0;
+            const cut = fiveOfDiamonds;
+            /**
+             * Before each test, add the players to an unfinished game
+             */
+            beforeEach(async function () {
+                ghid = gameHistories[0];
+                const jgResult = await cribbageService.joinGame(PeterGriffin.name, ghid);
+                expect(jgResult.status).toEqual(ResponseCode.ok, jgResult.message);
+                const jgResult2 = await cribbageService.joinGame(HomerSimpson.name, ghid);
+                expect(jgResult2.status).toEqual(ResponseCode.ok, jgResult2.message);
+                // Replace each player's hand
+                const gameAssociation = cribbageService.activeGames.activeGames.get(ghid);
+                expect(gameAssociation).not.toBeNull();
+                expect(gameAssociation.game.players.countItems()).toEqual(2);
+                gameAssociation.game.players.findPlayer(PeterGriffin.name).hand =
+                    new CribbageHand([fourOfSpades, fiveOfHearts, sixOfClubs, tenOfSpades]);
+                gameAssociation.game.players.findPlayer(HomerSimpson.name).hand =
+                    new CribbageHand([tenOfHearts, jackOfDiamonds, jackOfSpades, queenOfClubs]);
+                gameAssociation.game.kitty =
+                    new CribbageHand([sixOfDiamonds, sevenOfHearts, sevenOfClubs, eightOfClubs]);
+                gameAssociation.game.cut = cut;
+            });
+
+            it('lets a player leave the active game', async function () {
+                const result = await cribbageService.leaveGame(PeterGriffin.name);
+                expectSuccess(result);
+                expect(result.message).toContain('Removed');
+            });
+
+            describe('describes', function () {
+                it('describes the current active game', function () {
+                    const result = cribbageService.describe(ghid);
+                    expect(result.message.length).toBeGreaterThan(0);
+                    expect(result.message).not.toEqual(ActiveGames.gameNotFoundError(ghid));
+                    expect(result.message).toContain(PeterGriffin.name);
+                    expect(result.message).toContain(HomerSimpson.name);
+                });
+
+                it('returns an error if describing a non-existant game', function () {
+                    const ghid = -1;
+                    const result = cribbageService.describe(ghid);
+                    expect(result.message.length).toBeGreaterThan(0);
+                    expect(result.message).toEqual(ActiveGames.gameNotFoundError(ghid));
+                });
+            });
+
+            describe('playing a card', function () {
+                it('lets the next player play a card', async function () {
+                    const result = await cribbageService.playCard(HomerSimpson.name, jackOfDiamonds);
+                    expectSuccess(result);
+                });
+
+                it('returns an error if the next player plays a card they do not have', async function () {
+                    const result = await cribbageService.playCard(HomerSimpson.name, fourOfSpades);
+                    expect(result.status).toEqual(ResponseCode.error);
+                });
+
+                it('returns an error if a player playing a card is not the next player', async function () {
+                    const result = await cribbageService.playCard(PeterGriffin.name, fourOfSpades);
+                    expect(result.status).toEqual(ResponseCode.error);
+                });
+
+                it('returns an error if playing a card in a non-active game', async function () {
+                    const result = await cribbageService.playCard('Zaphod', tenOfHearts);
+                    expect(result.status).toEqual(ResponseCode.error);
+                });
+
+                it('doesn\'t let play continue if the game has ended', async function () {
+                    cribbageService.activeGames.activeGames.get(ghid).game.players.findPlayer(PeterGriffin.name).points = 120;
+                    const pc1Result = await cribbageService.playCard(HomerSimpson.name, jackOfDiamonds);
+                    expectSuccess(pc1Result);
+                    const pc2Result = await cribbageService.playCard(PeterGriffin.name, fiveOfHearts);
+                    expectSuccess(pc2Result);
+                    // The game should be over
+                    expect(cribbageService.activeGames.activeGames.get(ghid)).toBeUndefined();
+                    const pc3Result = await cribbageService.playCard(HomerSimpson.name, jackOfSpades);
+                    expect(pc3Result.status).toEqual(ResponseCode.error);
+                });
+            });
+
+            describe('when trying to \'go\'', function () {
+                it('returns an error if the player can still play', async function () {
+                    const result = await cribbageService.go(HomerSimpson.name);
+                    expect(result.status).toEqual(ResponseCode.error);
+                });
+
+                it('lets a player who can\'t play \'go\'', async function () {
+                    const pc1Result = await cribbageService.playCard(HomerSimpson.name, jackOfDiamonds);
+                    expectSuccess(pc1Result);
+                    const pc2Result = await cribbageService.playCard(PeterGriffin.name, tenOfSpades);
+                    expectSuccess(pc2Result);
+                    const pc3Result = await cribbageService.playCard(HomerSimpson.name, jackOfSpades);
+                    expectSuccess(pc3Result);
+                    const goResult = await cribbageService.go(PeterGriffin.name);
+                    expectSuccess(goResult);
+                });
+            });
+
+            describe('throwing to the kitty', function () {
+                beforeEach(() => {
+                    const gameAssociation = cribbageService.activeGames.activeGames.get(ghid);
+                    const pg = gameAssociation.game.players.findPlayer(PeterGriffin.name);
+                    pg.hand.takeCard(sixOfDiamonds);
+                    pg.hand.takeCard(sevenOfHearts);
+                    const hs = gameAssociation.game.players.findPlayer(HomerSimpson.name);
+                    hs.hand.takeCard(sevenOfClubs);
+                    hs.hand.takeCard(eightOfClubs);
+                    gameAssociation.game.kitty.removeAll();
+                });
+
+                it('allows a player to throw to the kitty', async function () {
+                    const result = await cribbageService.giveToKitty(PeterGriffin.name, [sixOfDiamonds, sevenOfHearts]);
+                    expectSuccess(result);
+                });
+
+                it('doesn\'t let a player throw cards they don\'t have', async function () {
+                    const result = await cribbageService.giveToKitty(PeterGriffin.name, [sixOfDiamonds, sevenOfClubs]);
+                    expect(result.status).toEqual(ResponseCode.error);
+                });
+
+                it('doesn\'t allow a random player to throw cards', async function () {
+                    const result = await cribbageService.giveToKitty('Zaphod', [sixOfDiamonds, sevenOfClubs]);
+                    expect(result.status).toEqual(ResponseCode.error);
+                });
+            });
+        });
     });
 });
