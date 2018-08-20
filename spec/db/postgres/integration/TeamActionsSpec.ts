@@ -1,5 +1,5 @@
 import * as expect from 'expect';
-import { Team } from '../../../../db/models/team';
+import Team from '../../../../db/models/team';
 import { readConfigFromEnv } from '../../setEnv';
 import { fail } from './helpers';
 import truncate from './truncate';

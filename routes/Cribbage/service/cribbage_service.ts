@@ -3,7 +3,7 @@ import { GameHistoryPlayerActions } from '../../../db/actions/game_history_playe
 import { PlayerActions } from '../../../db/actions/player_actions';
 import { Games } from '../../../db/games';
 import { Manager as DbManager } from '../../../db/manager';
-import { Player } from '../../../db/models/player';
+import Player from '../../../db/models/player';
 import { ResponseCode } from '../../response_code';
 import { DBRoutes } from '../database';
 import { ActiveGames } from './lib/active_games';
@@ -38,11 +38,12 @@ export class CribbageService {
 
     /**
      * The data base manager
+     * TODO: possibly remove?
      */
     private dbManager: DbManager = null;
 
     /**
-     * An invalid player_id
+     * An invalid player id
      * @returns {number}
      * @constructor
      */
@@ -51,22 +52,31 @@ export class CribbageService {
     }
 
     public constructor() {
-        this.dbManager = new DbManager({
-            database: process.env.DATABASE,
-            username: process.env.DB_USERNAME,
-            password: process.env.DB_PASSWORD,
-        });
+        try {
+            this.dbManager = new DbManager({
+                host: process.env.DB_HOST,
+                port: parseInt(process.env.DB_PORT, 10),
+                database: process.env.DB_NAME,
+                username: process.env.DB_USER,
+                password: process.env.DB_PASS,
+                dialect: process.env.DB_DIALECT
+            });
+        }
+        catch (e) {
+            console.error('failed to create db manager', e);
+        }
         this.activeGames = new ActiveGames();
-        this.unfinishedGames = new UnfinishedGames(this.dbManager);
+        this.unfinishedGames = new UnfinishedGames();
         this.players = new Map<string, number>();
         this.cribbageID = 0;
     }
 
     /**
      * Initialize the class
-     * @returns {Promise} returns an error string if an error occurred, otherwise an empty string
      */
-    public async init(): Promise<string> {
+    public async init() {
+        // Make sure the db models are synced to the db (i.e. create the tables if they don't exist)
+        await this.dbManager.createTables();
         // Get the Cribbage ID
         const gameResult = await DBRoutes.router.getGame(Games.Cribbage);
         if (gameResult === null) {
@@ -78,7 +88,6 @@ export class CribbageService {
         gameHistoryIDs.forEach((ghid: number) => {
             this.unfinishedGames.addUnfinishedGame(ghid);
         });
-        return '';
     }
 
     /**
@@ -135,25 +144,25 @@ export class CribbageService {
     /**
      * Join a player to either the given game or a new game if game_history_id is 0
      * @param playerId
-     * @param player
+     * @param playerName
      * @param gameHistoryId
      * @returns {Promise<CribbageServiceResponse>}
      */
-    private async joinPlayerToGame(playerId: number, player: string, gameHistoryId: number): Promise<CribbageServiceResponse> {
+    private async joinPlayerToGame(playerId: number, playerName: string, gameHistoryId: number): Promise<CribbageServiceResponse> {
         // Find if the player is in the new game
-        if (this.activeGames.playerIsInGame(playerId, player)) {
+        if (this.activeGames.playerIsInGame(playerId, playerName)) {
             // The player is already part of the new game
-            const game = this.activeGames.getPlayerGame(playerId);
-            const message = game ? `You're already playing game #${game.game}` : 'You\'re already in the new, unbegun game';
+            const result = this.activeGames.getPlayerGame(playerId, playerName);
+            const message = result.status === ResponseCode.ok ? `You\'re already in a game` : 'You\'re already in the new, unbegun game';
             return makeErrorResponse(message);
         }
         else if (gameHistoryId !== CribbageService.INVALID_ID) {
             // The player is not part of the new game, add them to the existing game
-            return this.joinPlayerToUnfinishedGame(playerId, player, gameHistoryId);
+            return this.joinPlayerToUnfinishedGame(playerId, playerName, gameHistoryId);
         }
         else {
             // The player is not part of the new game, add them to the new game
-            this.activeGames.joinPlayerToNewGame(player);
+            this.activeGames.joinPlayerToNewGame(playerName);
             return new CribbageServiceResponse();
         }
     }
@@ -238,7 +247,7 @@ export class CribbageService {
                 // Try to find the player in the database
                 const result = await PlayerActions.findById(playerId);
                 playerName = result.name;
-                CribbageService.setPlayer(this.players, name, playerId);
+                CribbageService.setPlayer(this.players, playerName, playerId);
             }
             catch (e) {
                 console.log(`error getting player ${playerId} from the database`, e);
@@ -360,12 +369,12 @@ export class CribbageService {
 
     /**
      * Get the given player's current game
-     * @param player
+     * @param playerName
      * @returns {Promise<CurrentGameResponse>}
      */
-    public async getPlayerGame(player: string): Promise<CurrentGameResponse> {
-        const playerID = await this.getPlayerID(player);
-        return this.activeGames.getPlayerGame(playerID);
+    public async getPlayerGame(playerName: string): Promise<CurrentGameResponse> {
+        const playerID = await this.getPlayerID(playerName);
+        return this.activeGames.getPlayerGame(playerID, playerName);
     }
 
     /**

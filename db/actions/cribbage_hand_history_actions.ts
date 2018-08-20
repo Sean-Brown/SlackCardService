@@ -1,4 +1,4 @@
-import { CribbageHandHistory } from '../models/cribbage_hand_history';
+import CribbageHandHistory from '../models/cribbage_hand_history';
 
 class Actions {
     remove(gameHistoryId: number) {

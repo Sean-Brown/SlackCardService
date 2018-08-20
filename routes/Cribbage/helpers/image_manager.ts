@@ -79,6 +79,7 @@ namespace ImageConvert {
 
     function downloadCard(card: Card): Promise<string> {
         return new Promise((resolve, reject) => {
+            console.log(`current directory: ${__dirname}`);
             const cardFilePath = `${cardsPath}${card.toUrlString()}`;
             if (fs.existsSync(cardFilePath)) {
                 console.log(`getting the ${card.toString()} from cache`);

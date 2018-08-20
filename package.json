@@ -8,19 +8,17 @@
   },
   "homepage": "https://github.com/Sean-Brown/SlackCardSerevice#readme",
   "engines": {
-    "node": "10.8.0",
+    "node": "8.11.4",
     "npm": "6.3.0"
   },
   "description": "Web service for playing card games",
   "main": "app.js",
   "scripts": {
-    "build": "typings install && tsc -p .",
-    "db:migrate": "node ./spec/db/migrate",
-    "pretest": "NODE_ENV=test npm run db:migrate",
-    "postinstall": "npm run build || true",
+    "build": "node ./node_modules/.bin/tsc",
+    "postinstall": "yarn build || true",
     "start": "node app.js",
-    "test": "node -v && npm -v && npm run test-node && npm run test-service",
-    "test-node": "mocha -c -b --reporter spec spec/Node/*.js",
+    "test": "node -v && npm -v && yarn --version && yarn test-node && yarn test-service",
+    "test-node": "mocha -c -b --reporter spec --exit spec/Node/*.js",
     "test-service": "jasmine-node ./spec/SlackCardService/"
   },
   "repository": {

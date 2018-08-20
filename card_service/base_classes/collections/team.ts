@@ -1,6 +1,6 @@
-import {IItem} from '../../interfaces/iitem';
-import {BasePlayer as Player} from '../items/player';
-import {ItemCollection} from './item_collection';
+import { IItem } from '../../interfaces/iitem';
+import { BasePlayer as Player } from '../items/player';
+import { ItemCollection } from './item_collection';
 
 export class BaseTeam<SomePlayerClass extends Player> extends ItemCollection<SomePlayerClass> implements IItem {
     id: number;

@@ -3,9 +3,10 @@ import * as request from 'request';
 import { BaseCard as Card, Suit, Value } from '../../card_service/base_classes/items/card';
 import { Cribbage, CribbageReturn, CribbageStrings } from '../../card_service/implementations/cribbage';
 import { CribbageHand } from '../../card_service/implementations/cribbage_hand';
-import { CribbageHandHistory } from '../../db/models/cribbage_hand_history';
-import { Player } from '../../db/models/player';
-import { WinLossHistory } from '../../db/models/win_loss_history';
+import { GameHistoryPlayerActions } from '../../db/actions/game_history_player_actions';
+import CribbageHandHistory from '../../db/models/cribbage_hand_history';
+import Player from '../../db/models/player';
+import WinLossHistory from '../../db/models/win_loss_history';
 import { ResponseCode } from '../response_code';
 import { SlackResponseType } from '../slack';
 import { ImageManager } from './helpers/image_manager';
@@ -263,6 +264,9 @@ export namespace CribbageRoutes {
                 case Routes.unfinishedGames:
                     verified = (token === Tokens.unfinishedGames);
                     break;
+                case Routes.currentGame:
+                    verified = (token === Tokens.currentGame);
+                    break;
             }
             return verified;
         }
@@ -396,37 +400,32 @@ export namespace CribbageRoutes {
          * Record each player's hand and the kitty in the database
          * @throws an error string, if there was an error
          */
-        private static async recordCribbageHands(gameHistoryId: number, game: Cribbage, players: Array<Player>) {
+        public static async recordCribbageHands(gameHistoryId: number, game: Cribbage, players: Array<Player>) {
             const chhs = [];
             // Find the dealer's ID
             let dealerId = 0;
             const dealerName = game.dealer.name.toUpperCase();
-            for (let ix = 0; ix < players.length; ix++) {
-                const player = players[ix];
+            for (const player of players) {
                 if (dealerId === 0 && player.name.toUpperCase() === dealerName) {
                     dealerId = player.id;
                 }
                 // Find the corresponding player in the Cribbage game in order to find their hand
                 const gamePlayer = game.players.findPlayer(player.name);
-                chhs.push(
-                    new CribbageHandHistory({
-                        playerId: player.id,
-                        gameHistoryId,
-                        hand: gamePlayer.hand.toShortString(),
-                        cut: game.cut.shortString()
-                    })
-                );
+                chhs.push({
+                    playerId: player.id,
+                    gameHistoryId,
+                    hand: gamePlayer.hand.toShortString(),
+                    cut: game.cut.shortString()
+                });
             }
             // Add the kitty
-            chhs.push(
-                new CribbageHandHistory({
-                    playerId: dealerId,
-                    gameHistoryId,
-                    hand: game.kitty.toShortString(),
-                    cut: game.cut.shortString(),
-                    isCrib: true
-                })
-            );
+            chhs.push({
+                playerId: dealerId,
+                gameHistoryId,
+                hand: game.kitty.toShortString(),
+                cut: game.cut.shortString(),
+                isCrib: true
+            });
             try {
                 await CribbageHandHistory.bulkCreate(chhs);
             }
@@ -446,15 +445,12 @@ export namespace CribbageRoutes {
         private static async recordResult(req: Request, gameHistoryId: number, game: Cribbage, players: Array<Player>) {
             const histories = [];
             console.log(`Recording win-loss history for ${gameHistoryId}`);
-            for (let ix = 0; ix < players.length; ix++) {
-                const player = players[ix];
-                histories.push(
-                    new WinLossHistory({
-                        playerId: player.id,
-                        gameHistoryId,
-                        won: game.wonGame(player.name)
-                    })
-                );
+            for (const player of players) {
+                histories.push({
+                    playerId: player.id,
+                    gameHistoryId,
+                    won: game.wonGame(player.name)
+                });
             }
             try {
                 await WinLossHistory.bulkCreate(histories);
@@ -775,7 +771,7 @@ export namespace CribbageRoutes {
                         Router.resetSequenceImages();
                         // Record the wins/losses in the database
                         const ghid = playCardResult.gameHistoryID;
-                        const players = await this.cribbageService.getGamePlayers(ghid);
+                        const players = await GameHistoryPlayerActions.getGamePlayers(ghid);
                         await Router.checkPlayersResult(players, ghid, async() => {
                             await Router.recordResult(req, ghid, playCardResult.game, players);
                         });

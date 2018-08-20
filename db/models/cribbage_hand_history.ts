@@ -1,23 +1,23 @@
 import { Column, CreatedAt, ForeignKey, Model, Table } from 'sequelize-typescript';
-import { GameHistory } from './game_history';
-import { Player } from './player';
+import GameHistory from './game_history';
+import Player from './player';
 
 @Table({
-    updatedAt: false,
-    underscored: true,
-    underscoredAll: true
+    updatedAt: false
 })
-export class CribbageHandHistory extends Model<CribbageHandHistory> {
+export default class CribbageHandHistory extends Model<CribbageHandHistory> {
     /**
      * The ID of the player this hand is for
      */
     @ForeignKey(() => Player)
+    @Column
     playerId: number;
 
     /**
      *  The ID of the game this hand was in
      */
     @ForeignKey(() => GameHistory)
+    @Column
     gameHistoryId: number;
 
     /**

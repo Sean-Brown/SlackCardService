@@ -5,12 +5,12 @@ import { CribbageHand } from '../../../../card_service/implementations/cribbage_
 import { CribbagePlayer } from '../../../../card_service/implementations/cribbage_player';
 import { CribbageHandHistoryActions } from '../../../../db/actions/cribbage_hand_history_actions';
 import { PlayerActions } from '../../../../db/actions/player_actions';
-import { CribbageHandHistory } from '../../../../db/models/cribbage_hand_history';
-import { GameHistoryPlayer } from '../../../../db/models/game_history_player';
-import { Player } from '../../../../db/models/player';
+import CribbageHandHistory from '../../../../db/models/cribbage_hand_history';
+import GameHistoryPlayer from '../../../../db/models/game_history_player';
+import Player from '../../../../db/models/player';
 import { getErrorMessage } from '../../../lib';
 import { ResponseCode } from '../../../response_code';
-import { CribbageRoutes } from '../../index';
+import { CribbageRoutes } from '../../Index';
 import { CribbageService } from '../cribbage_service';
 import { GameAssociation } from './game_association';
 import {

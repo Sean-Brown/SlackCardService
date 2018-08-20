@@ -1,4 +1,4 @@
-import { Player } from '../models/player';
+import Player from '../models/player';
 
 class Actions {
     findById(id: number) {

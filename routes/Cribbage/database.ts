@@ -4,10 +4,10 @@ import { GameHistoryActions } from '../../db/actions/game_history_actions';
 import { GameHistoryPlayerActions } from '../../db/actions/game_history_player_actions';
 import { PlayerActions } from '../../db/actions/player_actions';
 import { WinLossHistoryActions } from '../../db/actions/win_loss_history_actions';
-import { CribbageHandHistory } from '../../db/models/cribbage_hand_history';
-import { Game } from '../../db/models/game';
-import { GameHistory } from '../../db/models/game_history';
-import { Player } from '../../db/models/player';
+import CribbageHandHistory from '../../db/models/cribbage_hand_history';
+import Game from '../../db/models/Game';
+import GameHistory from '../../db/models/game_history';
+import Player from '../../db/models/player';
 
 export namespace DBRoutes {
 

@@ -1,7 +1,7 @@
 import * as bodyParser from 'body-parser';
 import * as errorHandler from 'errorhandler';
 import * as express from 'express';
-import {CribbageRoutes} from './routes/Cribbage';
+import { CribbageRoutes } from './routes/Cribbage';
 const port = process.env.PORT || 5029;
 
 export const CribbageRoutePrefix = '/cribbage';
@@ -16,7 +16,7 @@ export async function setup(app: express.Express): Promise<express.Application> 
     app.use('/public', express.static(__dirname + '/public'));
     app.use(express.static(__dirname + '/public'));
 
-    const env = process.env.NODE_ENV || 'development';
+    const env = process.env.NODE_ENV || 'production';
     if ('development' === env.toLowerCase()) {
         app.use(errorHandler({log: true}));
     }
@@ -65,8 +65,8 @@ setup(express())
             console.log('Express server listening on port %d in %s mode', port, app.settings.env);
         });
     })
-    .catch(() => {
-        console.log('Failed to create the express application');
+    .catch((e) => {
+        console.error('Failed to create the express application');
     });
 
 

@@ -1,4 +1,4 @@
-import {config} from 'dotenv';
+import { config } from 'dotenv';
 
 /**
  * Read the environment variables from a .env file located at spec/db/postgres/integration

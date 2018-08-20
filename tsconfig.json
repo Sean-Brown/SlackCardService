@@ -1,7 +1,8 @@
 {
   "compilerOptions": {
-    "target": "es2017",
+    "target": "es2018",
     "module": "commonjs",
+    "lib": ["es2015"],
     "declaration": false,
     "sourceMap": true,
     "noImplicitAny": false,

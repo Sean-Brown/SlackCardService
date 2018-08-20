@@ -1,10 +1,11 @@
-import { GameHistoryPlayer } from '../models/game_history_player';
-import { Player } from '../models/player';
+import { Sequelize } from '../../node_modules/sequelize-typescript';
+import GameHistoryPlayer from '../models/game_history_player';
+import Player from '../models/player';
 
 class Actions {
     createAssociations(gameHistoryId: number, playerIds: number[]) {
         const instances = [];
-        for (const playerId in playerIds) {
+        for (const playerId of playerIds) {
             instances.push({
                 gameHistoryId,
                 playerId
@@ -22,7 +23,7 @@ class Actions {
     }
     async getGamePlayers(gameHistoryId: number) {
         const playerIds = await GameHistoryPlayer.findAll({
-            attributes: ['player_id'],
+            attributes: ['playerId'],
             where: {
                 gameHistoryId
             }
@@ -30,7 +31,7 @@ class Actions {
         return Player.findAll({
             where: {
                 id: {
-                    $in: playerIds
+                    [Sequelize.Op.in]: playerIds
                 }
             }
         });

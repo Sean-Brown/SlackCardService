@@ -83,7 +83,7 @@ describe('Test a Cribbage game between two playerIDs', function () {
                 fourOfSpades,
                 fiveOfHearts
             ]));
-            expect(result.indexOf(`${user}`)).not.toEqual(-1);
+            expect(result.indexOf(`${user}`)).toNotEqual(-1);
             imageManager.clearAllImages();
         });
     });

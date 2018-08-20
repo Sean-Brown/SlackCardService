@@ -1,19 +1,17 @@
-import { BelongsToMany, Column, CreatedAt, Model, Table, Unique } from 'sequelize-typescript';
-import { GameHistory } from './game_history';
-import { GameHistoryPlayer } from './game_history_player';
+import { BelongsToMany, Column, CreatedAt, HasMany, Model, Table } from 'sequelize-typescript';
+import GameHistory from './game_history';
+import GameHistoryPlayer from './game_history_player';
+import WinLossHistory from './win_loss_history';
 
 @Table({
-    updatedAt: false,
-    underscored: true,
-    underscoredAll: true
+    updatedAt: false
 })
-export class Player extends Model<Player> {
+export default class Player extends Model<Player> {
 
     /**
      * The name of the player.
      */
-    @Column
-    @Unique
+    @Column({unique: true})
     name: string;
 
     /**
@@ -27,4 +25,10 @@ export class Player extends Model<Player> {
      */
     @BelongsToMany(() => GameHistory, () => GameHistoryPlayer)
     gameHistory?: GameHistory[];
+
+    /**
+     * The player's win-loss history
+     */
+    @HasMany(() => WinLossHistory)
+    winsAndLosses: WinLossHistory[];
 }
