@@ -1,7 +1,7 @@
 import * as async from 'async';
 import * as expect from 'expect';
 import { Application } from 'express';
-import { request } from 'supertest';
+import * as request from 'supertest';
 import { CribbageRoutePrefix } from '../../app';
 import { Teams } from '../../card_service/base_classes/card_game';
 import { ItemCollection } from '../../card_service/base_classes/collections/item_collection';
@@ -32,10 +32,10 @@ const spyOn = expect.spyOn;
 
 describe('Integration test the Cribbage game between two playerIDs', function () {
     this.timeout(0);
-    const app: Application = null;
+    let app: Application = null;
     let PeterGriffin: CribbagePlayer, pgID: number, HomerSimpson: CribbagePlayer, hsID: number,
         cribbageID: number, currentGameID: number;
-    let pgHand, hsHand, crib;
+    let pgHand: CribbageHand, hsHand: CribbageHand, crib: CribbageHand;
     const cut = sevenOfDiamonds;
     let cribRoutes: Router;
 
@@ -64,7 +64,7 @@ describe('Integration test the Cribbage game between two playerIDs', function ()
      */
     beforeEach(async function () {
         await truncate();
-        await createNewServer(app);
+        app = await createNewServer();
         // Set the current game that's in the routes object (from app.ts)
         cribRoutes = app.locals.cribbageRoutes;
         spyOn(Router.IMAGE_MANAGER, 'createDiscardImageAsync').andCall(async () => {
@@ -101,7 +101,7 @@ describe('Integration test the Cribbage game between two playerIDs', function ()
         return getJson(token, player.name);
     }
 
-    function addPlayersAndTeams() {
+    async function addPlayersAndTeams() {
         const currentGame = cribRoutes.cribbageService.activeGames.newGame;
         currentGame.players.removeAll();
         currentGame.players.addPlayer(PeterGriffin);
@@ -150,8 +150,8 @@ describe('Integration test the Cribbage game between two playerIDs', function ()
     }
 
     async function findGameHistoryPlayer(playerID: number): Promise<void> {
-        const ghp = await GameHistoryPlayerActions.findAssociation(playerID, currentGameID);
-        expect(ghp).not.toBeNull();
+        const ghp = await GameHistoryPlayerActions.findAssociation(currentGameID, playerID);
+        expect(ghp).toBeTruthy();
     }
 
     async function findCribbageHandHistory(playerID: number, expectedHand: CribbageHand, kitty: boolean): Promise<void> {
@@ -166,11 +166,9 @@ describe('Integration test the Cribbage game between two playerIDs', function ()
             }
         }
         const hand = Router.parseCards(chh.hand);
-        for (let ix = 0; ix < expectedHand.size(); ix++) {
+        for (const cardX of expectedHand.items) {
             let found = false;
-            const cardX = expectedHand.itemAt(ix);
-            for (let iy = 0; iy < hand.length; iy++) {
-                const cardY = hand[iy];
+            for (const cardY of hand) {
                 if (cardX.equalsOther(cardY)) {
                     found = true;
                     break;
@@ -178,7 +176,7 @@ describe('Integration test the Cribbage game between two playerIDs', function ()
             }
             expect(found).toBeTruthy(`Couldn't find ${cardX.toString()}`);
         }
-        expect(cut).toEqual(chh.cut);
+        expect(cut.shortString()).toEqual(chh.cut);
     }
 
     async function findWinLossInDatabase(playerName: string, won: boolean): Promise<void> {
@@ -220,7 +218,7 @@ describe('Integration test the Cribbage game between two playerIDs', function ()
                 delayFunc(() => {
                     // Intercept the dealing and assign our own hands
                     const newGame = cribRoutes.cribbageService.activeGames.newGame;
-                    spyOn(newGame, 'begin').andCall(() => {
+                    spyOn(newGame, 'begin').andCall(async () => {
                         // Initialize the playerIDs and teams
                         addPlayersAndTeams();
                         // Assign the dealer
@@ -356,7 +354,7 @@ describe('Integration test the Cribbage game between two playerIDs', function ()
     }
 
     it('lets any player reset the new game', function (done) {
-        const agent = request(this.app);
+        const agent = request(app);
         const series = joinGameAndBeginSeries(agent).concat(
             function (cb) {
                 delayFunc(() => {
@@ -374,12 +372,12 @@ describe('Integration test the Cribbage game between two playerIDs', function ()
     });
 
     it('lets players join the game and begin', function (done) {
-        const agent = request(this.app);
+        const agent = request(app);
         async.series(joinGameAndBeginSeries(agent), done);
     });
 
     it('describes the current game', function (done) {
-        const agent = request(this.app);
+        const agent = request(app);
         const series = joinGameAndBeginSeries(agent).concat(
             function (cb) {
                 delayFunc(() => {
@@ -401,7 +399,7 @@ describe('Integration test the Cribbage game between two playerIDs', function ()
 
     // Disable the test by default since I don't want the test to download card images
     // it('is able to show a player\'s cards', function(done) {
-    //     let agent = request(this.app);
+    //     let agent = request(app);
     //     let series = joinGameAndBeginSeries(agent).concat(
     //         function (cb) {
     //             // Show player one's hand
@@ -414,7 +412,15 @@ describe('Integration test the Cribbage game between two playerIDs', function ()
     // });
 
     it('is able to play and store a round of play', function (done) {
-        const agent = request(this.app);
+        const agent = request(app);
+        const pgHandCopy = new CribbageHand(pgHand.deepCopy().items),
+                hsHandCopy = new CribbageHand(hsHand.deepCopy().items),
+                cribCopy = new CribbageHand(crib.deepCopy().items);
+        // Remove thrown cards
+        pgHandCopy.removeItem(tenOfSpades);
+        pgHandCopy.removeItem(jackOfClubs);
+        hsHandCopy.removeItem(nineOfSpades);
+        hsHandCopy.removeItem(tenOfHearts);
         const series = joinGameAndBeginSeries(agent)
             .concat(throwCardsSeries(agent))
             .concat(playCardsSeries(agent))
@@ -422,19 +428,19 @@ describe('Integration test the Cribbage game between two playerIDs', function ()
                 // Check the database for the correct hand history
                 function (cb) {
                     delayFunc(() => {
-                        findCribbageHandHistory(pgID, pgHand, false)
+                        findCribbageHandHistory(pgID, pgHandCopy, false)
                             .then(() => cb());
                     });
                 },
                 function (cb) {
                     delayFunc(() => {
-                        findCribbageHandHistory(hsID, hsHand, false)
+                        findCribbageHandHistory(hsID, hsHandCopy, false)
                             .then(() => cb());
                     });
                 },
                 function (cb) {
                     delayFunc(() => {
-                        findCribbageHandHistory(pgID, crib, true)
+                        findCribbageHandHistory(pgID, cribCopy, true)
                             .then(() => cb());
                     });
                 }
@@ -443,7 +449,15 @@ describe('Integration test the Cribbage game between two playerIDs', function ()
     });
 
     it('is able to record a win', function (done) {
-        const agent = request(this.app);
+        const agent = request(app);
+        const pgHandCopy = new CribbageHand(pgHand.deepCopy().items),
+                hsHandCopy = new CribbageHand(hsHand.deepCopy().items),
+                cribCopy = new CribbageHand(crib.deepCopy().items);
+        // Remove thrown cards
+        pgHandCopy.removeItem(tenOfSpades);
+        pgHandCopy.removeItem(jackOfClubs);
+        hsHandCopy.removeItem(nineOfSpades);
+        hsHandCopy.removeItem(tenOfHearts);
         const series = joinGameAndBeginSeries(agent)
             .concat(throwCardsSeries(agent))
             .concat([
@@ -465,19 +479,19 @@ describe('Integration test the Cribbage game between two playerIDs', function ()
                 // Check the database for the correct hand history
                 function (cb) {
                     delayFunc(() => {
-                        findCribbageHandHistory(pgID, pgHand, false)
+                        findCribbageHandHistory(pgID, pgHandCopy, false)
                             .then(() => cb());
                     });
                 },
                 function (cb) {
                     delayFunc(() => {
-                        findCribbageHandHistory(hsID, hsHand, false)
+                        findCribbageHandHistory(hsID, hsHandCopy, false)
                             .then(() => cb());
                     });
                 },
                 function (cb) {
                     delayFunc(() => {
-                        findCribbageHandHistory(pgID, crib, true)
+                        findCribbageHandHistory(pgID, cribCopy, true)
                             .then(() => cb());
                     });
                 },
@@ -499,7 +513,7 @@ describe('Integration test the Cribbage game between two playerIDs', function ()
     });
 
     it('lets a player leave the new game', function (done) {
-        const agent = request(this.app);
+        const agent = request(app);
         const series = [
             function (cb) {
                 delayFunc(() => {
@@ -523,7 +537,7 @@ describe('Integration test the Cribbage game between two playerIDs', function ()
     });
 
     it('lets a player leave from a game that has begun', function (done) {
-        const agent = request(this.app);
+        const agent = request(app);
         const series = joinGameAndBeginSeries(agent).concat(
             function (cb) {
                 delayFunc(() => {
@@ -537,7 +551,7 @@ describe('Integration test the Cribbage game between two playerIDs', function ()
     });
 
     it('gets the players unfinished game', function (done) {
-        const agent = request(this.app);
+        const agent = request(app);
         const series = joinGameAndBeginSeries(agent).concat(
             function (cb) {
                 delayFunc(() => {
@@ -551,7 +565,7 @@ describe('Integration test the Cribbage game between two playerIDs', function ()
     });
 
     it('gets the players unfinished games', function (done) {
-        const agent = request(this.app);
+        const agent = request(app);
         let series = joinGameAndBeginSeries(agent).concat(
             function (cb) {
                 delayFunc(() => {
@@ -583,7 +597,7 @@ describe('Integration test the Cribbage game between two playerIDs', function ()
     });
 
     it('gets the players current game', function (done) {
-        const agent = request(this.app);
+        const agent = request(app);
         const series = joinGameAndBeginSeries(agent).concat(
             function (cb) {
                 delayFunc(() => {

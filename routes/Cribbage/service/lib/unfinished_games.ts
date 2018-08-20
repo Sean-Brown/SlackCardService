@@ -1,20 +1,18 @@
 import { Manager as DbManager } from '../../../../db/manager';
-import { GameHistory } from '../../../../db/models/game_history';
-import { GameHistoryPlayer } from '../../../../db/models/game_history_player';
-import { WinLossHistory } from '../../../../db/models/win_loss_history';
+import GameHistory from '../../../../db/models/game_history';
+import GameHistoryPlayer from '../../../../db/models/game_history_player';
+import WinLossHistory from '../../../../db/models/win_loss_history';
+
+import { Sequelize } from 'sequelize-typescript';
+const Op = Sequelize.Op;
 
 export class UnfinishedGames {
     /**
      * The a set of the unfinished game-history IDs
      */
     private unfinishedGames: Set<number>;
-    /**
-     * The database manager
-     */
-    private readonly dbManager: DbManager;
 
-    constructor(dbManager: DbManager) {
-        this.dbManager = dbManager;
+    constructor() {
         this.unfinishedGames = new Set();
     }
 
@@ -66,50 +64,51 @@ export class UnfinishedGames {
      * @returns {Promise<Array<number>>}
      */
     public async getUnfinishedGames(): Promise<Array<number>> {
-        const gameHistoryIDs = [];
+        let gameHistoryIDs = [];
         try {
-            // const winLossHistories = await WinLossHistory.findAll({
-            //     attributes: ['gameHistoryId']
-            // }).map((wlh: WinLossHistory) => wlh.gameHistoryId);
-            const result = await GameHistory.findAll({
+            const winLossGameHistoryIDs = await WinLossHistory.findAll({
+                attributes: ['gameHistoryId']
+            }).map((wlh: WinLossHistory) => wlh.gameHistoryId);
+            gameHistoryIDs = await GameHistory.findAll({
                 attributes: ['id'],
                 where: {
                     id: {
-                        $notIn: `(${this.dbManager.sequelize.literal(`SELECT id FROM win_loss_history`)})`
+                        [Op.in]: winLossGameHistoryIDs
                     }
                 }
-            });
-            result.forEach((gh: GameHistory) => {
-                gameHistoryIDs.push(gh.id);
-                this.addUnfinishedGame(gh.id);
+            }).map((gh: GameHistory) => gh.id)
+            .each((ghid: number) => {
+                this.addUnfinishedGame(ghid);
             });
         }
         catch (e) {
-            console.log(`error getting the unfinished games`);
+            console.log(`error getting the unfinished games`, e);
         }
         return gameHistoryIDs;
     }
 
     public async playerUnfinishedGames(playerId: number): Promise<Array<number>> {
-        const gameHistoryIDs = [];
+        let gameHistoryIDs = [];
         try {
-            const result = await GameHistoryPlayer.findAll({
+            const winLossGameHistoryIds = await WinLossHistory.findAll({
+                attributes: ['gameHistoryId'],
+                distinct: true
+            }).map((wlh: WinLossHistory) => wlh.gameHistoryId);
+            gameHistoryIDs = await GameHistoryPlayer.findAll({
                 attributes: ['gameHistoryId'],
                 where: {
                     playerId,
                     id: {
-                        $notIn: `(${this.dbManager.sequelize.literal(`SELECT DISTINCT game_history_id FROM win_loss_history`)})`
+                        [Op.in]: winLossGameHistoryIds
                     }
                 }
-            });
-            result.forEach((gameHistoryPlayer: GameHistoryPlayer) => {
-                const ghid = gameHistoryPlayer.gameHistoryId;
-                gameHistoryIDs.push(ghid);
+            }).map((ghp: GameHistoryPlayer) => ghp.gameHistoryId)
+            .each((ghid: number) => {
                 this.addUnfinishedGame(ghid);
             });
         }
         catch (e) {
-            console.log(`error getting the unfinished games for player ${playerId}`);
+            console.log(`error getting the unfinished games for player ${playerId}`, e);
         }
         return gameHistoryIDs;
     }

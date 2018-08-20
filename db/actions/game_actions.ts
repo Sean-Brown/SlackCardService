@@ -1,4 +1,4 @@
-import { Game } from '../models/game';
+import Game from '../models/Game';
 
 class Actions {
     findByName(name: string) {

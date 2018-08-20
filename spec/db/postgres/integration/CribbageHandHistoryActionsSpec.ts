@@ -1,6 +1,6 @@
 import * as expect from 'expect';
 import { CribbageHandHistoryActions } from '../../../../db/actions/cribbage_hand_history_actions';
-import { CribbageHandHistory } from '../../../../db/models/cribbage_hand_history';
+import CribbageHandHistory from '../../../../db/models/cribbage_hand_history';
 import { readConfigFromEnv } from '../../setEnv';
 import { createGame } from './GameActionsSpec';
 import { createGameHistory } from './GameHistoryActionsSpec';
@@ -48,7 +48,7 @@ describe('Test the \'cribbage-hand-history\' actions', function () {
             done();
         }
     });
-    it('enforces player_id foreign key constraints', async function (done) {
+    it('enforces playerId foreign key constraints', async function (done) {
         try {
             await createCribbageHandHistory(gameHistory.id, 0, false, false);
         }

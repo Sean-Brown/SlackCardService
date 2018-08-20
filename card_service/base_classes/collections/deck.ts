@@ -45,8 +45,8 @@ export class BaseDeck<SomeCardClass extends Card> extends ItemCollection<SomeCar
 
     getCards(): Array<Card> {
         const cards = [];
-        for (const item in this.items) {
-            cards.push(this.items[item]);
+        for (const item of this.items) {
+            cards.push(item);
         }
         return cards;
     }

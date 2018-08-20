@@ -7,13 +7,13 @@ export interface TestClass extends Mocha.Test {
     app: express.Application;
 }
 
-export async function createNewServer(app: express.Application): Promise<void> {
+export async function createNewServer(): Promise<express.Application> {
     try {
         readConfigFromEnv();
-        app = await setup(express());
+        return await setup(express());
     }
     catch (e) {
         console.error(`Error caught creating a new test server: ${e}`);
-        app = null;
+        return null;
     }
 }

@@ -5,8 +5,8 @@ import { GameActions } from '../../../../db/actions/game_actions';
 import { GameHistoryActions } from '../../../../db/actions/game_history_actions';
 import { GameHistoryPlayerActions } from '../../../../db/actions/game_history_player_actions';
 import { PlayerActions } from '../../../../db/actions/player_actions';
-import { CribbageHandHistory } from '../../../../db/models/cribbage_hand_history';
-import { WinLossHistory } from '../../../../db/models/win_loss_history';
+import CribbageHandHistory from '../../../../db/models/cribbage_hand_history';
+import WinLossHistory from '../../../../db/models/win_loss_history';
 import { CribbageService } from '../../../../routes/Cribbage/service/cribbage_service';
 import { ActiveGames } from '../../../../routes/Cribbage/service/lib/active_games';
 import { ResponseCode } from '../../../../routes/response_code';
@@ -169,14 +169,14 @@ describe('The Cribbage Service', function () {
                 const name = PeterGriffin.name;
                 const result = await cribbageService.joinGame(name);
                 expect(result.status).toEqual(ResponseCode.ok, result.message);
-                expect(cribbageService.activeGames.newGame.players.findPlayer(name)).not.toBeNull(`Expected ${name} to be in the game`);
+                expect(cribbageService.activeGames.newGame.players.findPlayer(name)).toBeDefined(`Expected ${name} to be in the game`);
             });
 
             it('adds an player to the database and the service\'s map of players when the new player joins the new game', async function () {
                 const name = 'Zaphod';
                 const result = await cribbageService.joinGame(name);
                 expect(result.status).toEqual(ResponseCode.ok, result.message);
-                expect(cribbageService.activeGames.newGame.players.findPlayer(name)).not.toBeNull(`Expected ${name} to be in the game`);
+                expect(cribbageService.activeGames.newGame.players.findPlayer(name)).toBeDefined(`Expected ${name} to be in the game`);
                 expect(cribbageService.players.has(name)).toBeTruthy();
             });
 
@@ -360,7 +360,7 @@ describe('The Cribbage Service', function () {
                 expect(cribbageService.activeGames.newGame.hasBegun).toBeFalsy('The new game should not have begun yet');
                 const bgResult2 = await cribbageService.beginGame(HomerSimpson.name);
                 expectSuccess(bgResult2);
-                expect(bgResult2.gameAssociation).not.toBeNull('Expected a game association object');
+                expect(bgResult2.gameAssociation).toBeDefined('Expected a game association object');
                 expect(bgResult2.gameAssociation.playerIDs.size).toEqual(2);
                 expect(cribbageService.activeGames.activeGames.has(bgResult2.gameAssociation.game_history_id)).toBeTruthy('The game should\'ve been set as an active game');
                 expect(cribbageService.activeGames.playerGame.has(pgID)).toBeTruthy(`Couldn't find ${pgID} in the newly active game`);
@@ -395,7 +395,7 @@ describe('The Cribbage Service', function () {
                 expect(jgResult2.status).toEqual(ResponseCode.ok, jgResult2.message);
                 // Replace each player's hand
                 const gameAssociation = cribbageService.activeGames.activeGames.get(ghid);
-                expect(gameAssociation).not.toBeNull();
+                expect(gameAssociation).toBeDefined();
                 expect(gameAssociation.game.players.countItems()).toEqual(2);
                 gameAssociation.game.players.findPlayer(PeterGriffin.name).hand =
                     new CribbageHand([fourOfSpades, fiveOfHearts, sixOfClubs, tenOfSpades]);

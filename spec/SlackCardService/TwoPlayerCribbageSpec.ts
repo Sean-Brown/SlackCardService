@@ -65,12 +65,12 @@ describe('Test a Cribbage game between two players', function () {
         expect(game.nextPlayerInOrder(playerTwo).equalsOther(playerOne)).toBe(true);
     });
     it('deals the right number of cards and assigns a dealer', function () {
-        expect(game.dealer).toBeNull();
+        expect(game.dealer).toBe(null);
         expect(game.players.itemAt(0).numCards()).toEqual(0);
         expect(game.players.itemAt(1).numCards()).toEqual(0);
         game.cutForDealer();
-        expect(game.dealer).toBeDefined();
-        expect(game.nextPlayerInSequence).toBeDefined();
+        expect(game.dealer).toBeTruthy();
+        expect(game.nextPlayerInSequence).toBeTruthy();
         game.deal();
         expect(game.players.itemAt(0).numCards()).toEqual(6);
         expect(game.players.itemAt(1).numCards()).toEqual(6);
@@ -267,7 +267,7 @@ describe('Test a Cribbage game between two players', function () {
             game.go(playerTwo.name);
             expect.spyOn(game, 'roundOverResetState');
             game.playCard(playerOne.name, aceOfClubs);
-            expect(game.roundOverResetState).not.toHaveBeenCalled();
+            expect(game.roundOverResetState).toNotHaveBeenCalled();
         });
         it('knows how to play one round', function () {
             playerOne.hand =
@@ -342,9 +342,7 @@ describe('Test a Cribbage game between two players', function () {
             game.playCard(playerOne.name, twoOfDiamonds);
             expect(function () {
                 game.playCard(playerOne.name, aceOfClubs);
-            })
-                .not
-                .toThrow(`${ErrorStrings.FMT_NOT_NEXT_PLAYER} + ${game.nextPlayerInSequence.name}`);
+            }).toNotThrow(`${ErrorStrings.FMT_NOT_NEXT_PLAYER} + ${game.nextPlayerInSequence.name}`);
         });
         it('gives the correct player the point', function () {
             game.dealer = playerTwo;

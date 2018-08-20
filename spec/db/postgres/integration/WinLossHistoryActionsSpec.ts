@@ -1,9 +1,9 @@
 import * as expect from 'expect';
 import { WinLossHistoryActions } from '../../../../db/actions/win_loss_history_actions';
-import { Game } from '../../../../db/models/game';
-import { GameHistory } from '../../../../db/models/game_history';
-import { Player } from '../../../../db/models/player';
-import { WinLossHistory } from '../../../../db/models/win_loss_history';
+import Game from '../../../../db/models/Game';
+import GameHistory from '../../../../db/models/game_history';
+import Player from '../../../../db/models/player';
+import WinLossHistory from '../../../../db/models/win_loss_history';
 import { readConfigFromEnv } from '../../setEnv';
 import { createGame } from './GameActionsSpec';
 import { createGameHistory } from './GameHistoryActionsSpec';

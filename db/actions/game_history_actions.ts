@@ -1,6 +1,7 @@
-import { GameHistory } from '../models/game_history';
-import { GameHistoryPlayer } from '../models/game_history_player';
-import { Player } from '../models/player';
+import { Sequelize } from '../../node_modules/sequelize-typescript';
+import GameHistory from '../models/game_history';
+import GameHistoryPlayer from '../models/game_history_player';
+import Player from '../models/player';
 
 class Actions {
     create(gameId: number) {
@@ -43,7 +44,7 @@ class Actions {
         return GameHistoryPlayer.findAll({
             where: {
                 gameHistoryId: {
-                    $in: gameHistories
+                    [Sequelize.Op.in]: gameHistories
                 },
                 playerId: player.id
             },

@@ -5,7 +5,7 @@ import { Cribbage } from '../../../../card_service/implementations/cribbage';
 import { CribbageHand } from '../../../../card_service/implementations/cribbage_hand';
 import { CribbagePlayer } from '../../../../card_service/implementations/cribbage_player';
 import { GameHistoryPlayerActions } from '../../../../db/actions/game_history_player_actions';
-import { Player } from '../../../../db/models/player';
+import Player from '../../../../db/models/player';
 import { getErrorMessage } from '../../../lib';
 import { ResponseCode } from '../../../response_code';
 import { DBRoutes } from '../../database';
@@ -19,7 +19,7 @@ import {
 
 export class ActiveGames {
     /**
-     * Association of player_id to game_history ID, i.e. this map will track
+     * Association of player id to game_history ID, i.e. this map will track
      * whether or not the player is in an active game. This should
      * allow playerIDs to not type the ID of the associated game with
      * every command: they just join a game and this class knows
@@ -176,7 +176,7 @@ export class ActiveGames {
      * Begin the new game
      * @param refPlayer the player beginning the game -- they must be part of the new game to begin it
      * @param cribbageID the ID of the Cribbage game in the database
-     * @param players the association of a player's name to their player_id in the database. This
+     * @param players the association of a player's name to their player id in the database. This
      * is just used for reference, these aren't the actual players joining the game
      */
     public async beginGame(refPlayer: string, cribbageID: number, players: Map<string, number>): Promise<GameAssociationResponse> {
@@ -212,11 +212,10 @@ export class ActiveGames {
             this.activeGames.set(gameHistoryID, gameAssociation);
             // Set the player game associations
             const pids: number[] = [];
-            playerIDs.forEach((playerID: number) => {
+            for (const playerID of playerIDs) {
                 this.playerGame.set(playerID, gameHistoryID);
                 pids.push(playerID);
-            });
-            await GameHistoryPlayerActions.createAssociations(gameHistoryID, pids);
+            }
             // Create a fresh game for players to join
             this.newGame = new Cribbage(new Players([]));
             // Resolve
@@ -303,8 +302,9 @@ export class ActiveGames {
     /**
      * Get the given player's current game
      * @param playerID
+     * @param playerName
      */
-    public getPlayerGame(playerID: number): CurrentGameResponse {
+    public getPlayerGame(playerID: number, playerName: string): CurrentGameResponse {
         if (!this.playerGame.has(playerID)) {
             return <CurrentGameResponse>makeErrorResponse(ActiveGames.PLAYER_NOT_IN_GAME);
         }

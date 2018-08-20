@@ -43,7 +43,7 @@ describe('Test the Standard Deck\'s functionality', function () {
     });
     it('randomly draws a card and does not put it back', function () {
         const card = deck.randomDraw(false);
-        expect(deck.items).not.toContain(card);
+        expect(deck.items).toNotContain(card);
     });
     it('prints all the cards correctly', function () {
         for (let ix = 0; ix < deck.countItems(); ix++) {

@@ -2,11 +2,11 @@ To run the tests:
   
   * create .env files under the spec/ and spec/db/postgres/integration directories, these .env files need to contain:
     ```
-    PG_HOST     (e.g. PG_HOST=localhost)
-    PG_PORT     (e.g. PG_PORT=5432)
-    PG_DB       (e.g. PG_DB=slackcardservice)
-    PG_USER     (e.g. PG_USER=postgres)
-    PG_PASS     (e.g. PG_PASS=password)      
+    DB_HOST     (e.g. DB_HOST=localhost)
+    DB_PORT     (e.g. DB_PORT=5432)
+    DB_NAME       (e.g. DB_NAME=slackcardservice)
+    DB_USER     (e.g. DB_USER=postgres)
+    DB_PASS     (e.g. DB_PASS=password)      
     ST_JOIN     (e.g. ST_JOIN_GAME=abcd123)
     ST_DESCRIBE (e.g. ST_DESCRIBE=abcd123)
     ST_RESET    (e.g. ST_RESET_GAME=abcd123)
@@ -26,13 +26,13 @@ Here are my WebStorm test runner configurations:
 ![Basic unit tests for the service][service_tests]
 
 ### Postgres database unit tests
-![Postgres database unit tests][pg_db_unit_tests]
+![Postgres database unit tests][DB_NAME_unit_tests]
 
 ### Generic database unit tests
 ![Generic database unit tests][db_unit_tests]
 
 ### Postgres database integration tests
-![Postgres database integration tests][pg_db_integration_tests]
+![Postgres database integration tests][DB_NAME_integration_tests]
 
 ### All tests (using the Multirun plugin)
 **Note the delay of 1 second in between, this will prevent the integration
@@ -50,8 +50,8 @@ failing, then try increasing the delay time**
 
 [node_app_tests]: img/node_app_tests.png
 [service_tests]: img/service_tests.png
-[pg_db_unit_tests]: img/pg_db_unit_tests.png
+[DB_NAME_unit_tests]: img/DB_NAME_unit_tests.png
 [db_unit_tests]: img/db_unit_tests.png
-[pg_db_integration_tests]: img/pg_db_integration_tests.png
+[DB_NAME_integration_tests]: img/DB_NAME_integration_tests.png
 [all_tests]: img/all_tests.png
 

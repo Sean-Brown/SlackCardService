@@ -1,13 +1,18 @@
-import { Player } from '../models/player';
-import { WinLossHistory } from '../models/win_loss_history';
+import Player from '../models/player';
+import WinLossHistory from '../models/win_loss_history';
 
 class Actions {
-    get(playerName: string) {
+    async get(playerName: string) {
+        const player = await Player.findOne({
+            attributes: ['id'],
+            where: {
+                name: playerName
+            }
+        });
         return WinLossHistory.findAll({
-            include: [{
-                model: Player,
-                where: { name: playerName }
-            }]
+            where: {
+                playerId: player.id
+            }
         });
     }
 }

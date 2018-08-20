@@ -1,6 +1,6 @@
 import { Cribbage, CribbageReturn } from '../../../../card_service/implementations/cribbage';
 import { CribbageHand } from '../../../../card_service/implementations/cribbage_hand';
-import { Player } from '../../../../db/models/player';
+import Player from '../../../../db/models/player';
 import { ResponseCode } from '../../../response_code';
 import { GameAssociation } from './game_association';
 

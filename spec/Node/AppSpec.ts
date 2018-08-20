@@ -1,11 +1,11 @@
 import * as expect from 'expect';
-import {Application} from 'express';
-import {request} from 'supertest';
+import { Application } from 'express';
+import * as request from 'supertest';
 import truncate from '../db/postgres/integration/truncate';
-import {createNewServer} from './setup';
+import { createNewServer } from './setup';
 
 describe('Run the app', function () {
-    const app: Application = null;
+    let app: Application = null;
     /*
      Before all the tests run, make sure to create a fresh instance of the application
      in order to ensure the state of the server is reset between each test run. Also
@@ -14,11 +14,11 @@ describe('Run the app', function () {
     beforeEach(async function () {
         // Asynchronously drop the schema
         await truncate();
-        await createNewServer(app);
+        app = await createNewServer();
     });
     // After all the tests have run, drop the tables
     afterEach(async function () {
-        // Asynchronously drop the schema
+        // Drop the schema
         await truncate();
     });
 

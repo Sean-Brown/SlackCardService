@@ -1,9 +1,9 @@
 import * as expect from 'expect';
 import { GameHistoryPlayerActions } from '../../../../db/actions/game_history_player_actions';
-import { Game } from '../../../../db/models/game';
-import { GameHistory } from '../../../../db/models/game_history';
-import { GameHistoryPlayer } from '../../../../db/models/game_history_player';
-import { Player } from '../../../../db/models/player';
+import Game from '../../../../db/models/Game';
+import GameHistory from '../../../../db/models/game_history';
+import GameHistoryPlayer from '../../../../db/models/game_history_player';
+import Player from '../../../../db/models/player';
 import { readConfigFromEnv } from '../../setEnv';
 import { createGame } from './GameActionsSpec';
 import { createGameHistory } from './GameHistoryActionsSpec';
@@ -17,7 +17,7 @@ async function createGameHistoryPlayer(playerId: number, gameHistoryId: number):
         return result[0];
     }
     catch (e) {
-        expect(e).not.toBeNull('Should have returned a null result');
+        expect(e).toBeTruthy('Should have returned a null result');
         return null;
     }
 }
@@ -78,7 +78,7 @@ describe('Test the \'game-history-player\' actions', function () {
         try {
             await createGameHistoryPlayer(player.id, gameHistory.id);
             const result = await GameHistoryPlayerActions.findAssociation(player.id, gameHistory.id);
-            expect(result).not.toBeNull();
+            expect(result).toBeTruthy();
         }
         catch (e) {
             // fail the test

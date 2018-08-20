@@ -1,6 +1,6 @@
 import * as expect from 'expect';
 import { PlayerActions } from '../../../../db/actions/player_actions';
-import { Player } from '../../../../db/models/player';
+import Player from '../../../../db/models/player';
 import { readConfigFromEnv } from '../../setEnv';
 import { fail } from './helpers';
 import truncate from './truncate';

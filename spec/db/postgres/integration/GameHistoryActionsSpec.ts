@@ -1,8 +1,8 @@
 import * as expect from 'expect';
 import { GameHistoryActions } from '../../../../db/actions/game_history_actions';
 import { GameHistoryPlayerActions } from '../../../../db/actions/game_history_player_actions';
-import { Game } from '../../../../db/models/game';
-import { GameHistory } from '../../../../db/models/game_history';
+import Game from '../../../../db/models/Game';
+import GameHistory from '../../../../db/models/game_history';
 import { readConfigFromEnv } from '../../setEnv';
 import { createGame } from './GameActionsSpec';
 import { fail } from './helpers';
@@ -81,7 +81,7 @@ describe('Test the \'game-history\' actions', function () {
         expect(gh1.began.valueOf()).toBeLessThan(gh2.began.valueOf());
         // End game 2
         const result = await GameHistoryActions.endGame(gh2.id);
-        expect(result).not.toBeNull();
+        expect(result).toBeTruthy();
         // Finding the most recent game history should now return game-history 1
         const ghReturn = await GameHistoryActions.findMostRecent(game.id);
         expect(ghReturn.id).toEqual(gh1.id, 'The most recent game-history result should have been the first game since that one has not yet ended');
@@ -92,7 +92,7 @@ describe('Test the \'game-history\' actions', function () {
         const result = await GameHistoryActions.endGame(gh.id);
         const first = result['1'][0];
         expect(first.id).toEqual(gh.id);
-        expect(first.ended).not.toBeNull('Expected an \'ended\' timestamp');
+        expect(first.ended).toBeTruthy('Expected an \'ended\' timestamp');
         expect(first.began.valueOf()).toBeLessThan(first.ended.valueOf(), 'Expected the game to end AFTER it began');
         done();
     });
