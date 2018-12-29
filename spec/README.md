@@ -4,7 +4,7 @@ To run the tests:
     ```
     DB_HOST     (e.g. DB_HOST=localhost)
     DB_PORT     (e.g. DB_PORT=5432)
-    DB_NAME       (e.g. DB_NAME=slackcardservice)
+    DB_NAME     (e.g. DB_NAME=slackcardservice)
     DB_USER     (e.g. DB_USER=postgres)
     DB_PASS     (e.g. DB_PASS=password)      
     ST_JOIN     (e.g. ST_JOIN_GAME=abcd123)
